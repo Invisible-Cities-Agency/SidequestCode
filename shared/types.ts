@@ -31,9 +31,9 @@ export interface WatchState {
   isInitialized: boolean;
   sessionStart: number;
   lastUpdate: number;
-  baseline: ViolationSummary | null;
+  baseline: ViolationSummary | undefined;
   current: ViolationSummary;
-  viewMode: 'dashboard' | 'tidy';
+  viewMode: 'dashboard' | 'tidy' | 'burndown';
   currentViolations: import('../utils/violation-types.js').Violation[];
 }
 
@@ -106,8 +106,8 @@ export interface ValidationConfiguration {
 export class DisplayError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
-    public readonly context?: Record<string, unknown>
+    public readonly code: string, // eslint-disable-line no-unused-vars
+    public readonly context?: Record<string, unknown> // eslint-disable-line no-unused-vars
   ) {
     super(message);
     this.name = 'DisplayError';
@@ -117,8 +117,8 @@ export class DisplayError extends Error {
 export class TerminalDetectionError extends Error {
   constructor(
     message: string,
-    public readonly method: string,
-    public readonly originalError?: Error
+    public readonly method: string, // eslint-disable-line no-unused-vars
+    public readonly originalError?: Error // eslint-disable-line no-unused-vars
   ) {
     super(message);
     this.name = 'TerminalDetectionError';
@@ -137,12 +137,12 @@ export interface WatchDisplayEvents {
   'shutdown': [];
 }
 
-export type EventListener<T extends readonly unknown[]> = (...arguments_: T) => void;
+export type EventListener<T extends readonly unknown[]> = (..._arguments: T) => void;
 
 export interface TypedEventEmitter<TEvents extends Record<string, readonly unknown[]>> {
-  on<K extends keyof TEvents>(event: K, listener: EventListener<TEvents[K]>): void;
-  off<K extends keyof TEvents>(event: K, listener: EventListener<TEvents[K]>): void;
-  emit<K extends keyof TEvents>(event: K, ...arguments_: TEvents[K]): void;
+  on<K extends keyof TEvents>(_event: K, _listener: EventListener<TEvents[K]>): void;
+  off<K extends keyof TEvents>(_event: K, _listener: EventListener<TEvents[K]>): void;
+  emit<K extends keyof TEvents>(_event: K, ..._arguments: TEvents[K]): void;
 }
 
 // ============================================================================

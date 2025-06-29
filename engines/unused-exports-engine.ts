@@ -29,8 +29,18 @@ export class UnusedExportsEngine extends BaseAuditEngine {
     _options: Record<string, unknown>
   ): Promise<Violation[]> {
     try {
-      // Run ts-unused-exports command
-      const { stdout, stderr } = await execPromise('npx ts-unused-exports tsconfig.json --showLineNumber', {
+      // Run ts-unused-exports command with smart filtering to reduce false positives
+      const command = [
+        'npx ts-unused-exports tsconfig.json',
+        '--showLineNumber',
+        '--allowUnusedTypes',  // Allow unused type/interface exports (often part of public API)
+        '--excludeDeclarationFiles',  // Skip .d.ts files
+        '--ignoreTestFiles',  // Focus on production code
+        '--ignoreLocallyUsed',  // Don't report exports used in same file
+        '--excludePathsFromReport=shared/types;shared/constants;utils/types'  // Exclude likely public API files
+      ].join(' ');
+      
+      const { stdout, stderr } = await execPromise(command, {
         cwd: process.cwd(),
         timeout: this.config.timeout || 30_000
       });
@@ -109,6 +119,11 @@ export class UnusedExportsEngine extends BaseAuditEngine {
    * Categorize unused exports based on file path and export name
    */
   private categorizeUnusedExport(filePath: string, exportName: string): ViolationCategory {
+    // Public API indicators - likely intentional exports
+    if (this.isLikelyPublicAPI(filePath, exportName)) {
+      return 'best-practices'; // Lower severity for potential public API
+    }
+
     // Type definitions are usually less critical
     if (filePath.includes('/types.ts') || filePath.endsWith('types.ts')) {
       return 'unused-code';
@@ -129,9 +144,46 @@ export class UnusedExportsEngine extends BaseAuditEngine {
   }
 
   /**
+   * Detect patterns that suggest this export is part of a public API
+   */
+  private isLikelyPublicAPI(filePath: string, exportName: string): boolean {
+    // Service classes that likely have factory functions
+    if (exportName.endsWith('Service') || exportName.endsWith('Engine') || exportName.endsWith('Manager')) {
+      return true;
+    }
+
+    // Class constructors that are likely used indirectly
+    if (exportName.endsWith('Display') || exportName.endsWith('Tracker') || exportName.endsWith('Detector')) {
+      return true;
+    }
+
+    // Index files are usually public API entry points
+    if (filePath.endsWith('/index.ts') || filePath.endsWith('index.ts')) {
+      return true;
+    }
+
+    // Shared modules are often public API
+    if (filePath.includes('/shared/') || filePath.includes('shared/')) {
+      return true;
+    }
+
+    // Configuration and constants often exported for external use
+    if (exportName.includes('DEFAULT_') || exportName.includes('VALIDATION_') || exportName.includes('CONFIG')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Determine severity based on context
    */
   private getSeverityForUnusedExport(filePath: string, exportName: string): ViolationSeverity {
+    // Likely public API exports should be informational only
+    if (this.isLikelyPublicAPI(filePath, exportName)) {
+      return 'info'; // Low severity - might be intentional public API
+    }
+
     // Core API exports should be warnings (might be used externally)
     if (filePath.includes('index.ts') || exportName === 'default') {
       return 'warn';

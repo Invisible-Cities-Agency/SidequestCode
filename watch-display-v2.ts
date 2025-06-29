@@ -3,8 +3,7 @@
  * Shows current state, trends, and actionable insights
  */
 
-import type { Violation as OrchestratorViolation } from './utils/violation-types.js';
-import { getCategoryLabel } from './utils/violation-types.js';
+import { getCategoryLabel, type Violation as OrchestratorViolation } from './utils/violation-types.js';
 import { detectTerminalModeHeuristic } from './terminal-detector.js';
 import {
   ANSI_CODES,
@@ -29,9 +28,9 @@ export class DeveloperWatchDisplay {
       isInitialized: false,
       sessionStart: Date.now(),
       lastUpdate: 0,
-      baseline: null,
+      baseline: undefined,
       current: { total: 0, bySource: {}, byCategory: {} },
-      viewMode: 'dashboard',
+      viewMode: 'dashboard', // 'dashboard' | 'tidy' | 'burndown'
       currentViolations: []
     };
     this.colors = this.createColorScheme();
@@ -39,8 +38,10 @@ export class DeveloperWatchDisplay {
     this.captureOutput();
   }
 
+  private colorModeOverride: TerminalMode | undefined = undefined;
+
   private createColorScheme(): ColorScheme {
-    const mode: TerminalMode = detectTerminalModeHeuristic();
+    const mode: TerminalMode = this.colorModeOverride || detectTerminalModeHeuristic();
     const colorSet = mode === 'dark' ? ANSI_CODES.DARK : ANSI_CODES.LIGHT;
 
     return {
@@ -56,6 +57,23 @@ export class DeveloperWatchDisplay {
       muted: colorSet.MUTED,
       accent: colorSet.ACCENT
     };
+  }
+
+  /**
+   * Toggle between light and dark color schemes
+   */
+  private toggleColorScheme(): void {
+    if (this.colorModeOverride === undefined) {
+      // First toggle - determine current mode and switch to opposite
+      const currentMode = detectTerminalModeHeuristic();
+      this.colorModeOverride = currentMode === 'dark' ? 'light' : 'dark';
+    } else {
+      // Toggle between the two modes
+      this.colorModeOverride = this.colorModeOverride === 'dark' ? 'light' : 'dark';
+    }
+
+    // Recreate color scheme with new mode
+    this.colors = this.createColorScheme();
   }
 
   private captureOutput(): void {
@@ -97,22 +115,40 @@ export class DeveloperWatchDisplay {
       process.stdin.setEncoding('utf8');
 
       process.stdin.on('data', (key: string) => {
-        // Handle Ctrl+T (0x14 in ASCII) - toggle view mode
+        // Handle keyboard shortcuts
         switch (key) {
-        case '\u0014': {
-          this.toggleViewMode();
-
+        case '\u0014': { // Ctrl+T - Tidy view
+          this.state.viewMode = 'tidy';
+          this.renderCurrentView().catch(console.error);
           break;
         }
-        case '\u001B': {
-          if (this.state.viewMode === 'tidy') {
-            this.state.viewMode = 'dashboard';
+        case '\u0002': { // Ctrl+B - Burndown mode
+          this.state.viewMode = 'burndown';
+          this.renderCurrentView().catch(console.error);
+          break;
+        }
+        case ' ': { // Spacebar - Manual refresh in burndown mode
+          if (this.state.viewMode === 'burndown') {
             this.renderCurrentView().catch(console.error);
           }
-
           break;
         }
-        case '\u0003': {
+        case '\u000D': { // Ctrl+M - Monitor mode (back to dashboard)
+          this.state.viewMode = 'dashboard';
+          this.renderCurrentView().catch(console.error);
+          break;
+        }
+        case '\u0004': { // Ctrl+D - Toggle dark/light mode
+          this.toggleColorScheme();
+          this.renderCurrentView().catch(console.error);
+          break;
+        }
+        case '\u001B': { // Escape - back to dashboard
+          this.state.viewMode = 'dashboard';
+          this.renderCurrentView().catch(console.error);
+          break;
+        }
+        case '\u0003': { // Ctrl+C - Exit
           process.stdin.setRawMode(false);
           process.exit(0);
         }
@@ -122,32 +158,32 @@ export class DeveloperWatchDisplay {
     }
   }
 
-  /**
-   * Toggle between dashboard and tidy view modes
-   */
-  private toggleViewMode(): void {
-    this.state.viewMode = this.state.viewMode === 'dashboard' ? 'tidy' : 'dashboard';
-    this.renderCurrentView().catch(console.error);
-  }
 
   /**
    * Render the current view based on state.viewMode
    */
-  private async renderCurrentView(): Promise<void> {
+  private renderCurrentView(): Promise<void> {
     if (this.state.viewMode === 'tidy') {
       this.renderTidyView();
+    } else if (this.state.viewMode === 'burndown') {
+      this.renderBurndownView();
     } else {
       this.renderDashboardView();
     }
+    return Promise.resolve();
   }
 
   /**
    * Render a clean diagnostic view showing only actual issues
    */
   private renderTidyView(): void {
-    // Clear screen and show header
-    process.stdout.write('\u001B[2J\u001B[H');
-    process.stdout.write(`${this.colors.bold}${this.colors.info}🔍 Tidy Diagnostics View${this.colors.reset}\n`);
+    // Clear screen completely and reset position
+    process.stdout.write('\u001B[?25l'); // Hide cursor
+    process.stdout.write('\u001B[2J');   // Clear entire screen
+    process.stdout.write('\u001B[3J');   // Clear scrollback buffer
+    process.stdout.write('\u001B[H');    // Move cursor to home
+    process.stdout.write(`${this.colors.bold}${this.colors.info}🔍 Comprehensive Analysis View${this.colors.reset}\n`);
+    process.stdout.write(`${this.colors.secondary}Shows all findings (errors, warnings, and info)${this.colors.reset}\n`);
     process.stdout.write(`${this.colors.secondary}${'─'.repeat(80)}${this.colors.reset}\n\n`);
 
     if (this.state.currentViolations.length === 0) {
@@ -170,11 +206,14 @@ export class DeveloperWatchDisplay {
 
         process.stdout.write(`${severityIcon} ${this.colors.info}${file}${this.colors.reset} ${this.colors.secondary}(${violations.length} issues)${this.colors.reset}\n`);
 
-        // Show each violation in compact format
+        // Show each violation in compact format with severity indicators
         for (const violation of violations.slice(0, 5)) { // Limit to 5 per file for tidiness
           const sourceIcon = violation.source === 'typescript' ? '📝' :
             (violation.source === 'eslint' ? '🔍' : '🗂️');
-          process.stdout.write(`  ${sourceIcon} ${this.colors.secondary}Line ${violation.line}:${this.colors.reset} ${violation.message}\n`);
+          const severityColor = violation.severity === 'error' ? this.colors.error :
+            (violation.severity === 'warn' ? this.colors.warning : this.colors.muted);
+          const severityLabel = violation.severity === 'info' ? `${this.colors.muted}[info]${this.colors.reset} ` : '';
+          process.stdout.write(`  ${sourceIcon} ${severityColor}Line ${violation.line}:${this.colors.reset} ${severityLabel}${violation.message}\n`);
         }
 
         if (violations.length > 5) {
@@ -185,29 +224,244 @@ export class DeveloperWatchDisplay {
     }
 
     process.stdout.write(`${this.colors.muted}Press Ctrl+T or Esc to return to dashboard | Ctrl+C to stop watching...${this.colors.reset}\n`);
+    process.stdout.write('\u001B[?25h'); // Show cursor
   }
 
   /**
    * Render the full dashboard view (original view)
    */
   private renderDashboardView(): void {
-    // Clear screen and recreate the dashboard
+    // Clear screen completely and reset position
+    process.stdout.write('\u001B[?25l'); // Hide cursor
+    process.stdout.write('\u001B[2J');   // Clear entire screen
+    process.stdout.write('\u001B[3J');   // Clear scrollback buffer
+    process.stdout.write('\u001B[H');    // Move cursor to home
     this.state.isInitialized = false;
     // The next updateDisplay call will recreate the dashboard
   }
 
-  async updateDisplay(violations: OrchestratorViolation[], checksCount: number, orchestrator?: any): Promise<void> {
-    // Store current violations for tidy view
-    this.state.currentViolations = violations;
+  /**
+   * Render the burndown progress view for active fixing sessions
+   */
+  private renderBurndownView(checksCount?: number, _actionableViolations?: OrchestratorViolation[]): void {
+    const { colors } = this;
+    const { sessionStart, currentViolations, baseline, current } = this.state;
+    const sessionDuration = Math.floor((Date.now() - sessionStart) / 1000);
+    const timestamp = new Date().toLocaleTimeString();
 
-    // If in tidy mode, just update the tidy view and return
+    // Clear screen completely and reset position
+    process.stdout.write('\u001B[?25l'); // Hide cursor
+    process.stdout.write('\u001B[2J');   // Clear entire screen
+    process.stdout.write('\u001B[3J');   // Clear scrollback buffer
+    process.stdout.write('\u001B[H');    // Move cursor to home
+    process.stdout.write(`${colors.bold}${colors.error}🔥 SideQuest Burndown Dashboard${colors.reset}\n`);
+    process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n\n`);
+
+    process.stdout.write(`Session Goal: Fix Critical Issues • Started: ${timestamp} • ${Math.floor(sessionDuration / 60)}m ${sessionDuration % 60}s • Checks: ${checksCount || 0}\n\n`);
+
+    // Progress This Session
+    process.stdout.write('Progress This Session:\n');
+    process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
+
+    // Find the largest category to show as "working on"
+    const currentData = this.processViolations(currentViolations);
+    const topCategory = Object.entries(currentData.byCategory)
+      .sort(([,a], [,b]) => b - a)[0];
+
+    if (topCategory) {
+      const [categoryKey, count] = topCategory;
+      const categoryName = this.getCategoryDisplayName(categoryKey);
+      process.stdout.write(`▶️ Working on: ${categoryName} (${count} remaining)\n`);
+    } else {
+      process.stdout.write('▶️ Working on: No issues found\n');
+    }
+
+    // Calculate session progress if baseline exists
+    let fixedIssues = 0;
+    let addedIssues = 0;
+    if (baseline) {
+      const baselineTotal = baseline.total;
+      const currentTotal = current.total;
+      const netChange = currentTotal - baselineTotal;
+
+      if (netChange < 0) {
+        fixedIssues = Math.abs(netChange);
+      } else if (netChange > 0) {
+        addedIssues = netChange;
+      }
+    }
+
+    process.stdout.write(`✅ Fixed: ${fixedIssues} issues\n`);
+    process.stdout.write(`📈 Added: ${addedIssues} new issues\n`);
+    process.stdout.write(`📊 Net Progress: ${fixedIssues - addedIssues >= 0 ? '+' : ''}${fixedIssues - addedIssues}\n\n`);
+
+    // Focus Queue with Progress Bars
+    process.stdout.write('Focus Queue:                                             Progress\n');
+    process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
+
+    // Get real-time data from current violations
+    const violationData = this.processViolations(currentViolations);
+    const maxCount = Math.max(...Object.values(violationData.byCategory), 1);
+
+    // ESLint Categories (ordered by count from monitor data)
+    process.stdout.write('🔍 ESLint Categories:\n');
+    const eslintCategoryData = [
+      { key: 'unused-vars', name: 'Unused Variables', severity: '⚠️' },
+      { key: 'modernization', name: 'Modernization', severity: 'ℹ️' },
+      { key: 'style', name: 'Code Style', severity: '⚠️' },
+      { key: 'code-quality', name: 'Code Quality', severity: '⚠️' },
+      { key: 'other-eslint', name: 'Other ESLint', severity: 'ℹ️' }
+    ];
+
+    for (const category of eslintCategoryData) {
+      const count = violationData.byCategory[category.key] || 0;
+      if (count > 0) {
+        const progressBar = this.createProgressBar(count, maxCount);
+        process.stdout.write(`  ${category.severity} ${category.name.padEnd(20)} ${count.toString().padStart(3)} ${progressBar}\n`);
+      }
+    }
+
+    process.stdout.write('\n📝 TypeScript Categories:\n');
+    const tsCategoryData = [
+      { key: 'best-practices', name: 'Best Practices', severity: 'ℹ️' },
+      { key: 'type-alias', name: 'Type Issues', severity: '❌' },
+      { key: 'inheritance', name: 'Class/Override', severity: 'ℹ️' }
+    ];
+
+    for (const category of tsCategoryData) {
+      const count = violationData.byCategory[category.key] || 0;
+      if (count > 0) {
+        const progressBar = this.createProgressBar(count, maxCount);
+        process.stdout.write(`  ${category.severity} ${category.name.padEnd(20)} ${count.toString().padStart(3)} ${progressBar}\n`);
+      }
+    }
+
+    // Unused Exports
+    const unusedExportsCount = violationData.bySource['unused-exports'] || 0;
+    if (unusedExportsCount > 0) {
+      process.stdout.write(`\n🗂️ Unused Exports ${' '.repeat(20)} ${unusedExportsCount} ${this.createProgressBar(unusedExportsCount, maxCount)}\n\n`);
+    }
+
+    // Zod Validation Health (using real-time data)
+    const zodViolations = currentViolations.filter(v => v.source === 'zod-detection');
+    if (zodViolations.length > 0) {
+      process.stdout.write('🛡️ Zod Validation Health\n');
+      process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
+
+      // Extract real coverage data from violations
+      const coverageViolation = zodViolations.find(v => v.message && v.message.includes('coverage is'));
+      const parseRatioViolation = zodViolations.find(v => v.message && v.message.includes('parse() vs'));
+
+      let coverage = '0';
+      let unsafeCalls = '0';
+
+      if (coverageViolation?.message) {
+        const coverageMatch = coverageViolation.message.match(/coverage is ([.\\d]+)%/);
+        if (coverageMatch) {coverage = coverageMatch[1] || '0';}
+      }
+
+      if (parseRatioViolation?.message) {
+        const parseMatch = parseRatioViolation.message.match(/(\\d+) \\.parse\\(\\)/);
+        if (parseMatch) {unsafeCalls = parseMatch[1] || '0';}
+      }
+
+      const coverageNumber = Number.parseFloat(coverage);
+      const progressBars = Math.floor((coverageNumber / 100) * 30);
+      const emptyBars = 30 - progressBars;
+
+      process.stdout.write(`Coverage: ${coverage}% ${'█'.repeat(progressBars)}${'░'.repeat(emptyBars)} Target: 70%\n`);
+      process.stdout.write(`Parse Safety: ${unsafeCalls} unsafe calls need fixing\n\n`);
+    }
+
+    // Quick Wins (using real-time data)
+    process.stdout.write('Quick Wins Available:\n');
+    process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
+    const styleCount = violationData.byCategory['style'] || 0;
+    const modernizationCount = violationData.byCategory['modernization'] || 0;
+    const codeQualityCount = violationData.byCategory['code-quality'] || 0;
+    const bestPracticesCount = violationData.byCategory['best-practices'] || 0;
+
+    if (styleCount > 0) {
+      process.stdout.write(`• ${styleCount} Code Style issues (ESLint --fix can resolve most)\n`);
+    }
+    if (modernizationCount > 0) {
+      process.stdout.write(`• ${modernizationCount} Modernization opportunities (prefer-const, unicorn rules)\n`);
+    }
+    if (codeQualityCount > 0) {
+      process.stdout.write(`• ${codeQualityCount} Code Quality improvements (undef, console, await)\n`);
+    }
+    if (bestPracticesCount > 0) {
+      process.stdout.write(`• ${bestPracticesCount} Best Practice improvements\n`);
+    }
+    if (styleCount === 0 && modernizationCount === 0 && codeQualityCount === 0 && bestPracticesCount === 0) {
+      process.stdout.write('• No quick wins available - focus on manual fixes\n');
+    }
+    process.stdout.write('\n');
+
+    process.stdout.write(`Session Stats: ${fixedIssues} fixed • ${current.total} remaining • ETA: --:-- (${fixedIssues > 0 ? 'progress detected!' : 'start fixing to estimate'})\n`);
+    process.stdout.write(`${colors.muted}Ctrl+M: Monitor • Ctrl+T: Tidy • Ctrl+D: Toggle Colors • Ctrl+C: Exit${colors.reset}\n`);
+    process.stdout.write('\u001B[?25h'); // Show cursor
+  }
+
+  /**
+   * Create a progress bar for burndown mode
+   */
+  private createProgressBar(current: number, max: number, width: number = 32): string {
+    const filled = Math.floor((current / max) * width);
+    const empty = width - filled;
+    return '█'.repeat(filled) + '░'.repeat(empty);
+  }
+
+  /**
+   * Filter violations to show only actionable issues (errors + warnings)
+   * Info-level items are just noise in watch mode
+   */
+  private filterActionableViolations(violations: OrchestratorViolation[]): OrchestratorViolation[] {
+    return violations.filter(violation => 
+      violation.severity === 'error' || violation.severity === 'warn'
+    );
+  }
+
+  /**
+   * Get display name for category keys
+   */
+  private getCategoryDisplayName(categoryKey: string): string {
+    const displayNames: Record<string, string> = {
+      'unused-vars': 'Unused Variables',
+      'other-eslint': 'Other ESLint',
+      'modernization': 'Modernization',
+      'style': 'Code Style',
+      'best-practices': 'Best Practices',
+      'type-alias': 'Type Issues',
+      'inheritance': 'Class/Override',
+      'unused-code': 'Unused Code',
+      'code-quality': 'Code Quality'
+    };
+
+    return displayNames[categoryKey] || categoryKey.replaceAll('-', ' ').replaceAll(/\b\w/g, l => l.toUpperCase());
+  }
+
+  async updateDisplay(violations: OrchestratorViolation[], checksCount: number, orchestrator?: any): Promise<void> {
+    // Store current violations for all view modes
+    this.state.currentViolations = violations;
+    
+    // Filter violations for actionable display (errors + warnings only)
+    const actionableViolations = this.filterActionableViolations(violations);
+
+    // If in tidy mode, show ALL violations (comprehensive view)
     if (this.state.viewMode === 'tidy') {
       this.renderTidyView();
       return;
     }
 
-    // Process current violations
-    const current = this.processViolations(violations);
+    // If in burndown mode, show actionable violations only
+    if (this.state.viewMode === 'burndown') {
+      this.renderBurndownView(checksCount, actionableViolations);
+      return;
+    }
+
+    // Process actionable violations for dashboard mode (watch focus)
+    const current = this.processViolations(actionableViolations);
 
     // Set baseline on first run
     if (!this.state.baseline) {
@@ -283,31 +537,38 @@ export class DeveloperWatchDisplay {
 
   private render(checksCount: number, todayData?: TodayProgressData | null): void {
     const { colors } = this;
-    const sessionDuration = Math.floor((this.state.lastUpdate - this.state.sessionStart) / 1000);
+    const { lastUpdate, sessionStart, current, baseline } = this.state;
+    const sessionDuration = Math.floor((lastUpdate - sessionStart) / 1000);
     const timestamp = new Date().toLocaleTimeString();
 
-    // Clear screen
-    process.stdout.write('\u001B[2J\u001B[H');
+    // Clear screen completely and reset position
+    process.stdout.write('\u001B[?25l'); // Hide cursor
+    process.stdout.write('\u001B[2J');   // Clear entire screen
+    process.stdout.write('\u001B[3J');   // Clear scrollback buffer
+    process.stdout.write('\u001B[H');    // Move cursor to home
 
     // Header
     process.stdout.write(`${colors.bold}${colors.accent}🔍 Code Quality Monitor${colors.reset}\n`);
+    process.stdout.write(`${colors.secondary}Showing actionable issues only (errors + warnings)${colors.reset}\n`);
     process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n\n`);
 
     // Current Status
-    const current = this.state.current;
-    const baseline = this.state.baseline!;
-    const totalDelta = current.total - baseline.total;
+    const baseline_ = baseline!;
+    const totalDelta = current.total - baseline_.total;
     const deltaColor = totalDelta > 0 ? colors.error : (totalDelta < 0 ? colors.success : colors.muted);
     const deltaText = totalDelta === 0 ? '' : ` (${totalDelta > 0 ? '+' : ''}${totalDelta})`;
 
     process.stdout.write(`${colors.bold}Current Issues: ${colors.primary}${current.total}${deltaColor}${deltaText}${colors.reset}\n`);
     process.stdout.write(`${colors.muted}Last check: ${timestamp} | Session: ${sessionDuration}s | Checks: ${checksCount}${colors.reset}\n\n`);
 
-    // By Source with severity breakdown
+    // By Source with severity breakdown (excluding zod-detection which has its own section)
     if (Object.keys(current.bySource).length > 0) {
       process.stdout.write(`${colors.warning}By Source:${colors.reset}\n`);
       for (const [source, count] of Object.entries(current.bySource).sort(([,a], [,b]) => b - a)) {
-        const baselineCount = baseline.bySource[source] || 0;
+        // Skip zod-detection as it has its own dedicated section
+        if (source === 'zod-detection') {continue;}
+
+        const baselineCount = baseline_.bySource[source] || 0;
         const delta = count - baselineCount;
         const deltaString = delta === 0 ? '' : ` (${delta > 0 ? '+' : ''}${delta})`;
         const deltaColor = delta > 0 ? colors.error : (delta < 0 ? colors.success : colors.reset);
@@ -343,6 +604,13 @@ export class DeveloperWatchDisplay {
       process.stdout.write('\n');
     }
 
+    // Enhanced Zod Analysis Section (if Zod violations exist) - show even in actionable mode since it's contextual
+    const allViolations = this.state.currentViolations; // Use all violations for Zod context
+    const zodViolations = allViolations.filter(v => v.source === 'zod-detection');
+    if (zodViolations.length > 0) {
+      this.renderZodAnalysisSection(zodViolations);
+    }
+
     // Top Issues (by category)
     const topCategories = Object.entries(current.byCategory)
       .sort(([,a], [,b]) => b - a)
@@ -352,7 +620,7 @@ export class DeveloperWatchDisplay {
       process.stdout.write(`${colors.warning}Top Issues:${colors.reset}\n`);
 
       for (const [category, count] of topCategories) {
-        const baselineCount = baseline.byCategory[category] || 0;
+        const baselineCount = baseline_.byCategory[category] || 0;
         const delta = count - baselineCount;
         const deltaString = delta === 0 ? '' : ` (${delta > 0 ? '+' : ''}${delta})`;
         const deltaColor = delta > 0 ? colors.error : (delta < 0 ? colors.success : colors.reset);
@@ -376,7 +644,7 @@ export class DeveloperWatchDisplay {
     let resolvedIssues = 0;
 
     for (const [category, count] of Object.entries(current.byCategory)) {
-      const baselineCount = baseline.byCategory[category] || 0;
+      const baselineCount = baseline_.byCategory[category] || 0;
       const delta = count - baselineCount;
 
       if (delta > 0) {
@@ -417,7 +685,74 @@ export class DeveloperWatchDisplay {
       }
     }
 
-    process.stdout.write(`\n${colors.muted}Press Ctrl+T for tidy diagnostics view | Ctrl+C to stop monitoring...${colors.reset}\n`);
+    process.stdout.write(`\n${colors.muted}Ctrl+B: Burndown • Ctrl+T: Comprehensive • Ctrl+D: Toggle Colors • Ctrl+C: Exit${colors.reset}\n`);
+    process.stdout.write('\u001B[?25h'); // Show cursor
+  }
+
+  /**
+   * Render enhanced Zod analysis section with coverage metrics
+   */
+  private renderZodAnalysisSection(zodViolations: OrchestratorViolation[]): void {
+    const { colors } = this;
+
+    process.stdout.write(`${colors.bold}${colors.accent}🛡️ Zod Analysis${colors.reset}\n`);
+    process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
+
+    // Extract Zod coverage data from violations
+    const coverageViolation = zodViolations.find(v => v.message && v.message.includes('coverage is'));
+    const parseRatioViolation = zodViolations.find(v => v.message && v.message.includes('parse() vs'));
+    const baselineViolation = zodViolations.find(v => v.message && v.message.includes('Target '));
+
+    // Extract coverage percentage
+    let coverage = '0';
+    let usedSchemas = '0';
+    let totalSchemas = '0';
+    if (coverageViolation && coverageViolation.message) {
+      const coverageMatch = coverageViolation.message.match(/coverage is ([\d.]+)% \((\d+)\/(\d+) schemas used\)/);
+      if (coverageMatch) {
+        coverage = coverageMatch[1] || '0';
+        usedSchemas = coverageMatch[2] || '0';
+        totalSchemas = coverageMatch[3] || '0';
+      }
+    }
+
+    // Extract parse safety data
+    let parseCallsCount = '0';
+    let safeParseCallsCount = '0';
+    if (parseRatioViolation && parseRatioViolation.message) {
+      const parseMatch = parseRatioViolation.message.match(/(\d+) \.parse\(\) vs (\d+) \.safeParse\(\)/);
+      if (parseMatch) {
+        parseCallsCount = parseMatch[1] || '0';
+        safeParseCallsCount = parseMatch[2] || '0';
+      }
+    }
+
+    // Extract risk level from coverage percentage
+    const coverageNumber = Number.parseFloat(coverage);
+    let riskLevel = 'High';
+    let riskColor = colors.error;
+    if (coverageNumber >= 80) {
+      riskLevel = 'Low';
+      riskColor = colors.success;
+    } else if (coverageNumber >= 50) {
+      riskLevel = 'Medium';
+      riskColor = colors.warning;
+    }
+
+    // Extract baseline recommendation
+    let baseline = 'General TypeScript project: Target 70%+ coverage';
+    if (baselineViolation && baselineViolation.message) {
+      const baselineMatch = baselineViolation.message.match(/Target ([^.]+)\./);
+      if (baselineMatch) {
+        baseline = `Target ${baselineMatch[1]}`;
+      }
+    }
+
+    // Display coverage metrics prominently
+    process.stdout.write(`${colors.secondary}  Coverage: ${colors.primary}${coverage}%${colors.reset} ${colors.secondary}(${usedSchemas}/${totalSchemas} schemas used)${colors.reset}\n`);
+    process.stdout.write(`${colors.secondary}  Risk Level: ${riskColor}${riskLevel}${colors.reset}\n`);
+    process.stdout.write(`${colors.secondary}  Parse Safety: ${colors.primary}${parseCallsCount} unsafe${colors.reset}${colors.secondary}, ${colors.primary}${safeParseCallsCount} safe${colors.reset} ${colors.secondary}calls${colors.reset}\n`);
+    process.stdout.write(`${colors.secondary}  Baseline: ${colors.info}${baseline}${colors.reset}\n\n`);
   }
 
   private getSeverity(category: string): 'error' | 'warn' | 'info' {
@@ -442,7 +777,7 @@ export class DeveloperWatchDisplay {
 }
 
 // Singleton
-let displayInstance: DeveloperWatchDisplay | undefined = undefined;
+let displayInstance: DeveloperWatchDisplay | undefined;
 
 export function getDeveloperWatchDisplay(): DeveloperWatchDisplay {
   if (!displayInstance) {
