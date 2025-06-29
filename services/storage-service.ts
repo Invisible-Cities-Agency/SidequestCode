@@ -634,7 +634,7 @@ export class StorageService {
 // Service Factory and Singleton
 // ============================================================================
 
-let storageServiceInstance: StorageService | null = null;
+let storageServiceInstance: StorageService | undefined = undefined;
 
 /**
  * Get or create storage service instance
@@ -650,5 +650,5 @@ export function getStorageService(config?: Partial<StorageServiceConfig>): Stora
  * Reset storage service instance (useful for testing)
  */
 export function resetStorageService(): void {
-  storageServiceInstance = null;
+  storageServiceInstance = undefined;
 }

@@ -88,7 +88,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     try {
       // Run tsc --noEmit with the found tsconfig (respecting their exact configuration)
       const result = spawnSync('npx', ['tsc', '--noEmit', '--project', tsConfigPath], {
-        encoding: 'utf-8',
+        encoding: 'utf8',
         cwd: this.baseDir,
         signal: this.abortController?.signal
       });
@@ -148,7 +148,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
 
     try {
       const result = spawnSync('npx', ['tsc', '--noEmit', '--target', 'ES2024', '--module', 'ESNext', '--strict', `${searchPath  }/**/*.ts`], {
-        encoding: 'utf-8',
+        encoding: 'utf8',
         cwd: this.baseDir,
         signal: this.abortController?.signal
       });
@@ -264,7 +264,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       return 'module-resolution';
     }
 
-    // Null safety and undefined issues  
+    // Null safety and undefined issues
     if (['2532', '2533', '2531', '18048', '18047', '2454', '2722', '2721', '2345', '2322', '2349'].includes(numericCode)) {
       return 'null-safety';
     }
@@ -349,7 +349,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
           '-e', pattern,
           searchPath
         ], {
-          encoding: 'utf-8',
+          encoding: 'utf8',
           signal: this.abortController?.signal
         });
 

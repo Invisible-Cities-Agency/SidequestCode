@@ -22,7 +22,7 @@ import type {
 export class DeveloperWatchDisplay {
   private state: WatchState;
   private colors: ColorScheme;
-  private consoleBackup: ConsoleBackup | null = null;
+  private consoleBackup: ConsoleBackup | undefined = undefined;
 
   constructor() {
     this.state = {
@@ -82,7 +82,7 @@ export class DeveloperWatchDisplay {
       console.error = this.consoleBackup.error;
       console.warn = this.consoleBackup.warn;
       process.stderr.write = this.consoleBackup.stderrWrite;
-      this.consoleBackup = null;
+      this.consoleBackup = undefined;
     }
   }
 
@@ -98,20 +98,25 @@ export class DeveloperWatchDisplay {
 
       process.stdin.on('data', (key: string) => {
         // Handle Ctrl+T (0x14 in ASCII) - toggle view mode
-        if (key === '\u0014') {
+        switch (key) {
+        case '\u0014': {
           this.toggleViewMode();
+
+          break;
         }
-        // Handle Esc (0x1B in ASCII) - return to dashboard if in tidy mode
-        else if (key === '\u001B') {
+        case '\u001B': {
           if (this.state.viewMode === 'tidy') {
             this.state.viewMode = 'dashboard';
             this.renderCurrentView().catch(console.error);
           }
+
+          break;
         }
-        // Handle Ctrl+C (0x03 in ASCII) - let it pass through normally
-        else if (key === '\u0003') {
+        case '\u0003': {
           process.stdin.setRawMode(false);
           process.exit(0);
+        }
+        // No default
         }
       });
     }
@@ -150,7 +155,7 @@ export class DeveloperWatchDisplay {
     } else {
       // Group violations by file for cleaner display
       const violationsByFile = new Map<string, typeof this.state.currentViolations>();
-      
+
       for (const violation of this.state.currentViolations) {
         if (!violationsByFile.has(violation.file)) {
           violationsByFile.set(violation.file, []);
@@ -160,18 +165,18 @@ export class DeveloperWatchDisplay {
 
       // Display each file's violations
       for (const [file, violations] of violationsByFile) {
-        const severityIcon = violations.some(v => v.severity === 'error') ? '❌' : 
-                           violations.some(v => v.severity === 'warn') ? '⚠️' : 'ℹ️';
-        
+        const severityIcon = violations.some(v => v.severity === 'error') ? '❌' :
+          (violations.some(v => v.severity === 'warn') ? '⚠️' : 'ℹ️');
+
         process.stdout.write(`${severityIcon} ${this.colors.info}${file}${this.colors.reset} ${this.colors.secondary}(${violations.length} issues)${this.colors.reset}\n`);
-        
+
         // Show each violation in compact format
         for (const violation of violations.slice(0, 5)) { // Limit to 5 per file for tidiness
-          const sourceIcon = violation.source === 'typescript' ? '📝' : 
-                            violation.source === 'eslint' ? '🔍' : '🗂️';
+          const sourceIcon = violation.source === 'typescript' ? '📝' :
+            (violation.source === 'eslint' ? '🔍' : '🗂️');
           process.stdout.write(`  ${sourceIcon} ${this.colors.secondary}Line ${violation.line}:${this.colors.reset} ${violation.message}\n`);
         }
-        
+
         if (violations.length > 5) {
           process.stdout.write(`  ${this.colors.secondary}... and ${violations.length - 5} more issues${this.colors.reset}\n`);
         }
@@ -213,7 +218,7 @@ export class DeveloperWatchDisplay {
     this.state.lastUpdate = Date.now();
 
     // Get today's data if orchestrator is provided
-    let todayData: TodayProgressData | null = null;
+    let todayData: TodayProgressData | undefined = undefined;
     if (orchestrator) {
       try {
         const analysisService = orchestrator.getAnalysisService();
@@ -253,13 +258,13 @@ export class DeveloperWatchDisplay {
     for (const violation of violations) {
       bySource[violation.source] = (bySource[violation.source] || 0) + 1;
       byCategory[violation.category] = (byCategory[violation.category] || 0) + 1;
-      
+
       // Track severity by source
       if (!bySeverity[violation.source]) {
         bySeverity[violation.source] = {};
       }
       bySeverity[violation.source]![violation.severity] = (bySeverity[violation.source]![violation.severity] || 0) + 1;
-      
+
       // Track categories by source
       if (!byCategoryBySource[violation.source]) {
         byCategoryBySource[violation.source] = {};
@@ -306,11 +311,11 @@ export class DeveloperWatchDisplay {
         const delta = count - baselineCount;
         const deltaString = delta === 0 ? '' : ` (${delta > 0 ? '+' : ''}${delta})`;
         const deltaColor = delta > 0 ? colors.error : (delta < 0 ? colors.success : colors.reset);
-        const icon = source === 'typescript' ? '📝' : 
-                     source === 'unused-exports' ? '🗂️' : '🔍';
+        const icon = source === 'typescript' ? '📝' :
+          (source === 'unused-exports' ? '🗂️' : '🔍');
 
         process.stdout.write(`  ${icon} ${colors.info}${source}:${colors.reset} ${colors.primary}${count}${deltaColor}${deltaString}${colors.reset}\n`);
-        
+
         // Show severity breakdown for ESLint only (TypeScript errors are mostly all "error" severity)
         if (current.bySeverity && current.bySeverity[source] && source === 'eslint') {
           const severities = current.bySeverity[source];
@@ -322,13 +327,13 @@ export class DeveloperWatchDisplay {
             }
           }
         }
-        
+
         // Show top categories for ESLint and TypeScript (limit to top 5 to avoid clutter)
         if (current.byCategoryBySource && current.byCategoryBySource[source] && (source === 'eslint' || source === 'typescript')) {
           const categories = Object.entries(current.byCategoryBySource[source])
             .sort(([,a], [,b]) => b - a)
             .slice(0, 5);
-          
+
           for (const [category, categoryCount] of categories) {
             const displayLabel = getCategoryLabel(category as any);
             process.stdout.write(`    • ${colors.secondary}${displayLabel}:${colors.reset} ${colors.primary}${categoryCount}${colors.reset}\n`);
@@ -437,7 +442,7 @@ export class DeveloperWatchDisplay {
 }
 
 // Singleton
-let displayInstance: DeveloperWatchDisplay | null = null;
+let displayInstance: DeveloperWatchDisplay | undefined = undefined;
 
 export function getDeveloperWatchDisplay(): DeveloperWatchDisplay {
   if (!displayInstance) {
@@ -450,5 +455,5 @@ export function resetDeveloperWatchDisplay(): void {
   if (displayInstance) {
     displayInstance.shutdown();
   }
-  displayInstance = null;
+  displayInstance = undefined;
 }

@@ -47,6 +47,9 @@ import { CodeQualityOrchestrator } from './orchestrator.js';
 const arguments_ = process.argv.slice(2);
 const flags: CLIFlags = {
   help: arguments_.includes('--help') || arguments_.includes('-h'),
+  helpMarkdown: arguments_.includes('--help-markdown'),
+  helpQuick: arguments_.includes('--help-quick'),
+  aiContext: arguments_.includes('--ai-context'),
   watch: arguments_.includes('--watch'),
   includeAny: arguments_.includes('--include-any'),
   includeESLint: arguments_.includes('--include-eslint'),
@@ -118,6 +121,163 @@ case 'auto': {
   break;
 }
 // No default
+}
+
+/**
+ * Show comprehensive AI/LLM context and guidance
+ */
+function showAIContext(): void {
+  console.log(`{
+  "tool": "SideQuest Code Quality Orchestrator",
+  "purpose": "Run configuration-agnostic TypeScript and ESLint analysis tailored to your project's existing setup. SideQuest avoids overwriting your configs while surfacing the highest-priority issues first.",
+  "llm_guidance": {
+    "preferred_commands": {
+      "analysis": [
+        "npm run sidequest:report",            // TypeScript violations (non-interactive)
+        "npm run sidequest:report:eslint",     // Style violations (ESLint-only)
+        "npm run sidequest:report:strict"      // Strict mode for deep inference and edge cases
+      ],
+      "description": "These commands return clean, machine-readable JSON with no prompts. Use them to analyze codebases without side effects."
+    },
+    "avoid_commands": [
+      "npm run sidequest:start",              // Enables watch mode – too noisy for LLMs
+      "npm run sidequest:config",            // Triggers interactive config wizard
+      "npx tsx cli.ts"                       // Inconsistent behavior in some shells
+    ],
+    "workflow": {
+      "step_1": "Run \\`npm run sidequest:report\\` to catch TypeScript errors.",
+      "step_2": "Resolve all TS compilation issues first – they block builds.",
+      "step_3": "Optionally run \\`npm run sidequest:report:eslint\\` for style and lint rules.",
+      "step_4": "Validate with \\`npm run typecheck\\` and \\`npm run test\\`."
+    }
+  },
+  "rationale": {
+    "separation_of_concerns": {
+      "why": "TypeScript enforces type safety; ESLint enforces code style. Mixing them causes conflicts and slows down analysis.",
+      "benefit": "TS-only checks run 3–5× faster and reduce noise in watch mode.",
+      "outcome": "Users get faster feedback and clearer error segmentation."
+    }
+  },
+  "type_guidance": {
+    "strategy": "Replace \\`any\\` with meaningful types using docs, \\`node_modules\\`, or known interfaces.",
+    "avoid": "\\`unknown\\` is not a safe placeholder. Prefer explicitly defined interfaces.",
+    "validation": "Use Zod (or similar) to validate unknown inputs at runtime."
+  },
+  "recommended_libraries": {
+    "typescript": {
+      "type-fest": "Utility types (e.g., \\`PackageJson\\`, \\`Merge\\`) by Sindre Sorhus.",
+      "ts-reset": "Safe TS defaults by Matt Pocock – improves behavior of \\`Object\\`, \\`includes\\`, etc.",
+      "zod": "Schema-based validation with automatic TS inference.",
+      "utility-types": "Extra tools for structural typing and transformation."
+    },
+    "eslint": {
+      "eslint-config-xo-typescript": "Strict but clean ruleset by Sindre Sorhus.",
+      "@typescript-eslint/eslint-plugin": "Official TypeScript linting rules.",
+      "eslint-config-turbo": "Optimized for Vercel-style monorepos.",
+      "eslint-plugin-total-typescript": "Matt Pocock's plugin for inference-aware linting."
+    },
+    "tools": {
+      "tsup": "Fast TypeScript bundler (uses esbuild under the hood).",
+      "tsx": "Fast alternative to ts-node for running scripts.",
+      "type-challenges": "Excellent resource to learn deep TS pattern mastery."
+    }
+  },
+  "watch_mode": {
+    "command": "npm run sidequest:start",
+    "usage": "Enables real-time feedback during dev.",
+    "note": "Use for iterative workflows. Avoid with LLMs unless batching changes with a human in the loop."
+  },
+  "type_discovery": {
+    "best_practices": [
+      "Check official docs for accurate types.",
+      "Browse \\`@types\\` packages and source code inside \\`node_modules\\`.",
+      "Avoid masking issues with \\`any\\` or overuse of utility types – prefer clarity over cleverness."
+    ]
+  },
+  "if_confused": {
+    "recovery": "Run \\`npm run sidequest:ai-context\\` to reload LLM context.",
+    "npx_warning": "If \\`npx\\` fails, prefer \\`npm run\\` for consistency and reliability."
+  },
+  "philosophy": "SideQuest exists to help – not enforce. LLMs should focus on reducing noise, highlighting meaningful violations, and guiding users toward clean, type-safe, maintainable code."
+}`);
+}
+
+/**
+ * Show markdown-formatted help for documentation and human readability
+ */
+function showMarkdownHelp(): void {
+  console.log(`# SideQuest Code Quality Orchestrator
+
+Configuration-agnostic TypeScript and ESLint analysis that respects your project setup.
+
+## 🚀 Quick Start
+
+### For Humans (Interactive)
+\`\`\`bash
+npm run sidequest:start              # Real-time watch mode
+npm run sidequest:config             # Manage preferences
+\`\`\`
+
+### For LLMs/Automation (JSON Output)
+\`\`\`bash
+npm run sidequest:report             # TypeScript violations only
+npm run sidequest:report:eslint      # Include ESLint analysis
+npm run sidequest:ai-context         # Full LLM guidance
+\`\`\`
+
+## 🎯 Core Philosophy
+
+**Separation of Concerns**: TypeScript handles type safety, ESLint handles code style.
+- **3-5x faster** analysis when separated
+- **Clearer error segmentation** for developers
+- **No rule conflicts** between tools
+
+## 📊 Analysis Modes
+
+| Command | Purpose | Output | Speed |
+|---------|---------|---------|--------|
+| \`sidequest:report\` | TypeScript compilation errors | JSON | ⚡ Fast |
+| \`sidequest:report:eslint\` | Style + type violations | JSON | 🐌 Thorough |
+| \`sidequest:start\` | Real-time monitoring | Interactive | 🔄 Continuous |
+
+## 🔧 Type Safety Best Practices
+
+### Replace \`any\` with Proper Types
+1. **Check documentation** for official type definitions
+2. **Inspect \`node_modules/@types\`** for accurate interfaces  
+3. **Use Zod** for runtime validation of unknown data
+4. **Avoid \`unknown\` as placeholder** - create explicit interfaces
+
+### Recommended Libraries
+- **type-fest**: Essential utility types by Sindre Sorhus
+- **ts-reset**: Safer TypeScript defaults by Matt Pocock
+- **eslint-config-xo-typescript**: Strict but clean ESLint rules
+
+## 🐛 Troubleshooting
+
+**Setup running every time?**
+- Tool auto-detects first run based on preferences + database existence
+- Reset: \`npm run sidequest:config:reset\`
+
+**Colors wrong?**
+- \`npm run sidequest:watch:dark\` or \`npm run sidequest:watch:light\`
+
+**Command not found?**
+- Use \`npm run sidequest:*\` (not \`npm sidequest:*\`)
+
+## 💡 Help & Context
+
+- \`npm run sidequest:help\` - This help
+- \`npm run sidequest:help:quick\` - One-liner summary  
+- \`npm run sidequest:ai-context\` - Full LLM guidance
+`);
+}
+
+/**
+ * Show quick one-liner help for tooltips and inline guidance
+ */
+function showQuickHelp(): void {
+  console.log("SideQuest: Use 'sidequest:report' for clean TS analysis, 'sidequest:start' for watch mode. Separates TS (types) from ESLint (style) for 3x speed. Run 'sidequest:ai-context' for full LLM guidance.");
 }
 
 /**
@@ -240,7 +400,7 @@ TROUBLESHOOTING:
 
   Want to skip interactive setup?
     Use: npm run sidequest:report (for LLMs/automation)
-    Or:  npm run sidequest:skip-setup
+    Or:  Delete ~/.sidequest-cqo/ and ./data/ if setup is corrupted
 
   Colors look wrong?
     npm run sidequest:watch:dark    # Force dark mode
@@ -544,7 +704,7 @@ ${[...new Set(violations.map(v => v.file))]
 
   try {
     const fs = await import('node:fs/promises');
-    await fs.writeFile(prdPath, prdContent, 'utf-8');
+    await fs.writeFile(prdPath, prdContent, 'utf8');
     console.log(`${colors.success}✅ PRD generated: ${prdPath}${colors.reset}`);
     console.log(`${colors.info}📋 Ready for Claude Task Master ingestion${colors.reset}`);
   } catch (error) {
@@ -649,20 +809,55 @@ ${colors.info}Note:${colors.reset} npm doesn't support flags after script names.
     }
   }
 
-  // Check for direct sidequest command without npm run
-  if (process.argv[1]?.includes('cli.ts') && !(process as any).parent) {
-    const hasWatchFlag = arguments_.has('--watch');
-    if (hasWatchFlag && !arguments_.has('--skip-setup')) {
-      console.log(`${colors.info}💡 First Time Setup${colors.reset}
+  // Check for unknown npm script attempts
+  if (process.env['npm_command'] === 'run-script' && process.env['npm_lifecycle_event']) {
+    const scriptName = process.env['npm_lifecycle_event'];
+    
+    // Check for common sidequest: variations that don't exist
+    if (scriptName && scriptName.startsWith('sidequest') && !scriptName.includes(':')) {
+      console.log(`${colors.error}❌ Script Not Found${colors.reset}
 
-You're running SideQuest for the first time! 
-Setup will run automatically, then you can use the watch mode.
+The command "${colors.error}npm run ${scriptName}${colors.reset}" doesn't exist.
 
-To skip setup in the future:
-  ${colors.success}npm run sidequest:start${colors.reset}              # Uses your saved preferences
-  ${colors.success}npm run sidequest:report${colors.reset}             # Clean JSON output (for LLMs)
+${colors.info}Are you a human?${colors.reset}
+  ${colors.success}npm run sidequest:help${colors.reset}               # Standard help
+  ${colors.success}npm run sidequest:help:markdown${colors.reset}      # Formatted documentation
 
-${colors.secondary}Continuing with setup...${colors.reset}
+${colors.info}Are you an LLM?${colors.reset}
+  ${colors.success}npm run sidequest:ai-context${colors.reset}         # Full machine-structured context
+
+${colors.secondary}Common commands:${colors.reset}
+  ${colors.success}npm run sidequest:start${colors.reset}              # Watch mode (humans)
+  ${colors.success}npm run sidequest:report${colors.reset}             # Analysis (LLMs)
+  ${colors.success}npm run sidequest:config${colors.reset}             # Configuration
+`);
+      process.exit(0);
+    }
+  }
+
+  // Check for direct npx tsx cli.ts usage (suggest LLM context recovery)
+  // Only show for truly direct usage, not when npm scripts call the same command
+  if (process.argv[1]?.includes('cli.ts') && 
+      !process.env['npm_command'] && 
+      !process.env['npm_lifecycle_event'] &&
+      !process.env['npm_lifecycle_script']) {
+    
+    const isLikelyLLM = Array.from(arguments_).some(arg => arg.includes('--verbose') || arg.includes('--skip-setup'));
+    
+    if (isLikelyLLM) {
+      console.log(`${colors.warning}💡 LLM Context Recovery${colors.reset}
+
+It looks like you're running the CLI directly with npx. 
+${colors.info}Are you an LLM that's lost context?${colors.reset}
+
+Run this to restore full context:
+  ${colors.success}npm run sidequest:ai-context${colors.reset}
+
+${colors.secondary}For consistent behavior, prefer npm scripts:${colors.reset}
+  ${colors.success}npm run sidequest:report${colors.reset}             # Clean JSON analysis
+  ${colors.success}npm run sidequest:start${colors.reset}              # Watch mode
+
+${colors.secondary}Continuing with your command...${colors.reset}
 `);
     }
   }
@@ -680,18 +875,37 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  if (flags.helpMarkdown) {
+    showMarkdownHelp();
+    process.exit(0);
+  }
+
+  if (flags.helpQuick) {
+    showQuickHelp();
+    process.exit(0);
+  }
+
+  if (flags.aiContext) {
+    showAIContext();
+    process.exit(0);
+  }
+
   // Handle configuration commands
   if (flags.configAction) {
     await handleConfigCommand(flags.configAction);
     process.exit(0);
   }
 
-  // Check for first-run setup (unless skipped)
-  if (!flags.skipSetup) {
+  // Check for first-run setup (smart detection)
+  // Only skip setup if explicitly requested OR if running in automation mode (verbose + skip-setup)
+  const isAutomationMode = flags.verbose && flags.skipSetup;
+  const isExplicitSkip = flags.skipSetup && !flags.verbose; // User explicitly doesn't want setup
+  
+  if (!isAutomationMode && !isExplicitSkip) {
     const needsSetup = await checkAndRunFirstTimeSetup();
     if (needsSetup) {
       // Setup was run, exit to let user try again with their preferences
-      console.log(`\n${getColorScheme().info}Now try: ${getColorScheme().bold}sidequest --watch${getColorScheme().reset}`);
+      console.log(`\n${getColorScheme().info}Now try: ${getColorScheme().bold}npm run sidequest:start${getColorScheme().reset}`);
       process.exit(0);
     }
   }

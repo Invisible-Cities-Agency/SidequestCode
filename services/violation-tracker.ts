@@ -428,7 +428,7 @@ export class ViolationTracker implements IViolationTracker {
 // Service Factory
 // ============================================================================
 
-let violationTrackerInstance: ViolationTracker | null = null;
+let violationTrackerInstance: ViolationTracker | undefined = undefined;
 
 /**
  * Get or create violation tracker instance
@@ -447,5 +447,5 @@ export function resetViolationTracker(): void {
   if (violationTrackerInstance) {
     violationTrackerInstance.clearCaches();
   }
-  violationTrackerInstance = null;
+  violationTrackerInstance = undefined;
 }

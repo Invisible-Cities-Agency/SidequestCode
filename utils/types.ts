@@ -20,6 +20,9 @@ type DeduplicationStrategy = 'exact' | 'similar' | 'location';
  */
 export interface CLIFlags extends Record<string, unknown> {
   readonly help: boolean;
+  readonly helpMarkdown: boolean;
+  readonly helpQuick: boolean;
+  readonly aiContext: boolean;
   readonly watch: boolean;
   readonly includeAny: boolean;
   readonly includeESLint: boolean;

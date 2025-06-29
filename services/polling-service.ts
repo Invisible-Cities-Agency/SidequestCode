@@ -16,7 +16,7 @@ export class PollingService extends EventEmitter implements IPollingService {
   private storageService: IStorageService;
   private isActive = false;
   private isPaused = false;
-  private pollingInterval: NodeJS.Timeout | null = null;
+  private pollingInterval: NodeJS.Timeout | undefined = undefined;
   private activeChecks = new Map<string, Promise<RuleCheckResult>>();
 
   // Configuration
@@ -66,7 +66,7 @@ export class PollingService extends EventEmitter implements IPollingService {
     // Clear polling interval
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+      this.pollingInterval = undefined;
     }
 
     // Wait for active checks to complete
@@ -361,7 +361,7 @@ export class PollingService extends EventEmitter implements IPollingService {
 // Service Factory
 // ============================================================================
 
-let pollingServiceInstance: PollingService | null = null;
+let pollingServiceInstance: PollingService | undefined = undefined;
 
 /**
  * Get or create polling service instance
@@ -381,5 +381,5 @@ export function resetPollingService(): void {
     pollingServiceInstance.isRunning()) {
     pollingServiceInstance.stop().catch(console.error);
   }
-  pollingServiceInstance = null;
+  pollingServiceInstance = undefined;
 }

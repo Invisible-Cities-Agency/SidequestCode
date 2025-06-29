@@ -185,7 +185,7 @@ export function isViolationSummary(object: unknown): object is ViolationSummary 
     typeof summary['total'] === 'number' &&
     typeof summary['bySource'] === 'object' &&
     typeof summary['byCategory'] === 'object' &&
-    summary['bySource'] !== null &&
-    summary['byCategory'] !== null
+    summary['bySource'] !== undefined &&
+    summary['byCategory'] !== undefined
   );
 }

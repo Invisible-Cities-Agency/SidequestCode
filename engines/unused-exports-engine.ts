@@ -43,11 +43,11 @@ export class UnusedExportsEngine extends BaseAuditEngine {
     } catch (error: any) {
       // ts-unused-exports exits with code 1 when it finds unused exports, this is expected
       if (error.code === 1 && error.stdout) {
-        console.log(`[UnusedExportsEngine] Found unused exports, processing results...`);
+        console.log('[UnusedExportsEngine] Found unused exports, processing results...');
         return this.parseUnusedExportsOutput(error.stdout);
       }
-      
-      console.error(`[UnusedExportsEngine] Unexpected error:`, error);
+
+      console.error('[UnusedExportsEngine] Unexpected error:', error);
       if (this.config.allowFailure) {
         console.warn(`[UnusedExportsEngine] Analysis failed: ${error}`);
         return [];
@@ -77,16 +77,16 @@ export class UnusedExportsEngine extends BaseAuditEngine {
       }
 
       // Parse file paths with line numbers: /path/file.ts[line,column]: exportName
-      const match = line.match(/^(.+?)\[(\d+),(\d+)\]:\s*(.+)$/);
+      const match = line.match(/^(.+?)\[(\d+),(\d+)]:\s*(.+)$/);
       if (match) {
-        const [, filePath, lineStr, columnStr, exportName] = match;
-        if (!filePath || !lineStr || !columnStr || !exportName) continue;
-        
-        const lineNumber = parseInt(lineStr, 10);
-        const columnNumber = parseInt(columnStr, 10);
+        const [, filePath, lineString, columnString, exportName] = match;
+        if (!filePath || !lineString || !columnString || !exportName) {continue;}
+
+        const lineNumber = Number.parseInt(lineString, 10);
+        const columnNumber = Number.parseInt(columnString, 10);
 
         // Convert absolute path to relative
-        const relativePath = filePath.replace(process.cwd() + '/', '');
+        const relativePath = filePath.replace(`${process.cwd()  }/`, '');
 
         violations.push({
           file: relativePath,
@@ -159,7 +159,7 @@ export class UnusedExportsEngine extends BaseAuditEngine {
     _rule?: string,
     code?: string
   ): string | undefined {
-    if (!code) return undefined;
+    if (!code) {return undefined;}
 
     return `Consider removing unused export '${code}' if it's not needed, or keep it if it's part of the public API`;
   }

@@ -155,12 +155,12 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Select the next rule for round-robin checking
    */
-  private selectNextRule(): string | null {
+  private selectNextRule(): string | undefined {
     if (this.eslintRules.length === 0) {
-      return null;
+      return undefined;
     }
 
-    let ruleToCheck: string | null = null;
+    let ruleToCheck: string | undefined = undefined;
     let attempts = 0;
 
     // Find the next rule to check (respecting adaptive intervals)
@@ -192,7 +192,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
     // Fallback: if no rule was selected, force check the first rule
     if (!ruleToCheck) {
-      ruleToCheck = this.eslintRules[0] || null;
+      ruleToCheck = this.eslintRules[0] || undefined;
       this.currentRuleIndex = 1 % this.eslintRules.length;
     }
 
@@ -270,7 +270,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
       console.log('[ESLint Engine] Running with temp file:', eslintArguments.join(' '));
       const result = spawnSync('npx', ['eslint', ...eslintArguments], {
-        encoding: 'utf-8',
+        encoding: 'utf8',
         cwd: this.baseDir,
         timeout,
         signal: this.abortController?.signal
@@ -278,7 +278,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
       console.log('[ESLint Engine] Temp file command exit status:', result.status);
       if (result.stderr) {
-        console.log('[ESLint Engine] Temp file stderr:', result.stderr.substring(0, 200));
+        console.log('[ESLint Engine] Temp file stderr:', result.stderr.slice(0, 200));
       }
 
       // Handle ESLint exit codes
@@ -287,11 +287,11 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       }
 
       // Read results from temp file
-      const output = await readFile(temporaryFile, 'utf-8');
+      const output = await readFile(temporaryFile, 'utf8');
 
       console.log('[ESLint Engine] Temp file output length:', output.length);
       if (output.length > 100) {
-        console.log('[ESLint Engine] First 200 chars:', output.substring(0, 200));
+        console.log('[ESLint Engine] First 200 chars:', output.slice(0, 200));
       }
 
       if (!output.trim()) {
@@ -352,7 +352,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     try {
       // Try to get rules from the actual ESLint config using a test file
       const result = spawnSync('npx', ['eslint', '--print-config', 'cli.ts'], {
-        encoding: 'utf-8',
+        encoding: 'utf8',
         cwd: this.baseDir,
         timeout: 10_000
       });
@@ -463,7 +463,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     ];
 
     const result = spawnSync('npx', ['eslint', ...eslintArguments], {
-      encoding: 'utf-8',
+      encoding: 'utf8',
       cwd: this.baseDir,
       maxBuffer: 1024 * 1024 * 2, // Smaller buffer for rule groups
       timeout,
@@ -505,7 +505,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
     try {
       const result = spawnSync('npx', ['eslint', ...eslintArguments], {
-        encoding: 'utf-8',
+        encoding: 'utf8',
         cwd: this.baseDir,
         maxBuffer: 1024 * 1024 * 10, // 10MB buffer
         timeout,

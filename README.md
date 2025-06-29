@@ -34,6 +34,12 @@ npm run sidequest:config             # Show current settings
 npm run sidequest:config:edit        # Edit preferences
 npm run sidequest:config:reset       # Reset to defaults
 
+# Help & context
+npm run sidequest:help               # Standard CLI help
+npm run sidequest:help:markdown      # Formatted documentation  
+npm run sidequest:help:quick         # One-liner summary
+npm run sidequest:ai-context         # LLM context & guidance
+
 # Project insights
 npm run sidequest:burndown           # Historical trends
 npm run sidequest:prd                # Generate PRD for task management
@@ -412,16 +418,27 @@ npm run sidequest:report
 
 ### Setup Issues
 **Setup running every time?**
+
+This should NOT happen with the new smart detection. If it does:
 ```bash
 # Check if preferences exist
 ls ~/.sidequest-cqo/user-preferences.json
 
-# Reset if corrupted
+# Check if database exists
+ls ./data/
+
+# Reset corrupted preferences
 npm run sidequest:config:reset
 
-# Skip setup entirely (for automation)
+# For automation (always skips setup)
 npm run sidequest:report
 ```
+
+**Smart Setup Logic:**
+- ✅ **First time ever**: Shows setup (no preferences, no database)
+- ✅ **Setup completed**: Never shows again (`hasCompletedFirstRun: true`)
+- ✅ **Database exists**: Skips setup (assumes existing user)
+- ✅ **Automation mode**: `sidequest:report*` always skips setup
 
 ### Color Issues
 **Colors look wrong or unreadable?**

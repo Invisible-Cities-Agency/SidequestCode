@@ -110,7 +110,6 @@ export type RuleSchedule = Selectable<RuleScheduleTable>;
 export type NewRuleSchedule = Insertable<RuleScheduleTable>;
 
 
-
 // ============================================================================
 // Business Logic Types
 // ============================================================================

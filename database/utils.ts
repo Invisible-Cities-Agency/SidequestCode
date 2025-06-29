@@ -154,7 +154,6 @@ export function formatDateTimeForDb(date: Date = new Date()): string {
 }
 
 
-
 /**
  * Batch array into chunks for efficient database operations
  */
@@ -170,7 +169,6 @@ export function chunk<T>(array: T[], size: number): T[][] {
 // ============================================================================
 // Query Helpers
 // ============================================================================
-
 
 
 // ============================================================================

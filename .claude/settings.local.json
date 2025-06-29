@@ -19,7 +19,11 @@
       "Bash(npx ts-unused-exports:*)",
       "Bash(git reset:*)",
       "Bash(rm:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(sqlite3:*)",
+      "Bash(npx eslint:*)",
+      "Bash(sed:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

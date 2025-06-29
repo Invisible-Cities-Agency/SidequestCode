@@ -28,14 +28,14 @@ import { getViolationTracker } from './violation-tracker.js';
 
 export class OrchestratorService extends EventEmitter implements IOrchestratorService {
   private configManager: ConfigManager;
-  private storageService: IStorageService | null = null;
-  private pollingService: IPollingService | null = null;
-  private analysisService: IAnalysisService | null = null;
-  private violationTracker: IViolationTracker | null = null;
+  private storageService: IStorageService | undefined = undefined;
+  private pollingService: IPollingService | undefined = undefined;
+  private analysisService: IAnalysisService | undefined = undefined;
+  private violationTracker: IViolationTracker | undefined = undefined;
 
   private initialized = false;
   private watchModeActive = false;
-  private watchModeInterval: NodeJS.Timeout | null = null;
+  private watchModeInterval: NodeJS.Timeout | undefined = undefined;
   private silent = false;
 
   constructor(configManager?: ConfigManager) {
@@ -223,7 +223,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
     // Stop watch interval
     if (this.watchModeInterval) {
       clearInterval(this.watchModeInterval);
-      this.watchModeInterval = null;
+      this.watchModeInterval = undefined;
     }
 
     // Stop polling service
@@ -349,8 +349,8 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
       // Check individual services if initialized
       if (this.initialized) {
         result.services.polling = this.pollingService?.isRunning() || false;
-        result.services.analysis = this.analysisService !== null;
-        result.services.tracker = this.violationTracker !== null;
+        result.services.analysis = this.analysisService !== undefined;
+        result.services.tracker = this.violationTracker !== undefined;
 
         // Test storage service
         try {
@@ -439,7 +439,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
 // Service Factory and Utilities
 // ============================================================================
 
-let orchestratorServiceInstance: OrchestratorService | null = null;
+let orchestratorServiceInstance: OrchestratorService | undefined = undefined;
 
 /**
  * Get or create orchestrator service instance
@@ -461,7 +461,7 @@ export function resetOrchestratorService(): void {
     }
     orchestratorServiceInstance.shutdown().catch(console.error);
   }
-  orchestratorServiceInstance = null;
+  orchestratorServiceInstance = undefined;
 }
 
 /**

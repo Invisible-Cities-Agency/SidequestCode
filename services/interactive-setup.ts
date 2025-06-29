@@ -297,14 +297,36 @@ ${this.colors.warning}Setup is now complete!${this.colors.reset} Future runs wil
 
   /**
    * Check if this is a first run and should show setup
+   * 
+   * Smart detection that checks:
+   * 1. User preferences exist and show setup completion
+   * 2. Database directory exists (indicates previous usage)
    */
   public static shouldRunSetup(dataDir?: string): boolean {
     try {
+      // Check user preferences first
       const prefs = PreferencesManager.getInstance(dataDir);
       const allPrefs = prefs.getAllPreferences();
-      return !allPrefs.userChoices.hasCompletedFirstRun;
+      
+      // If user explicitly completed setup, don't run again
+      if (allPrefs.userChoices.hasCompletedFirstRun) {
+        return false;
+      }
+      
+      // Check if database directory exists (indicates previous usage)
+      const dbDir = dataDir || './data';
+      if (fs.existsSync(dbDir)) {
+        // Database exists but no preferences - probably corrupted preferences
+        // Skip setup to avoid annoying existing users
+        return false;
+      }
+      
+      // Truly first run - no preferences and no database
+      return true;
     } catch {
-      return true; // If we can't load preferences, assume first run
+      // If we can't determine state, check for database existence
+      const dbDir = dataDir || './data';
+      return !fs.existsSync(dbDir);
     }
   }
 }

@@ -21,11 +21,14 @@ npm run sidequest:start               # Watch mode (interactive)
 npm run sidequest:config              # Interactive config
 ```
 
-### Preference File Management
-The tool stores preferences in `~/.sidequest-cqo/user-preferences.json`. Key states:
-- `hasCompletedFirstRun: false` triggers interactive setup
-- Use `npm run sidequest:report` to bypass setup entirely
-- If setup runs in loops, check preferences file exists and is valid
+### Smart Setup Detection (IMPROVED)
+The tool now intelligently detects first-run state:
+- **First time ever**: Shows setup (no `~/.sidequest-cqo/` AND no `./data/`)
+- **Setup completed**: `hasCompletedFirstRun: true` in preferences
+- **Database exists**: Skips setup even if preferences missing (existing user)
+- **Automation mode**: `sidequest:report*` commands always skip setup
+
+**No more manual `--skip-setup` flags needed!**
 
 ### Common User Errors (Fixed with Interception)
 1. **npm run sidequest --watch** ❌ → **npm run sidequest:start** ✅

@@ -433,7 +433,7 @@ export class AnalysisService implements IAnalysisService {
 // Service Factory
 // ============================================================================
 
-let analysisServiceInstance: AnalysisService | null = null;
+let analysisServiceInstance: AnalysisService | undefined = undefined;
 
 /**
  * Get or create analysis service instance
@@ -449,5 +449,5 @@ export function getAnalysisService(storageService: IStorageService): AnalysisSer
  * Reset analysis service instance (useful for testing)
  */
 export function resetAnalysisService(): void {
-  analysisServiceInstance = null;
+  analysisServiceInstance = undefined;
 }

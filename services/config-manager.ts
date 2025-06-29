@@ -392,7 +392,7 @@ export class ConfigManager {
       await fs.mkdir(configDir, { recursive: true });
 
       const configData = JSON.stringify(this.config, null, 2);
-      await fs.writeFile(configPath, configData, 'utf-8');
+      await fs.writeFile(configPath, configData, 'utf8');
 
       console.log(`[ConfigManager] Configuration saved to: ${configPath}`);
     } catch (error) {
