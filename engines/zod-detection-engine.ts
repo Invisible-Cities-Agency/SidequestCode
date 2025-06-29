@@ -9,7 +9,7 @@
 
 import { BaseAuditEngine } from './base-engine.js';
 import type { Violation } from '../utils/violation-types.js';
-import { spawnSync } from 'child_process';
+import { spawnSync } from 'node:child_process';
 
 interface ZodUsage {
   schemaDefinitions: Array<{ file: string; line: number; name: string }>;
@@ -40,30 +40,30 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       }
 
       console.log('[Zod Detection] Analyzing Zod usage patterns...');
-      
-      const zodUsage = await this.analyzeZodUsage(targetPath);
-      
+
+      const zodUsage = this.analyzeZodUsage(targetPath);
+
       // Detect unused schemas
       const unusedSchemas = this.findUnusedSchemas(zodUsage);
       if (unusedSchemas && Array.isArray(unusedSchemas)) {
         violations.push(...unusedSchemas);
       }
-      
+
       // Detect over-validation patterns
       const overValidations = this.findOverValidations(zodUsage);
       if (overValidations && Array.isArray(overValidations)) {
         violations.push(...overValidations);
       }
-      
+
       // Detect missing validation opportunities
-      const missingValidations = await this.findMissingValidations(targetPath);
+      const missingValidations = this.findMissingValidations(targetPath);
       if (missingValidations && Array.isArray(missingValidations)) {
         violations.push(...missingValidations);
       }
 
       // Calculate runtime validation coverage
       const coverage = this.calculateValidationCoverage(zodUsage, targetPath);
-      
+
       // Add coverage-based suggestions
       const coverageSuggestions = this.generateCoverageSuggestions(coverage);
       if (coverageSuggestions && Array.isArray(coverageSuggestions)) {
@@ -91,7 +91,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     }
   }
 
-  private async analyzeZodUsage(baseDir: string): Promise<ZodUsage> {
+  private analyzeZodUsage(baseDirectory: string): ZodUsage {
     const usage: ZodUsage = {
       schemaDefinitions: [],
       parseUsages: [],
@@ -106,7 +106,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       '.'
     ], {
       encoding: 'utf8',
-      cwd: baseDir
+      cwd: baseDirectory
     });
 
     if (schemaResult.stdout) {
@@ -114,14 +114,14 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         if (line.trim()) {
           const match = line.match(/^([^:]+):(\d+):(.*)/);
           if (match) {
-            const [, file, lineNum, content] = match;
-            if (file && lineNum && content) {
+            const [, file, lineNumber, content] = match;
+            if (file && lineNumber && content) {
               const schemaMatch = content.match(/(\w+)\s*=.*z\.\w+/);
               if (schemaMatch) {
                 usage.schemaDefinitions.push({
-                  file: file.replace(`${baseDir}/`, ''),
-                  line: Number.parseInt(lineNum, 10),
-                  name: schemaMatch[1]
+                  file: file.replace(`${baseDirectory}/`, ''),
+                  line: Number.parseInt(lineNumber, 10),
+                  name: schemaMatch[1] || 'unknown'
                 });
               }
             }
@@ -138,7 +138,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       '.'
     ], {
       encoding: 'utf8',
-      cwd: baseDir
+      cwd: baseDirectory
     });
 
     if (parseResult.stdout) {
@@ -146,14 +146,14 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         if (line.trim()) {
           const match = line.match(/^([^:]+):(\d+):(.*)/);
           if (match) {
-            const [, file, lineNum, content] = match;
-            if (file && lineNum && content) {
+            const [, file, lineNumber, content] = match;
+            if (file && lineNumber && content) {
               const parseMatch = content.match(/(\w+)\.parse\(/);
               if (parseMatch) {
                 usage.parseUsages.push({
-                  file: file.replace(`${baseDir}/`, ''),
-                  line: Number.parseInt(lineNum, 10),
-                  schema: parseMatch[1]
+                  file: file.replace(`${baseDirectory}/`, ''),
+                  line: Number.parseInt(lineNumber, 10),
+                  schema: parseMatch[1] || 'unknown'
                 });
               }
             }
@@ -170,7 +170,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       '.'
     ], {
       encoding: 'utf8',
-      cwd: baseDir
+      cwd: baseDirectory
     });
 
     if (safeParseResult.stdout) {
@@ -178,14 +178,14 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         if (line.trim()) {
           const match = line.match(/^([^:]+):(\d+):(.*)/);
           if (match) {
-            const [, file, lineNum, content] = match;
-            if (file && lineNum && content) {
+            const [, file, lineNumber, content] = match;
+            if (file && lineNumber && content) {
               const safeParseMatch = content.match(/(\w+)\.safeParse\(/);
               if (safeParseMatch) {
                 usage.safeParsUsages.push({
-                  file: file.replace(`${baseDir}/`, ''),
-                  line: Number.parseInt(lineNum, 10),
-                  schema: safeParseMatch[1]
+                  file: file.replace(`${baseDirectory}/`, ''),
+                  line: Number.parseInt(lineNumber, 10),
+                  schema: safeParseMatch[1] || 'unknown'
                 });
               }
             }
@@ -235,13 +235,13 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         violations.push({
           file: parseUsage.file,
           line: parseUsage.line,
-          code: `Potential over-validation with Zod`,
+          code: 'Potential over-validation with Zod',
           category: 'best-practices',
           severity: 'info',
           source: this.source,
           rule: 'zod-potential-over-validation',
-          message: `Consider if Zod validation is needed here - TypeScript may provide sufficient type safety`,
-          fixSuggestion: `Review if this data is already type-safe and consider using TypeScript types instead`
+          message: 'Consider if Zod validation is needed here - TypeScript may provide sufficient type safety',
+          fixSuggestion: 'Review if this data is already type-safe and consider using TypeScript types instead'
         });
       }
     }
@@ -249,7 +249,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     return violations;
   }
 
-  private async findMissingValidations(baseDir: string): Promise<Violation[]> {
+  private findMissingValidations(baseDirectory: string): Violation[] {
     const violations: Violation[] = [];
 
     // Look for external API calls without Zod validation
@@ -260,7 +260,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       '.'
     ], {
       encoding: 'utf8',
-      cwd: baseDir
+      cwd: baseDirectory
     });
 
     if (apiCallResult.stdout) {
@@ -268,11 +268,11 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         if (line.trim()) {
           const match = line.match(/^([^:]+):(\d+):(.*)/);
           if (match) {
-            const [, file, lineNum] = match;
-            if (file && lineNum) {
+            const [, file, lineNumber] = match;
+            if (file && lineNumber) {
               violations.push({
-                file: file.replace(`${baseDir}/`, ''),
-                line: Number.parseInt(lineNum, 10),
+                file: file.replace(`${baseDirectory}/`, ''),
+                line: Number.parseInt(lineNumber, 10),
                 code: 'External API call without Zod validation',
                 category: 'best-practices',
                 severity: 'info',
@@ -293,7 +293,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
   /**
    * Calculate runtime validation coverage metrics
    */
-  private calculateValidationCoverage(usage: ZodUsage, baseDir: string) {
+  private calculateValidationCoverage(usage: ZodUsage, baseDirectory: string) {
     const totalSchemas = usage.schemaDefinitions.length;
     const usedSchemas = new Set([
       ...usage.parseUsages.map(u => u.schema),
@@ -301,7 +301,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     ]).size;
 
     const coverage = totalSchemas > 0 ? (usedSchemas / totalSchemas) * 100 : 0;
-    
+
     return {
       totalSchemas,
       usedSchemas,
@@ -311,7 +311,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       parseCallsCount: usage.parseUsages.length,
       safeParseCallsCount: usage.safeParsUsages.length,
       riskLevel: this.assessRiskLevel(coverage, usage),
-      baseline: this.getBaselineRecommendation(baseDir)
+      baseline: this.getBaselineRecommendation(baseDirectory)
     };
   }
 
@@ -332,7 +332,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         source: this.source,
         rule: 'zod-low-coverage',
         message: `Runtime validation coverage is ${coverage.coveragePercentage}% (${coverage.usedSchemas}/${coverage.totalSchemas} schemas used). Consider increasing validation for better type safety.`,
-        fixSuggestion: `Target 80%+ validation coverage. Add .parse() or .safeParse() calls for unused schemas.`
+        fixSuggestion: 'Target 80%+ validation coverage. Add .parse() or .safeParse() calls for unused schemas.'
       });
     }
 
@@ -357,7 +357,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       suggestions.push({
         file: 'zod-coverage',
         line: 1,
-        code: `Excellent Zod validation coverage: 100%`,
+        code: 'Excellent Zod validation coverage: 100%',
         category: 'code-quality',
         severity: 'info',
         source: this.source,
@@ -375,20 +375,20 @@ export class ZodDetectionEngine extends BaseAuditEngine {
    */
   private assessRiskLevel(coverage: number, usage: ZodUsage): 'low' | 'medium' | 'high' {
     const hasExternalAPIs = usage.parseUsages.length + usage.safeParsUsages.length > 0;
-    
-    if (coverage >= 80 && hasExternalAPIs) return 'low';
-    if (coverage >= 50 || !hasExternalAPIs) return 'medium';
+
+    if (coverage >= 80 && hasExternalAPIs) {return 'low';}
+    if (coverage >= 50 || !hasExternalAPIs) {return 'medium';}
     return 'high';
   }
 
   /**
    * Get baseline recommendation based on project characteristics
    */
-  private getBaselineRecommendation(baseDir: string): string {
+  private getBaselineRecommendation(baseDirectory: string): string {
     // Detect project type to provide contextual baselines
-    const hasAPI = this.hasPattern(baseDir, '(api|routes|handlers)');
-    const hasDatabase = this.hasPattern(baseDir, '(prisma|sequelize|mongoose|database)');
-    const hasExternalServices = this.hasPattern(baseDir, '(fetch|axios|http)');
+    const hasAPI = this.hasPattern(baseDirectory, '(api|routes|handlers)');
+    const hasDatabase = this.hasPattern(baseDirectory, '(prisma|sequelize|mongoose|database)');
+    const hasExternalServices = this.hasPattern(baseDirectory, '(fetch|axios|http)');
 
     if (hasAPI && hasDatabase && hasExternalServices) {
       return 'Full-stack app: Target 85%+ coverage. Focus on API inputs, DB queries, and external service responses.';
@@ -404,10 +404,10 @@ export class ZodDetectionEngine extends BaseAuditEngine {
   /**
    * Check if baseDir contains files matching a pattern
    */
-  private hasPattern(baseDir: string, pattern: string): boolean {
+  private hasPattern(baseDirectory: string, pattern: string): boolean {
     try {
       const result = spawnSync('rg', ['-l', '--type', 'ts', pattern, '.'], {
-        cwd: baseDir,
+        cwd: baseDirectory,
         encoding: 'utf8'
       });
       return !!result.stdout && result.stdout.trim().length > 0;
@@ -427,11 +427,11 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     if (code.includes('unused')) {return 'unused-validation';}
     if (code.includes('over-validation')) {return 'over-validation';}
     if (code.includes('missing')) {return 'missing-validation';}
-    
+
     return 'zod-analysis';
   }
 
-  protected generateFixSuggestion(
+  protected override generateFixSuggestion(
     _message: string,
     _category?: string,
     _rule?: string,

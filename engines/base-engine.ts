@@ -55,7 +55,7 @@ export abstract class BaseAuditEngine {
 
     try {
       // Set up timeout if configured
-      let timeoutId: NodeJS.Timeout | undefined;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
       if (this.config.timeout) {
         timeoutId = setTimeout(() => {
           this.abortController?.abort();

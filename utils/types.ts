@@ -3,12 +3,7 @@
  * For code quality that Reddit can't criticize
  */
 
-import type { Simplify, LiteralUnion } from 'type-fest';
-
-/**
- * Exact string literal types with fallback
- */
-type ColorScheme = LiteralUnion<'auto' | 'light' | 'dark', string>;
+import type { Simplify } from 'type-fest';
 
 /**
  * Clean deduplication strategy enum
@@ -28,7 +23,6 @@ export interface CLIFlags extends Record<string, unknown> {
   readonly includeESLint: boolean;
   readonly eslintOnly: boolean;
   readonly targetPath: string;
-  readonly colorScheme: ColorScheme;
   readonly verbose: boolean;
   readonly strict: boolean;
   readonly noCrossoverCheck: boolean;

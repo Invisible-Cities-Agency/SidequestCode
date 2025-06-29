@@ -24,7 +24,9 @@
       "Bash(npx eslint:*)",
       "Bash(sed:*)",
       "Bash(git commit:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(tsx:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }

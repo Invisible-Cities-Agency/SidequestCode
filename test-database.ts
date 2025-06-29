@@ -5,7 +5,7 @@
  */
 
 import { initializeDatabase, closeDatabase } from './database/connection.js';
-import { violationToDbFormat as violationToDatabaseFormat, generateViolationHash } from './database/utils.js';
+import { violationToDatabaseFormat, generateViolationHash } from './database/utils.js';
 import type { Violation as ViolationType } from './utils/violation-types.js';
 
 async function testDatabase() {

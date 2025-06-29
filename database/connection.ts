@@ -34,8 +34,8 @@ export class DatabaseConnection {
     this.config = config;
 
     // Ensure database directory exists
-    const dbDir = path.dirname(config.path);
-    await fs.mkdir(dbDir, { recursive: true });
+    const databaseDirectory = path.dirname(config.path);
+    await fs.mkdir(databaseDirectory, { recursive: true });
 
     // Create SQLite database instance
     const database = new Database(config.path);
@@ -67,12 +67,7 @@ export class DatabaseConnection {
     console.log(`[Database] Connected to SQLite database: ${config.path}`);
 
     // Run migrations if enabled
-    if (config.migrations?.enabled) {
-      await this.runMigrations();
-    } else {
-      // Initialize schema directly if migrations are disabled
-      await this.initializeSchema();
-    }
+    await (config.migrations?.enabled ? this.runMigrations() : this.initializeSchema());
 
     return this.instance;
   }

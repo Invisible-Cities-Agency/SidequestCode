@@ -61,16 +61,6 @@ const flags: CLIFlags = {
     }
     return '.';
   })() as string,
-  colorScheme: (() => {
-    const schemeIndex = arguments_.indexOf('--color-scheme');
-    if (schemeIndex !== -1 && schemeIndex + 1 < arguments_.length) {
-      const scheme = arguments_[schemeIndex + 1];
-      if (scheme && ['auto', 'light', 'dark'].includes(scheme)) {
-        return scheme as 'auto' | 'light' | 'dark';
-      }
-    }
-    return 'auto' as const;
-  })(),
   verbose: arguments_.includes('--verbose'),
   strict: arguments_.includes('--strict'),
   noCrossoverCheck: arguments_.includes('--no-crossover-check'),
@@ -81,47 +71,28 @@ const flags: CLIFlags = {
   resetSession: arguments_.includes('--reset-session'),
   debugTerminal: arguments_.includes('--debug-terminal'),
   dataDir: (() => {
-    const dataDirIndex = arguments_.indexOf('--data-dir');
-    if (dataDirIndex !== -1 && dataDirIndex + 1 < arguments_.length) {
-      return arguments_[dataDirIndex + 1] || './data';
+    const dataDirectoryIndex = arguments_.indexOf('--data-dir');
+    if (dataDirectoryIndex !== -1 && dataDirectoryIndex + 1 < arguments_.length) {
+      return arguments_[dataDirectoryIndex + 1] || './data';
     }
     return './data';
   })(),
   generatePRD: arguments_.includes('--prd'),
   configAction: (() => {
     const configIndex = arguments_.indexOf('--config');
-    if (configIndex !== -1) {
-      const nextArgument = arguments_[configIndex + 1];
-      if (nextArgument && !nextArgument.startsWith('--')) {
-        return nextArgument; // --config show, --config reset, --config edit
-      }
-      return 'show'; // Default to show if just --config
+    if (configIndex === -1) {
+      return; // No --config flag provided
     }
-    return undefined;
+    const nextArgument = arguments_[configIndex + 1];
+    if (nextArgument && !nextArgument.startsWith('--')) {
+      return nextArgument; // --config show, --config reset, --config edit
+    }
+    return 'show'; // Default to show if just --config
   })(),
   skipSetup: arguments_.includes('--skip-setup')
 };
 
-// Handle color scheme detection and setting
-switch (flags.colorScheme) {
-case 'light': {
-  process.env['TERM_COLOR_MODE'] = 'light';
-
-  break;
-}
-case 'dark': {
-  process.env['TERM_COLOR_MODE'] = 'dark';
-
-  break;
-}
-case 'auto': {
-  // Auto-detection will happen in the display system
-  delete process.env['TERM_COLOR_MODE'];
-
-  break;
-}
-// No default
-}
+// Color scheme is now handled via keyboard shortcuts in watch mode (Ctrl+D)
 
 /**
  * Show comprehensive AI/LLM context and guidance
@@ -396,18 +367,17 @@ TROUBLESHOOTING:
     • Check ~/.sidequest-cqo/user-preferences.json exists
     • Try: npm run sidequest:config:reset
 
-  Command not found: sidequest:start?
-    Don't use: npm sidequest:start
-    Use:       npm run sidequest:start
+  Command not found: sidequest:watch?
+    Don't use: npm sidequest:watch
+    Use:       npm run sidequest:watch
 
   Want to skip interactive setup?
     Use: npm run sidequest:report (for LLMs/automation)
     Or:  Delete ~/.sidequest-cqo/ and ./data/ if setup is corrupted
 
   Colors look wrong?
-    npm run sidequest:watch:dark    # Force dark mode
-    npm run sidequest:watch:light   # Force light mode
-    npm run sidequest:debug:terminal # Debug detection
+    In watch mode: Press Ctrl+D to toggle light/dark mode
+    For debugging: npm run sidequest:debug:terminal
 `);
 }
 
@@ -417,35 +387,31 @@ TROUBLESHOOTING:
 function getColorScheme() {
   const colorMode = process.env['TERM_COLOR_MODE'] || detectTerminalMode();
 
-  if (colorMode === 'light') {
+  return colorMode === 'light' ? {
     // Light mode: Replicate macOS Terminal "Man Page" theme colors
-    return {
-      reset: '\u001B[0m',
-      bold: '\u001B[1m',
-      primary: '\u001B[30m',    // Black text (Man Page style)
-      secondary: '\u001B[90m',  // Dark gray
-      info: '\u001B[34m',       // Deep blue
-      success: '\u001B[32m',    // Deep green
-      warning: '\u001B[33m',    // Amber/brown
-      error: '\u001B[31m',      // Deep red
-      muted: '\u001B[37m',      // Medium gray
-      header: '\u001B[35m'      // Purple (Man Page style)
-    };
-  } else {
+    reset: '\u001B[0m',
+    bold: '\u001B[1m',
+    primary: '\u001B[30m',    // Black text (Man Page style)
+    secondary: '\u001B[90m',  // Dark gray
+    info: '\u001B[34m',       // Deep blue
+    success: '\u001B[32m',    // Deep green
+    warning: '\u001B[33m',    // Amber/brown
+    error: '\u001B[31m',      // Deep red
+    muted: '\u001B[37m',      // Medium gray
+    header: '\u001B[35m'      // Purple (Man Page style)
+  } : {
     // Dark mode: Replicate macOS Terminal "Pro" theme colors
-    return {
-      reset: '\u001B[0m',
-      bold: '\u001B[1m',
-      primary: '\u001B[97m',    // Bright white (Pro theme style)
-      secondary: '\u001B[37m',  // Light gray
-      info: '\u001B[94m',       // Bright blue (Pro theme blue)
-      success: '\u001B[92m',    // Bright green (Pro theme green)
-      warning: '\u001B[93m',    // Bright yellow (Pro theme yellow)
-      error: '\u001B[91m',      // Bright red (Pro theme red)
-      muted: '\u001B[90m',      // Dim gray
-      header: '\u001B[96m'      // Bright cyan (Pro theme cyan)
-    };
-  }
+    reset: '\u001B[0m',
+    bold: '\u001B[1m',
+    primary: '\u001B[97m',    // Bright white (Pro theme style)
+    secondary: '\u001B[37m',  // Light gray
+    info: '\u001B[94m',       // Bright blue (Pro theme blue)
+    success: '\u001B[92m',    // Bright green (Pro theme green)
+    warning: '\u001B[93m',    // Bright yellow (Pro theme yellow)
+    error: '\u001B[91m',      // Bright red (Pro theme red)
+    muted: '\u001B[90m',      // Dim gray
+    header: '\u001B[96m'      // Bright cyan (Pro theme cyan)
+  };
 }
 
 /**
@@ -548,6 +514,14 @@ function displayConsoleResults(result: OrchestratorResult): void {
     if (summary.bySource['unused-exports'] > 0) {
       console.log(`  🗂️ ${colors.info}Unused Exports:${colors.reset} ${colors.primary}${summary.bySource['unused-exports']}${colors.reset}`);
     }
+    if (summary.bySource['zod-detection'] > 0) {
+      console.log(`  🛡️ ${colors.info}Zod Detection:${colors.reset} ${colors.primary}${summary.bySource['zod-detection']}${colors.reset}`);
+    }
+  }
+
+  // Enhanced Zod Analysis Section
+  if (summary.bySource['zod-detection'] > 0) {
+    displayZodAnalysisSection(violations, colors);
   }
 
   console.log(`\n${colors.warning}By Category:${colors.reset}`);
@@ -566,6 +540,70 @@ function displayConsoleResults(result: OrchestratorResult): void {
 }
 
 /**
+ * Display enhanced Zod analysis section with coverage metrics
+ */
+function displayZodAnalysisSection(violations: OrchestratorViolation[], colors: any): void {
+  console.log(`\n${colors.bold}${colors.header}🛡️ Zod Analysis${colors.reset}`);
+
+  // Extract Zod coverage data from violations
+  const zodViolations = violations.filter(v => v.source === 'zod-detection');
+  const coverageViolation = zodViolations.find(v => v.message && v.message.includes('coverage is'));
+  const parseRatioViolation = zodViolations.find(v => v.message && v.message.includes('parse() vs'));
+  const baselineViolation = zodViolations.find(v => v.message && v.message.includes('Target '));
+
+  // Extract coverage percentage
+  let coverage = '0';
+  let usedSchemas = '0';
+  let totalSchemas = '0';
+  if (coverageViolation && coverageViolation.message) {
+    const coverageMatch = coverageViolation.message.match(/coverage is ([\d.]+)% \((\d+)\/(\d+) schemas used\)/);
+    if (coverageMatch) {
+      coverage = coverageMatch[1] || '0';
+      usedSchemas = coverageMatch[2] || '0';
+      totalSchemas = coverageMatch[3] || '0';
+    }
+  }
+
+  // Extract parse safety data
+  let parseCallsCount = '0';
+  let safeParseCallsCount = '0';
+  if (parseRatioViolation && parseRatioViolation.message) {
+    const parseMatch = parseRatioViolation.message.match(/(\d+) \.parse\(\) vs (\d+) \.safeParse\(\)/);
+    if (parseMatch) {
+      parseCallsCount = parseMatch[1] || '0';
+      safeParseCallsCount = parseMatch[2] || '0';
+    }
+  }
+
+  // Extract risk level from coverage percentage
+  const coverageNumber = Number.parseFloat(coverage);
+  let riskLevel = 'High';
+  let riskColor = colors.error;
+  if (coverageNumber >= 80) {
+    riskLevel = 'Low';
+    riskColor = colors.success;
+  } else if (coverageNumber >= 50) {
+    riskLevel = 'Medium';
+    riskColor = colors.warning;
+  }
+
+  // Extract baseline recommendation
+  let baseline = 'General TypeScript project: Target 70%+ coverage';
+  if (baselineViolation && baselineViolation.message) {
+    const baselineMatch = baselineViolation.message.match(/Target ([^.]+)\./);
+    if (baselineMatch) {
+      baseline = `Target ${baselineMatch[1]}`;
+    }
+  }
+
+  // Display coverage metrics prominently
+  console.log(`${colors.secondary}  Coverage: ${colors.primary}${coverage}%${colors.reset} ${colors.secondary}(${usedSchemas}/${totalSchemas} schemas used)${colors.reset}`);
+  console.log(`${colors.secondary}  Risk Level: ${riskColor}${riskLevel}${colors.reset}`);
+  console.log(`${colors.secondary}  Parse Safety: ${colors.primary}${parseCallsCount} unsafe${colors.reset}${colors.secondary}, ${colors.primary}${safeParseCallsCount} safe${colors.reset} ${colors.secondary}calls${colors.reset}`);
+  console.log(`${colors.secondary}  Baseline: ${colors.info}${baseline}${colors.reset}`);
+}
+
+/**
  * Generate PRD file for Claude Task Master ingestion
  */
 async function generatePRD(violations: OrchestratorViolation[], targetPath: string): Promise<void> {
@@ -575,10 +613,10 @@ async function generatePRD(violations: OrchestratorViolation[], targetPath: stri
   // Analyze violations for PRD content
   const totalViolations = violations.length;
   const filesAffected = new Set(violations.map(v => v.file)).size;
-  const categoryBreakdown = violations.reduce((accumulator, v) => {
-    accumulator[v.category] = (accumulator[v.category] || 0) + 1;
-    return accumulator;
-  }, {} as Record<string, number>);
+  const categoryBreakdown: Record<string, number> = {};
+  for (const violation of violations) {
+    categoryBreakdown[violation.category] = (categoryBreakdown[violation.category] || 0) + 1;
+  }
 
   const topCategories = Object.entries(categoryBreakdown)
     .sort(([, a], [, b]) => b - a)
@@ -750,7 +788,7 @@ async function handleConfigCommand(action: string): Promise<void> {
     case 'show': {
       console.log(`${colors.bold}${colors.header}📋 Current User Preferences${colors.reset}\n`);
       const allPrefs = prefs.getAllPreferences();
-      console.log(JSON.stringify(allPrefs, null, 2));
+      console.log(JSON.stringify(allPrefs, undefined, 2));
       break;
     }
 
@@ -814,7 +852,7 @@ ${colors.info}Note:${colors.reset} npm doesn't support flags after script names.
   // Check for unknown npm script attempts
   if (process.env['npm_command'] === 'run-script' && process.env['npm_lifecycle_event']) {
     const scriptName = process.env['npm_lifecycle_event'];
-    
+
     // Check for common sidequest: variations that don't exist
     if (scriptName && scriptName.startsWith('sidequest') && !scriptName.includes(':')) {
       console.log(`${colors.error}❌ Script Not Found${colors.reset}
@@ -839,13 +877,13 @@ ${colors.secondary}Common commands:${colors.reset}
 
   // Check for direct npx tsx cli.ts usage (suggest LLM context recovery)
   // Only show for truly direct usage, not when npm scripts call the same command
-  if (process.argv[1]?.includes('cli.ts') && 
-      !process.env['npm_command'] && 
+  if (process.argv[1]?.includes('cli.ts') &&
+      !process.env['npm_command'] &&
       !process.env['npm_lifecycle_event'] &&
       !process.env['npm_lifecycle_script']) {
-    
-    const isLikelyLLM = Array.from(arguments_).some(arg => arg.includes('--verbose') || arg.includes('--skip-setup'));
-    
+
+    const isLikelyLLM = [...arguments_].some(argument => argument.includes('--verbose') || argument.includes('--skip-setup'));
+
     if (isLikelyLLM) {
       console.log(`${colors.warning}💡 LLM Context Recovery${colors.reset}
 
@@ -902,7 +940,7 @@ async function main(): Promise<void> {
   // Only skip setup if explicitly requested OR if running in automation mode (verbose + skip-setup)
   const isAutomationMode = flags.verbose && flags.skipSetup;
   const isExplicitSkip = flags.skipSetup && !flags.verbose; // User explicitly doesn't want setup
-  
+
   if (!isAutomationMode && !isExplicitSkip) {
     const needsSetup = await checkAndRunFirstTimeSetup();
     if (needsSetup) {
@@ -1027,7 +1065,7 @@ async function main(): Promise<void> {
                   dashboard: await orchestrator.getStorageService().getDashboardData()
                 }
               };
-              console.log(JSON.stringify(enhancedResult, null, 2));
+              console.log(JSON.stringify(enhancedResult, undefined, 2));
             } else {
               // Use the clean developer display for clear metrics
               await watchDisplay.updateDisplay(result.violations, checksCount, orchestrator);
@@ -1121,10 +1159,10 @@ async function main(): Promise<void> {
                 dashboard: await orchestrator.getStorageService().getDashboardData()
               }
             };
-            console.log(JSON.stringify(enhancedResult, null, 2));
+            console.log(JSON.stringify(enhancedResult, undefined, 2));
           } catch (error) {
             // Fallback if dashboard data fails - still show violations
-            console.log(JSON.stringify(result, null, 2));
+            console.log(JSON.stringify(result, undefined, 2));
             if (flags.verbose) {
               console.warn('[Warning] Database dashboard data unavailable:', error);
             }
@@ -1192,7 +1230,7 @@ async function main(): Promise<void> {
     }
 
     if (flags.verbose) {
-      console.log(JSON.stringify(result, null, 2));
+      console.log(JSON.stringify(result, undefined, 2));
     } else {
       displayConsoleResults(result);
     }

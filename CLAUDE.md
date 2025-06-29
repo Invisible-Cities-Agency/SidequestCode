@@ -17,7 +17,7 @@ npm run sidequest:report:eslint       # Include ESLint violations
 npm run sidequest:report:strict       # Strict mode analysis
 
 # ❌ NEVER use these for LLMs - They require interaction
-npm run sidequest:start               # Watch mode (interactive)
+npm run sidequest:watch               # Watch mode (interactive)
 npm run sidequest:config              # Interactive config
 ```
 
@@ -31,8 +31,8 @@ The tool now intelligently detects first-run state:
 **No more manual `--skip-setup` flags needed!**
 
 ### Common User Errors (Fixed with Interception)
-1. **npm run sidequest --watch** ❌ → **npm run sidequest:start** ✅
-2. **npm sidequest:start** ❌ → **npm run sidequest:start** ✅  
+1. **npm run sidequest --watch** ❌ → **npm run sidequest:watch** ✅
+2. **npm sidequest:watch** ❌ → **npm run sidequest:watch** ✅  
 3. **Setup running every time** → Check ~/.sidequest-cqo/user-preferences.json
 
 ### File Extension Strategy
@@ -71,9 +71,7 @@ npm run sidequest:report:eslint       # Include ESLint violations
 npm run sidequest:report:strict       # Strict mode analysis
 
 # For humans - interactive/visual modes
-npm run sidequest:start               # Real-time watch mode
-npm run sidequest:watch:dark          # Force dark theme
-npm run sidequest:watch:light         # Force light theme
+npm run sidequest:watch               # Real-time watch mode
 npm run sidequest:config              # Configuration management
 ```
 

@@ -64,7 +64,7 @@ export class CodeQualityOrchestrator {
   private engines: Map<string, BaseAuditEngine> = new Map();
   private config: OrchestratorConfig;
   private watchMode = false;
-  private watchInterval?: NodeJS.Timeout | undefined;
+  private watchInterval?: ReturnType<typeof setTimeout> | undefined;
   private eventListeners: Map<WatchEvent, ((_data: WatchEventData) => void)[]> = new Map();
 
   constructor(config: OrchestratorConfig) {
