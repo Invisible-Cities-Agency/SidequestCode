@@ -15,6 +15,7 @@ import type {
   ViolationCategory,
   ViolationSeverity
 } from '../utils/violation-types.js';
+import { safeJsonParse, TSConfigSchema, type ValidatedTSConfig } from '../utils/validation-schemas.js';
 
 /**
  * Engine for TypeScript compilation validation
@@ -229,7 +230,10 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   private cacheTypeScriptConfig(tsConfigPath: string): void {
     try {
       const configContent = fs.readFileSync(tsConfigPath, 'utf8');
-      const config = JSON.parse(configContent);
+      
+      // Use Zod validation for secure tsconfig.json parsing
+      const config: ValidatedTSConfig = safeJsonParse(configContent, TSConfigSchema, 'tsconfig.json');
+      console.log('[Security] TypeScript configuration validated successfully');
 
       // Store in database (pseudo-code - would need actual DB connection)
       // This ensures watch mode and reports can access client configuration quickly
@@ -251,8 +255,9 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
 
       // TODO: Store configSummary in database for watch mode access
 
-    } catch (error) {
-      console.warn('[TypeScript Engine] Could not cache TypeScript config:', error);
+    } catch (error: any) {
+      console.warn('[TypeScript Engine] Could not validate TypeScript config:', error.message);
+      console.warn('[TypeScript Engine] Continuing with default configuration...');
     }
   }
 

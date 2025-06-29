@@ -13,6 +13,7 @@ import type {
   ViolationCategory,
   ViolationSeverity
 } from '../utils/violation-types.js';
+import { safeJsonParse, ESLintOutputSchema, type ValidatedESLintOutput } from '../utils/validation-schemas.js';
 
 /**
  * Engine for ESLint-based code quality analysis
@@ -564,19 +565,24 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    * Parse ESLint JSON output into violations
    */
   private parseESLintOutput(output: string, filterRules?: string[]): Violation[] {
-    let eslintResults;
+    let eslintResults: ValidatedESLintOutput;
 
     try {
-      eslintResults = JSON.parse(output);
-    } catch {
-      console.warn('[ESLint Engine] Failed to parse JSON output, trying to extract partial results');
+      // Use Zod validation for secure JSON parsing
+      eslintResults = safeJsonParse(output, ESLintOutputSchema, 'ESLint output');
+      console.log('[Security] ESLint output validated successfully');
+    } catch (error: any) {
+      console.warn('[ESLint Engine] Failed to parse and validate JSON output:', error.message);
+      
       // Try to extract partial JSON if output was truncated
       const lastBracket = output.lastIndexOf(']');
       if (lastBracket > 0) {
         try {
-          eslintResults = JSON.parse(output.slice(0, Math.max(0, lastBracket + 1)));
+          const partialOutput = output.slice(0, Math.max(0, lastBracket + 1));
+          eslintResults = safeJsonParse(partialOutput, ESLintOutputSchema, 'partial ESLint output');
+          console.warn('[ESLint Engine] Recovered partial ESLint results with validation');
         } catch {
-          console.warn('[ESLint Engine] Could not recover partial JSON');
+          console.warn('[ESLint Engine] Could not recover and validate partial JSON');
           return [];
         }
       } else {
@@ -604,7 +610,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
           message.message || 'ESLint violation',
           category,
           severity,
-          message.ruleId,
+          message.ruleId || undefined,
           message.message,
           message.column
         ));

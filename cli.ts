@@ -43,54 +43,49 @@ import type { CLIFlags, OrchestratorConfigInput } from './utils/types.js';
 // Import the old orchestrator temporarily for compatibility
 import { CodeQualityOrchestrator } from './orchestrator.js';
 
-// Parse command line arguments
+// Parse command line arguments with Zod validation for security
+import { safeCLIArgsParse, safeEnvironmentAccess } from './utils/validation-schemas.js';
+
 const arguments_ = process.argv.slice(2);
-const flags: CLIFlags = {
-  help: arguments_.includes('--help') || arguments_.includes('-h'),
-  helpMarkdown: arguments_.includes('--help-markdown'),
-  helpQuick: arguments_.includes('--help-quick'),
-  aiContext: arguments_.includes('--ai-context'),
-  watch: arguments_.includes('--watch'),
-  includeAny: arguments_.includes('--include-any'),
-  includeESLint: arguments_.includes('--include-eslint'),
-  eslintOnly: arguments_.includes('--eslint-only'),
-  targetPath: (() => {
-    const pathIndex = arguments_.indexOf('--path');
-    if (pathIndex !== -1 && pathIndex + 1 < arguments_.length) {
-      return arguments_[pathIndex + 1];
-    }
-    return '.';
-  })() as string,
-  verbose: arguments_.includes('--verbose'),
-  strict: arguments_.includes('--strict'),
-  noCrossoverCheck: arguments_.includes('--no-crossover-check'),
-  failOnCrossover: arguments_.includes('--fail-on-crossover'),
-  // New flags for enhanced persistence features
-  usePersistence: !arguments_.includes('--no-persistence'),
-  showBurndown: arguments_.includes('--burndown'),
-  resetSession: arguments_.includes('--reset-session'),
-  debugTerminal: arguments_.includes('--debug-terminal'),
-  dataDir: (() => {
-    const dataDirectoryIndex = arguments_.indexOf('--data-dir');
-    if (dataDirectoryIndex !== -1 && dataDirectoryIndex + 1 < arguments_.length) {
-      return arguments_[dataDirectoryIndex + 1] || './data';
-    }
-    return './data';
-  })(),
-  generatePRD: arguments_.includes('--prd'),
-  configAction: (() => {
-    const configIndex = arguments_.indexOf('--config');
-    if (configIndex === -1) {
-      return; // No --config flag provided
-    }
-    const nextArgument = arguments_[configIndex + 1];
-    if (nextArgument && !nextArgument.startsWith('--')) {
-      return nextArgument; // --config show, --config reset, --config edit
-    }
-    return 'show'; // Default to show if just --config
-  })(),
-  skipSetup: arguments_.includes('--skip-setup')
-};
+
+// Validate environment variables for security
+const validatedEnv = safeEnvironmentAccess();
+
+// Use secure CLI argument parsing with Zod validation
+let flags: CLIFlags;
+try {
+  flags = safeCLIArgsParse(arguments_) as CLIFlags;
+  if (validatedEnv.DEBUG) {
+    console.log('[Security] CLI arguments validated successfully');
+  }
+} catch (error: any) {
+  console.error(`[Security Error] ${error.message}`);
+  console.error('Falling back to safe defaults...');
+  // Use safe default flags if validation fails
+  flags = {
+    help: false,
+    helpMarkdown: false,
+    helpQuick: false,
+    aiContext: false,
+    watch: false,
+    includeAny: false,
+    includeESLint: false,
+    eslintOnly: false,
+    targetPath: '.',
+    verbose: false,
+    strict: false,
+    noCrossoverCheck: false,
+    failOnCrossover: false,
+    usePersistence: true,
+    showBurndown: false,
+    resetSession: false,
+    debugTerminal: false,
+    dataDir: './data',
+    generatePRD: false,
+    configAction: undefined,
+    skipSetup: false,
+  };
+}
 
 // Color scheme is now handled via keyboard shortcuts in watch mode (Ctrl+D)
 
@@ -385,7 +380,7 @@ TROUBLESHOOTING:
  * Get color scheme for terminal output with light/dark mode support
  */
 function getColorScheme() {
-  const colorMode = process.env['TERM_COLOR_MODE'] || detectTerminalMode();
+  const colorMode = validatedEnv.TERM_COLOR_MODE || detectTerminalMode();
 
   return colorMode === 'light' ? {
     // Light mode: Replicate macOS Terminal "Man Page" theme colors
@@ -485,7 +480,7 @@ async function processViolationsWithPersistence(
     const processingResult = await violationTracker.processViolations(violations);
 
     // Log processing results in debug mode
-    if (process.env['DEBUG']) {
+    if (validatedEnv.DEBUG) {
       console.log('[Persistence] Processing result:', processingResult);
     }
   } catch (error) {

@@ -10,6 +10,7 @@
 import { BaseAuditEngine } from './base-engine.js';
 import type { Violation } from '../utils/violation-types.js';
 import { spawnSync } from 'node:child_process';
+import { PackageJsonSchema, type ValidatedPackageJson } from '../utils/validation-schemas.js';
 
 interface ZodUsage {
   schemaDefinitions: Array<{ file: string; line: number; name: string }>;
@@ -119,9 +120,15 @@ export class ZodDetectionEngine extends BaseAuditEngine {
 
   private async hasZodDependency(): Promise<boolean> {
     try {
-      const packageJson = await import(`${process.cwd()}/package.json`);
-      return !!(packageJson.dependencies?.zod || packageJson.devDependencies?.zod);
-    } catch {
+      const packageJsonModule = await import(`${process.cwd()}/package.json`);
+      
+      // Validate package.json structure with Zod for security
+      const packageJson: ValidatedPackageJson = PackageJsonSchema.parse(packageJsonModule.default || packageJsonModule);
+      console.log('[Security] package.json structure validated successfully');
+      
+      return !!(packageJson.dependencies?.['zod'] || packageJson.devDependencies?.['zod']);
+    } catch (error: any) {
+      console.warn('[Zod Detection] Could not validate package.json:', error.message);
       return false;
     }
   }
