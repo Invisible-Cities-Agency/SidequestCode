@@ -1,0 +1,92 @@
+{
+  "name": "@sidequest/code-quality-orchestrator",
+  "version": "0.1.0-alpha.1",
+  "description": "A sophisticated TypeScript/ESLint monitoring system with real-time watch mode and intelligent terminal color detection",
+  "main": "dist/cli.js",
+  "bin": {
+    "code-quality-orchestrator": "dist/cli.js",
+    "cqo": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx cli.ts",
+    "watch": "tsx cli.ts --watch",
+    "watch:dark": "tsx cli.ts --watch --color-scheme dark",
+    "watch:light": "tsx cli.ts --watch --color-scheme light",
+    "watch:enhanced": "tsx cli.ts --watch --include-eslint",
+    ":watch": "npm run watch",
+    "burndown": "tsx cli.ts --burndown",
+    "debug-terminal": "tsx cli.ts --debug-terminal",
+    "reset-session": "tsx cli.ts --reset-session",
+    "test": "vitest run",
+    "test:core": "vitest run --reporter=verbose core/",
+    "test:edge": "vitest run --reporter=verbose edge/",
+    "test:watch": "vitest watch",
+    "lint": "eslint . --ext .ts,.tsx --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm run test && npm run typecheck",
+    "alpha-release": "npm version prerelease --preid=alpha && npm publish --tag alpha",
+    "beta-release": "npm version prerelease --preid=beta && npm publish --tag beta"
+  },
+  "keywords": [
+    "typescript",
+    "eslint",
+    "code-quality",
+    "monitoring",
+    "watch-mode",
+    "terminal",
+    "cli",
+    "developer-tools",
+    "real-time",
+    "violations",
+    "linting"
+  ],
+  "author": {
+    "name": "Ian Armstrong",
+    "email": "sidequest@example.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sidequest/code-quality-orchestrator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sidequest/code-quality-orchestrator/issues"
+  },
+  "homepage": "https://github.com/sidequest/code-quality-orchestrator#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "kysely": "^0.27.0",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.5.0",
+    "eslint": ">=8.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/sidequest"
+  }
+}

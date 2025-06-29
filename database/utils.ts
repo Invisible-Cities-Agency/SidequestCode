@@ -1,0 +1,333 @@
+/**
+ * Database utility functions for Code Quality Orchestrator
+ * Includes hashing, deduplication, and data transformation helpers
+ */
+
+import { createHash } from 'crypto';
+import type { Violation as ViolationType } from '../utils/violation-types.js';
+import type { NewViolation, ViolationDelta } from './types.js';
+
+// ============================================================================
+// Hash Generation for Deduplication
+// ============================================================================
+
+/**
+ * Generate a consistent hash for violation deduplication
+ * Hash includes: file_path + rule_id + message (excludes line_number for stability)
+ * This makes violations more stable across code edits that shift line numbers
+ */
+export function generateViolationHash(violation: {
+  file_path: string;
+  line_number?: number | null;
+  rule_id?: string | null;
+  message: string;
+}): string {
+  // Normalize the message to make it more stable
+  const normalizedMessage = violation.message
+    .replace(/line \d+/g, 'line X')  // Replace specific line numbers in messages
+    .replace(/\d+:\d+/g, 'X:Y')     // Replace line:column references
+    .trim();
+
+  const hashInput = [
+    violation.file_path,
+    // Intentionally exclude line_number for logical stability across edits
+    violation.rule_id || 'unknown',
+    normalizedMessage
+  ].join('|');
+
+  return createHash('sha256').update(hashInput).digest('hex');
+}
+
+/**
+ * Convert orchestrator violation to database violation format
+ */
+export function violationToDbFormat(violation: ViolationType): NewViolation {
+  const hash = generateViolationHash({
+    file_path: violation.file,
+    line_number: violation.line,
+    rule_id: violation.ruleId || violation.code,
+    message: violation.message
+  });
+
+  return {
+    file_path: violation.file,
+    rule_id: violation.ruleId || violation.code || 'unknown',
+    category: violation.category,
+    severity: violation.severity,
+    source: violation.source,
+    message: violation.message,
+    line_number: violation.line || null,
+    column_number: violation.column || null,
+    code_snippet: violation.code || null,
+    hash,
+    // first_seen_at and last_seen_at will use DEFAULT CURRENT_TIMESTAMP
+    // status will use DEFAULT 'active'
+  };
+}
+
+/**
+ * Convert multiple violations to database format with batch processing
+ */
+export function violationsToDbFormat(violations: ViolationType[]): NewViolation[] {
+  return violations.map(violationToDbFormat);
+}
+
+// ============================================================================
+// Delta Computation for Historical Tracking
+// ============================================================================
+
+/**
+ * Compare two sets of violation hashes to compute deltas
+ */
+export function computeViolationDeltas(
+  previousHashes: string[],
+  currentHashes: string[]
+): ViolationDelta[] {
+  const previousSet = new Set(previousHashes);
+  const currentSet = new Set(currentHashes);
+  const deltas: ViolationDelta[] = [];
+
+  // Find added violations
+  for (const hash of currentHashes) {
+    if (!previousSet.has(hash)) {
+      deltas.push({
+        violation_hash: hash,
+        action: 'added'
+      });
+    }
+  }
+
+  // Find removed violations  
+  for (const hash of previousHashes) {
+    if (!currentSet.has(hash)) {
+      deltas.push({
+        violation_hash: hash,
+        action: 'removed'
+      });
+    }
+  }
+
+  // Find unchanged violations (useful for analytics)
+  for (const hash of currentHashes) {
+    if (previousSet.has(hash)) {
+      deltas.push({
+        violation_hash: hash,
+        action: 'unchanged'
+      });
+    }
+  }
+
+  return deltas;
+}
+
+/**
+ * Batch process deltas for database insertion
+ */
+export function prepareDeltasForInsertion(
+  checkId: number,
+  deltas: ViolationDelta[]
+): Array<{
+  check_id: number;
+  violation_hash: string;
+  action: 'added' | 'removed' | 'modified' | 'unchanged';
+  previous_line: number | null;
+  previous_message: string | null;
+}> {
+  return deltas.map(delta => ({
+    check_id: checkId,
+    violation_hash: delta.violation_hash,
+    action: delta.action,
+    previous_line: delta.previous_line || null,
+    previous_message: delta.previous_message || null
+  }));
+}
+
+// ============================================================================
+// Data Formatting and Transformation
+// ============================================================================
+
+/**
+ * Format datetime for SQLite storage
+ */
+export function formatDateTimeForDb(date: Date = new Date()): string {
+  return date.toISOString();
+}
+
+/**
+ * Parse datetime from SQLite storage
+ */
+export function parseDateTimeFromDb(dateString: string): Date {
+  return new Date(dateString);
+}
+
+/**
+ * Calculate time ago string for display
+ */
+export function formatTimeAgo(dateString: string): string {
+  const now = new Date();
+  const date = parseDateTimeFromDb(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSeconds < 60) {
+    return `${diffSeconds}s ago`;
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes}m ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  } else {
+    return `${diffDays}d ago`;
+  }
+}
+
+/**
+ * Batch array into chunks for efficient database operations
+ */
+export function chunk<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/**
+ * Clean up old historical data to prevent database bloat
+ */
+export function calculateRetentionDate(retentionDays: number): string {
+  const retentionDate = new Date();
+  retentionDate.setDate(retentionDate.getDate() - retentionDays);
+  return formatDateTimeForDb(retentionDate);
+}
+
+// ============================================================================
+// Query Helpers
+// ============================================================================
+
+/**
+ * Build WHERE clause for violation queries with filters
+ */
+export function buildViolationFilters() {
+  return {
+    byStatus: (status: 'active' | 'resolved' | 'ignored') => ({ status }),
+    byCategories: (categories: string[]) => ({ category: categories }),
+    bySources: (sources: ('typescript' | 'eslint')[]) => ({ source: sources }),
+    bySeverities: (severities: ('error' | 'warn' | 'info')[]) => ({ severity: severities }),
+    byFilePaths: (filePaths: string[]) => ({ file_path: filePaths }),
+    since: (sinceDate: string) => ({ last_seen_at: { '>=': sinceDate } }),
+    until: (untilDate: string) => ({ last_seen_at: { '<=': untilDate } })
+  };
+}
+
+/**
+ * Create pagination parameters
+ */
+export function createPaginationParams(limit: number = 100, offset: number = 0) {
+  return {
+    limit: Math.min(limit, 1000), // Cap at 1000 for performance
+    offset: Math.max(offset, 0)
+  };
+}
+
+// ============================================================================
+// Performance Monitoring Helpers
+// ============================================================================
+
+/**
+ * Create performance metric entry
+ */
+export function createPerformanceMetric(
+  type: string,
+  value: number,
+  unit: string,
+  context?: string
+) {
+  return {
+    metric_type: type,
+    metric_value: value,
+    metric_unit: unit,
+    context: context || null,
+    recorded_at: formatDateTimeForDb()
+  };
+}
+
+/**
+ * Measure execution time and create metric
+ */
+export async function measureExecutionTime<T>(
+  operation: () => Promise<T>,
+  metricType: string,
+  context?: string
+): Promise<{ result: T; metric: ReturnType<typeof createPerformanceMetric> }> {
+  const startTime = performance.now();
+  const result = await operation();
+  const endTime = performance.now();
+  const executionTime = endTime - startTime;
+
+  const metric = createPerformanceMetric(
+    metricType,
+    executionTime,
+    'ms',
+    context
+  );
+
+  return { result, metric };
+}
+
+// ============================================================================
+// Validation Helpers
+// ============================================================================
+
+/**
+ * Validate violation data before database insertion
+ */
+export function validateViolation(violation: Partial<NewViolation>): string[] {
+  const errors: string[] = [];
+
+  if (!violation.file_path?.trim()) {
+    errors.push('file_path is required');
+  }
+
+  if (!violation.rule_id?.trim()) {
+    errors.push('rule_id is required');
+  }
+
+  if (!violation.category?.trim()) {
+    errors.push('category is required');
+  }
+
+  if (!['error', 'warn', 'info'].includes(violation.severity as string)) {
+    errors.push('severity must be error, warn, or info');
+  }
+
+  if (!['typescript', 'eslint'].includes(violation.source as string)) {
+    errors.push('source must be typescript or eslint');
+  }
+
+  if (!violation.message?.trim()) {
+    errors.push('message is required');
+  }
+
+  if (!violation.hash?.trim()) {
+    errors.push('hash is required');
+  }
+
+  return errors;
+}
+
+/**
+ * Validate and clean violation data
+ */
+export function sanitizeViolation(violation: NewViolation): NewViolation {
+  return {
+    ...violation,
+    file_path: violation.file_path.trim(),
+    rule_id: violation.rule_id.trim(),
+    category: violation.category.trim(),
+    message: violation.message.trim(),
+    code_snippet: violation.code_snippet?.trim() || null
+  };
+}
