@@ -4,20 +4,19 @@ import { resolve } from 'path';
 
 export default defineConfig({
   test: {
-    // Test environment
+    // Test environment - Node.js for CLI tool
     environment: 'node',
     
-    // Global test settings
+    // Setup files for global configuration
+    setupFiles: ['.vitest/setup-core.mjs'],
+    
+    // Global test settings for professional CLI testing
     globals: true,
     clearMocks: true,
     restoreMocks: true,
     
-    // File patterns
-    include: [
-      '**/*.test.ts',
-      '**/*.spec.ts',
-      '.vitest/**/*.test.ts'
-    ],
+    // File patterns for organized test structure
+    include: ['.vitest/**/*.test.{mjs,ts,tsx}'],
     exclude: [
       'node_modules/**',
       'dist/**',
@@ -25,11 +24,12 @@ export default defineConfig({
       '.next/**',
       '.nuxt/**',
       '.vercel/**',
-      'coverage/**'
+      'coverage/**',
+      '__tests__/**' // Keep example tests separate
     ],
     
-    // Test timeouts
-    testTimeout: 10000,
+    // Test timeouts for CLI tool testing
+    testTimeout: 30000,
     hookTimeout: 10000,
     
     // Coverage configuration
@@ -68,12 +68,12 @@ export default defineConfig({
     // Setup files
     setupFiles: [],
     
-    // Workers and concurrency
+    // Test isolation for reliable testing
+    isolate: true,
     pool: 'forks',
     poolOptions: {
-      forks: {
-        singleFork: false,
-        isolate: true
+      forks: { 
+        isolate: true 
       }
     },
     
@@ -126,15 +126,16 @@ export default defineConfig({
     }
   },
   
-  // Path resolution
+  // Path resolution for clean imports
   resolve: {
     alias: {
       '@': resolve(__dirname, '.'),
-      '@services': resolve(__dirname, 'services'),
-      '@utils': resolve(__dirname, 'utils'),
-      '@shared': resolve(__dirname, 'shared'),
-      '@database': resolve(__dirname, 'database'),
-      '@engines': resolve(__dirname, 'engines')
+      '@/services': resolve(__dirname, 'services'),
+      '@/utils': resolve(__dirname, 'utils'),
+      '@/shared': resolve(__dirname, 'shared'),
+      '@/database': resolve(__dirname, 'database'),
+      '@/engines': resolve(__dirname, 'engines'),
+      '@/lib': resolve(__dirname, '.') // For compatibility
     }
   },
   

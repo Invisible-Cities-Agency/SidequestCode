@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { isESLintCategory } from '@shared/constants';
-import type { ColorScheme } from '@shared/types';
+import { isESLintCategory } from '@/shared/constants';
+import type { ColorScheme } from '@/shared/types';
 
 describe('Shared Constants', () => {
   describe('isESLintCategory', () => {
