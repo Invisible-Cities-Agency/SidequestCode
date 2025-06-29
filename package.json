@@ -19,9 +19,12 @@
     "debug-terminal": "tsx cli.ts --debug-terminal",
     "reset-session": "tsx cli.ts --reset-session",
     "test": "vitest run",
-    "test:core": "vitest run --reporter=verbose core/",
-    "test:edge": "vitest run --reporter=verbose edge/",
+    "test:core": "vitest run --reporter=verbose **/*.test.ts",
+    "test:integration": "vitest run --reporter=verbose **/*.integration.test.ts",
+    "test:e2e": "vitest run --reporter=verbose **/*.e2e.test.ts",
     "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
@@ -75,7 +78,8 @@
     "eslint": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "@vitest/ui": "^1.0.0"
   },
   "peerDependencies": {
     "typescript": ">=4.5.0",

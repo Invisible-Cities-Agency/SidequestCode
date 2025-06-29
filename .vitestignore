@@ -1,0 +1,206 @@
+# Vitest Ignore File for Code Quality Orchestrator
+# Prevents conflicts when running in projects with existing test suites
+
+# Node.js and package files
+node_modules/
+dist/
+build/
+*.min.js
+*.bundle.js
+
+# Edge runtime and serverless artifacts
+.next/
+.nuxt/
+.vercel/
+.netlify/
+.output/
+.wrangler/
+
+# Build outputs from target projects
+out/
+static/
+public/build/
+.cache/
+.parcel-cache/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnpm/
+
+# Environment and config files
+.env*
+*.config.js
+*.config.ts
+*.config.mjs
+*.config.cjs
+next.config.*
+nuxt.config.*
+vite.config.*
+vitest.config.*
+jest.config.*
+webpack.config.*
+rollup.config.*
+
+# Database files (when analyzing projects with DBs)
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Code coverage
+coverage/
+.nyc_output/
+.c8/
+
+# Storybook
+.storybook-static/
+storybook-static/
+
+# Documentation builds
+docs/build/
+.docusaurus/
+
+# Monorepo workspaces (avoid testing dependencies)
+packages/*/node_modules/
+apps/*/node_modules/
+libs/*/node_modules/
+
+# Framework specific ignores
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+
+# Nuxt
+.nuxt/
+.output/
+
+# SvelteKit
+.svelte-kit/
+
+# Astro
+.astro/
+
+# Remix
+build/
+public/build/
+
+# Gatsby
+.cache/
+public/
+
+# Angular
+.angular/
+dist/*/
+
+# Vue
+dist/
+
+# React Native
+.expo/
+android/
+ios/
+
+# Electron
+out/
+dist-electron/
+
+# Testing artifacts from target projects
+__snapshots__/
+test-results/
+playwright-report/
+coverage-reports/
+
+# Dependency directories that might contain tests
+**/node_modules/**
+**/vendor/**
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Archive files
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Binary files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Generated API documentation
+api-docs/
+swagger-ui/
+
+# Terraform and infrastructure
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Kubernetes
+*.yaml
+*.yml
+k8s/
+kubernetes/
+
+# CI/CD
+.github/workflows/
+.gitlab-ci.yml
+.circleci/
+.travis.yml
+azure-pipelines.yml
+
+# Linting and formatting config (avoid conflicts)
+.eslintrc*
+.prettierrc*
+.stylelintrc*
+
+# Editor config
+.editorconfig
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# NPM and publishing
+.npmignore
+.npmrc
+
+# Yarn
+.yarn/
+.yarnrc*
+
+# PNPM
+.pnpmfile.cjs
