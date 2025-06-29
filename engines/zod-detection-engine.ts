@@ -28,6 +28,41 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     });
   }
 
+  /**
+   * Filter out non-Zod .parse() calls (JSON.parse, parseInt, etc.)
+   */
+  private isNonZodParse(schemaName: string, content: string): boolean {
+    // Common false positives
+    const nonZodParsers = ['JSON', 'parseInt', 'parseFloat', 'Date', 'Number'];
+    if (nonZodParsers.includes(schemaName)) {
+      return true;
+    }
+    
+    // Check if it's JSON.parse() specifically
+    if (content.includes('JSON.parse(')) {
+      return true;
+    }
+    
+    // Check if it's in a string literal (comments, error messages, etc.)
+    if (content.includes(`'`) && content.includes(`schema.parse(`)) {
+      return true;
+    }
+    if (content.includes(`"`) && content.includes(`schema.parse(`)) {
+      return true;
+    }
+    if (content.includes(`\``) && content.includes(`schema.parse(`)) {
+      return true;
+    }
+    
+    // Check if it's a built-in parse method
+    if (content.includes(`${schemaName}.parse(`) && 
+        (content.includes('parseInt') || content.includes('parseFloat'))) {
+      return true;
+    }
+    
+    return false;
+  }
+
   async analyze(targetPath: string, _options: any = {}): Promise<Violation[]> {
     const violations: Violation[] = [];
 
@@ -130,11 +165,11 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       }
     }
 
-    // Find .parse() usages
+    // Find .parse() usages - but only for Zod schemas, not JSON.parse() etc.
     const parseResult = spawnSync('rg', [
       '--type', 'ts',
       '--line-number',
-      '\\.parse\\(',
+      '[a-zA-Z_][a-zA-Z0-9_]*\\.parse\\(',  // Only match variable.parse(), not JSON.parse()
       '.'
     ], {
       encoding: 'utf8',
@@ -150,11 +185,16 @@ export class ZodDetectionEngine extends BaseAuditEngine {
             if (file && lineNumber && content) {
               const parseMatch = content.match(/(\w+)\.parse\(/);
               if (parseMatch) {
-                usage.parseUsages.push({
-                  file: file.replace(`${baseDirectory}/`, ''),
-                  line: Number.parseInt(lineNumber, 10),
-                  schema: parseMatch[1] || 'unknown'
-                });
+                const schemaName = parseMatch[1];
+                
+                // Filter out obvious false positives
+                if (schemaName && !this.isNonZodParse(schemaName, content)) {
+                  usage.parseUsages.push({
+                    file: file.replace(`${baseDirectory}/`, ''),
+                    line: Number.parseInt(lineNumber, 10),
+                    schema: schemaName
+                  });
+                }
               }
             }
           }
@@ -321,7 +361,13 @@ export class ZodDetectionEngine extends BaseAuditEngine {
   private generateCoverageSuggestions(coverage: any): Violation[] {
     const suggestions: Violation[] = [];
 
-    // Coverage too low
+    // Only report coverage issues if there are actually Zod schemas defined
+    if (coverage.totalSchemas === 0) {
+      // No Zod schemas found - this is fine, don't report as an issue
+      return suggestions;
+    }
+
+    // Coverage too low (only when schemas exist)
     if (coverage.coveragePercentage < 70) {
       suggestions.push({
         file: 'package.json',
@@ -336,9 +382,9 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       });
     }
 
-    // Too many unsafe parse() calls
+    // Too many unsafe parse() calls (only check if we have actual Zod usage)
     const unsafeParseRatio = coverage.parseCallsCount / Math.max(coverage.validationCallsTotal, 1);
-    if (unsafeParseRatio > 0.7 && coverage.parseCallsCount > 5) {
+    if (coverage.validationCallsTotal > 0 && unsafeParseRatio > 0.7 && coverage.parseCallsCount > 5) {
       suggestions.push({
         file: 'zod-usage',
         line: 1,
