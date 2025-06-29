@@ -643,8 +643,29 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     if (rule.startsWith('unicorn/prefer-') ||
         rule === 'unicorn/no-array-instanceof' ||
         rule === 'unicorn/explicit-length-check' ||
-        rule === 'unicorn/no-useless-undefined') {
+        rule === 'unicorn/no-useless-undefined' ||
+        rule === 'unicorn/no-null' ||
+        rule === 'unicorn/no-array-reduce' ||
+        rule === 'unicorn/text-encoding-identifier-case' ||
+        rule === 'unicorn/no-unnecessary-await') {
       return { category: 'modernization', severity: 'info' };
+    }
+
+    // Unicorn naming and style rules
+    if (rule === 'unicorn/prevent-abbreviations' ||
+        rule === 'unicorn/filename-case' ||
+        rule === 'unicorn/better-regex') {
+      return { category: 'style', severity: 'info' };
+    }
+
+    // Standard style rules
+    if (rule === 'no-multiple-empty-lines' ||
+        rule === 'eol-last' ||
+        rule === 'semi' ||
+        rule === 'quotes' ||
+        rule === 'comma-dangle' ||
+        rule === 'indent') {
+      return { category: 'style', severity: 'info' };
     }
 
     // Syntax and parsing errors

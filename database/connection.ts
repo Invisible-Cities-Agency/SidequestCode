@@ -286,7 +286,7 @@ export class DatabaseConnection {
 /**
  * Create default database configuration
  */
-export function createDefaultDatabaseConfig(databasePath?: string): DatabaseConfig {
+function createDefaultDatabaseConfig(databasePath?: string): DatabaseConfig {
   const defaultPath = databasePath || path.join(process.cwd(), 'data', 'code-quality.db');
 
   return {

@@ -147,7 +147,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     const violations: Violation[] = [];
 
     try {
-      const result = spawnSync('npx', ['tsc', '--noEmit', '--target', 'ES2020', '--module', 'ESNext', '--strict', `${searchPath  }/**/*.ts`], {
+      const result = spawnSync('npx', ['tsc', '--noEmit', '--target', 'ES2024', '--module', 'ESNext', '--strict', `${searchPath  }/**/*.ts`], {
         encoding: 'utf-8',
         cwd: this.baseDir,
         signal: this.abortController?.signal

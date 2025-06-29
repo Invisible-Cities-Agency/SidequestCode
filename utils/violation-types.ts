@@ -111,6 +111,7 @@ export type ViolationSeverity = 'error' | 'warn' | 'info';
 export type ViolationSource =
   | 'typescript'
   | 'eslint'
+  | 'unused-exports'
   | 'parser'
   | 'complexity'
   | 'security'

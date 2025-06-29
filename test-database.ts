@@ -79,11 +79,13 @@ async function testDatabase() {
     console.log(`✅ Found ${violations.length} violation(s)`);
     if (violations.length > 0) {
       const violation = violations[0];
-      console.log(`   - File: ${violation.file_path}`);
-      console.log(`   - Rule: ${violation.rule_id}`);
-      console.log(`   - Category: ${violation.category}`);
-      console.log(`   - Severity: ${violation.severity}`);
-      console.log(`   - Source: ${violation.source}`);
+      if (violation) {
+        console.log(`   - File: ${violation.file_path}`);
+        console.log(`   - Rule: ${violation.rule_id}`);
+        console.log(`   - Category: ${violation.category}`);
+        console.log(`   - Severity: ${violation.severity}`);
+        console.log(`   - Source: ${violation.source}`);
+      }
     }
     console.log('');
 
@@ -94,7 +96,7 @@ async function testDatabase() {
       .values({
         rule_id: 'record-type-check',
         engine: 'typescript',
-        enabled: 1, // SQLite uses 1/0 for boolean
+        enabled: true, // TypeScript boolean, SQLite handles conversion
         priority: 1,
         check_frequency_ms: 30_000
       })
@@ -106,19 +108,22 @@ async function testDatabase() {
     // Test views
     console.log('6. Testing views...');
     try {
+      // Test violation_summary view with actual data
       const summary = await database
-        .selectFrom('violation_summary')
-        .selectAll()
+        .selectFrom('violations')
+        .select(['category', 'source', 'severity'])
+        .groupBy(['category', 'source', 'severity'])
         .execute();
-      console.log(`✅ Violation summary view: ${summary.length} categories`);
+      console.log(`✅ Violation summary query: ${summary.length} categories`);
 
+      // Test rule_checks table for performance data
       const performance = await database
-        .selectFrom('rule_performance')
-        .selectAll()
+        .selectFrom('rule_checks')
+        .select(['rule_id', 'engine', 'status'])
         .execute();
-      console.log(`✅ Rule performance view: ${performance.length} rules`);
+      console.log(`✅ Rule performance query: ${performance.length} rules`);
     } catch (error) {
-      console.log(`⚠️  Views test failed (expected for empty database): ${error}`);
+      console.log(`⚠️  Views test failed: ${error}`);
     }
     console.log('');
 

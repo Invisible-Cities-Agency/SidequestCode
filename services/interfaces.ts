@@ -46,44 +46,44 @@ export interface RuleCheckResult {
  */
 export interface IStorageService {
   // Violation Management
-  storeViolations(violations: OrchestratorViolation[]): Promise<{
+  storeViolations(_violations: OrchestratorViolation[]): Promise<{
     inserted: number;
     updated: number;
     errors: string[];
   }>;
 
-  getViolations(parameters?: ViolationQueryParameters): Promise<Violation[]>;
+  getViolations(_parameters?: ViolationQueryParameters): Promise<Violation[]>;
   getViolationSummary(): Promise<any[]>;
-  resolveViolations(hashes: string[]): Promise<number>;
+  resolveViolations(_hashes: string[]): Promise<number>;
 
   // Rule Check Management
-  startRuleCheck(rule: string, engine: 'typescript' | 'eslint'): Promise<number>;
+  startRuleCheck(_rule: string, _engine: 'typescript' | 'eslint'): Promise<number>;
   completeRuleCheck(
-    checkId: number,
-    violationsFound: number,
-    executionTimeMs: number,
-    filesChecked?: number,
-    filesWithViolations?: number
+    _checkId: number,
+    _violationsFound: number,
+    _executionTimeMs: number,
+    _filesChecked?: number,
+    _filesWithViolations?: number
   ): Promise<void>;
-  failRuleCheck(checkId: number, errorMessage: string): Promise<void>;
+  failRuleCheck(_checkId: number, _errorMessage: string): Promise<void>;
 
   // Historical Analysis
-  recordViolationDeltas(checkId: number, currentViolationHashes: string[]): Promise<{
+  recordViolationDeltas(_checkId: number, _currentViolationHashes: string[]): Promise<{
     added: number;
     removed: number;
     unchanged: number;
   }>;
-  getViolationHistory(parameters?: HistoryQueryParameters): Promise<ViolationHistory[]>;
+  getViolationHistory(_parameters?: HistoryQueryParameters): Promise<ViolationHistory[]>;
 
   // Rule Scheduling
-  upsertRuleSchedule(schedule: NewRuleSchedule): Promise<number>;
-  getNextRulesToCheck(limit?: number): Promise<RuleSchedule[]>;
+  upsertRuleSchedule(_schedule: NewRuleSchedule): Promise<number>;
+  getNextRulesToCheck(_limit?: number): Promise<RuleSchedule[]>;
 
   // Dashboard and Analytics
   getDashboardData(): Promise<DashboardData>;
 
   // Performance and Maintenance
-  recordPerformanceMetric(type: string, value: number, unit: string, context?: string): Promise<void>;
+  recordPerformanceMetric(_type: string, _value: number, _unit: string, _context?: string): Promise<void>;
   cleanupOldData(): Promise<any>;
   getStorageStats(): Promise<any>;
 }
@@ -101,24 +101,24 @@ export interface IPollingService {
   isRunning(): boolean;
 
   // Rule Scheduling
-  scheduleRule(rule: string, engine: 'typescript' | 'eslint', frequencyMs?: number): Promise<void>;
-  unscheduleRule(rule: string, engine: 'typescript' | 'eslint'): Promise<void>;
+  scheduleRule(_rule: string, _engine: 'typescript' | 'eslint', _frequencyMs?: number): Promise<void>;
+  unscheduleRule(_rule: string, _engine: 'typescript' | 'eslint'): Promise<void>;
   getScheduledRules(): Promise<RuleSchedule[]>;
 
   // Execution Control
-  executeRule(rule: string, engine: 'typescript' | 'eslint'): Promise<RuleCheckResult>;
-  executeNextRules(maxConcurrent?: number): Promise<RuleCheckResult[]>;
+  executeRule(_rule: string, _engine: 'typescript' | 'eslint'): Promise<RuleCheckResult>;
+  executeNextRules(_maxConcurrent?: number): Promise<RuleCheckResult[]>;
 
   // Configuration
-  setDefaultFrequency(frequencyMs: number): void;
-  setMaxConcurrentChecks(max: number): void;
-  enableAdaptivePolling(enabled: boolean): void;
+  setDefaultFrequency(_frequencyMs: number): void;
+  setMaxConcurrentChecks(_max: number): void;
+  enableAdaptivePolling(_enabled: boolean): void;
 
   // Events
-  on(event: 'ruleStarted', listener: (rule: string, engine: string) => void): void;
-  on(event: 'ruleCompleted', listener: (result: RuleCheckResult) => void): void;
-  on(event: 'ruleFailed', listener: (rule: string, engine: string, error: Error) => void): void;
-  on(event: 'cycleCompleted', listener: (results: RuleCheckResult[]) => void): void;
+  on(_event: 'ruleStarted', _listener: (_rule: string, _engine: string) => void): void;
+  on(_event: 'ruleCompleted', _listener: (_result: RuleCheckResult) => void): void;
+  on(_event: 'ruleFailed', _listener: (_rule: string, _engine: string, _error: Error) => void): void;
+  on(_event: 'cycleCompleted', _listener: (_results: RuleCheckResult[]) => void): void;
 }
 
 /**
@@ -128,8 +128,8 @@ export interface IPollingService {
 export interface IAnalysisService {
   // Delta Analysis
   computeViolationDeltas(
-    previousViolations: string[],
-    currentViolations: string[]
+    _previousViolations: string[],
+    _currentViolations: string[]
   ): {
     added: string[];
     removed: string[];
@@ -137,21 +137,21 @@ export interface IAnalysisService {
   };
 
   // Historical Analysis
-  getViolationTrends(timeRange: TimeRange): Promise<ViolationTrend[]>;
-  getRulePerformanceAnalysis(ruleId?: string): Promise<RulePerformanceAnalysis[]>;
-  getFileQualityTrends(filePath?: string): Promise<FileQualityTrend[]>;
+  getViolationTrends(_timeRange: TimeRange): Promise<ViolationTrend[]>;
+  getRulePerformanceAnalysis(_ruleId?: string): Promise<RulePerformanceAnalysis[]>;
+  getFileQualityTrends(_filePath?: string): Promise<FileQualityTrend[]>;
 
   // Statistical Analysis
-  calculateViolationStats(timeRange: TimeRange): Promise<ViolationStats>;
-  identifyProblemFiles(threshold?: number): Promise<ProblemFile[]>;
-  detectRuleFlakyness(minRuns?: number): Promise<FlakyRule[]>;
+  calculateViolationStats(_timeRange: TimeRange): Promise<ViolationStats>;
+  identifyProblemFiles(_threshold?: number): Promise<ProblemFile[]>;
+  detectRuleFlakyness(_minRuns?: number): Promise<FlakyRule[]>;
 
   // Predictive Analysis
-  predictViolationGrowth(timeRange: TimeRange): Promise<ViolationPrediction>;
+  predictViolationGrowth(_timeRange: TimeRange): Promise<ViolationPrediction>;
   recommendRuleFrequencies(): Promise<RuleFrequencyRecommendation[]>;
 
   // Report Generation
-  generateQualityReport(timeRange: TimeRange): Promise<QualityReport>;
+  generateQualityReport(_timeRange: TimeRange): Promise<QualityReport>;
   generateRuleEfficiencyReport(): Promise<RuleEfficiencyReport>;
 }
 
@@ -161,29 +161,29 @@ export interface IAnalysisService {
  */
 export interface IViolationTracker {
   // Violation Processing
-  processViolations(violations: OrchestratorViolation[]): Promise<ProcessingResult>;
-  deduplicateViolations(violations: OrchestratorViolation[]): OrchestratorViolation[];
+  processViolations(_violations: OrchestratorViolation[]): Promise<ProcessingResult>;
+  deduplicateViolations(_violations: OrchestratorViolation[]): OrchestratorViolation[];
 
   // Lifecycle Management
-  markAsResolved(violationHashes: string[]): Promise<number>;
-  markAsIgnored(violationHashes: string[]): Promise<number>;
-  reactivateViolations(violationHashes: string[]): Promise<number>;
+  markAsResolved(_violationHashes: string[]): Promise<number>;
+  markAsIgnored(_violationHashes: string[]): Promise<number>;
+  reactivateViolations(_violationHashes: string[]): Promise<number>;
 
   // Hash Management
-  generateViolationHash(violation: OrchestratorViolation): string;
-  validateViolationHash(violation: OrchestratorViolation, hash: string): boolean;
+  generateViolationHash(_violation: OrchestratorViolation): string;
+  validateViolationHash(_violation: OrchestratorViolation, _hash: string): boolean;
 
   // Filtering and Querying
-  filterViolationsByRule(violations: OrchestratorViolation[], ruleIds: string[]): OrchestratorViolation[];
-  filterViolationsBySeverity(violations: OrchestratorViolation[], severities: string[]): OrchestratorViolation[];
-  filterViolationsByFile(violations: OrchestratorViolation[], filePaths: string[]): OrchestratorViolation[];
+  filterViolationsByRule(_violations: OrchestratorViolation[], _ruleIds: string[]): OrchestratorViolation[];
+  filterViolationsBySeverity(_violations: OrchestratorViolation[], _severities: string[]): OrchestratorViolation[];
+  filterViolationsByFile(_violations: OrchestratorViolation[], _filePaths: string[]): OrchestratorViolation[];
 
   // Validation
-  validateViolation(violation: OrchestratorViolation): ValidationResult;
-  sanitizeViolation(violation: OrchestratorViolation): OrchestratorViolation;
+  validateViolation(_violation: OrchestratorViolation): ValidationResult;
+  sanitizeViolation(_violation: OrchestratorViolation): OrchestratorViolation;
 
   // Configuration
-  setSilentMode(silent: boolean): void;
+  setSilentMode(_silent: boolean): void;
 }
 
 /**

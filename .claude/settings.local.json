@@ -9,7 +9,14 @@
       "Bash(mv:*)",
       "Bash(npm install)",
       "Bash(/dev/null)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(rg:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node:*)",
+      "Bash(rg:*)",
+      "Bash(gtimeout:*)",
+      "Bash(npx ts-unused-exports:*)"
     ],
     "deny": []
   }

@@ -5,7 +5,6 @@
  */
 
 import { ConfigManager } from './services/config-manager.js';
-import { getStorageService } from './services/storage-service.js';
 import type { Violation as OrchestratorViolation } from './utils/violation-types.js';
 
 async function testServices() {
@@ -130,7 +129,7 @@ async function testServices() {
       line: 1,
       column: 1,
       message: 'New violation for delta testing',
-      category: 'test',
+      category: 'other',
       severity: 'info',
       source: 'typescript',
       rule: 'test-rule',
@@ -153,7 +152,7 @@ async function testServices() {
     const scheduleId = await storageService.upsertRuleSchedule({
       rule_id: 'record-type-check',
       engine: 'typescript',
-      enabled: 1,
+      enabled: true,
       priority: 1,
       check_frequency_ms: 30_000
     });

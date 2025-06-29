@@ -53,27 +53,6 @@ const TYPE_AWARE_ESLINT_RULES = new Set([
   '@typescript-eslint/prefer-optional-chain'
 ]);
 
-/**
- * Performance-focused TypeScript rules that are acceptable in ESLint
- * These don't require full type checking and provide immediate feedback
- */
-const ACCEPTABLE_TS_ESLINT_RULES = [
-  '@typescript-eslint/no-unused-vars',
-  '@typescript-eslint/prefer-const',
-  '@typescript-eslint/no-var-requires',
-  '@typescript-eslint/ban-ts-comment',
-  '@typescript-eslint/ban-types',
-  '@typescript-eslint/no-empty-function',
-  '@typescript-eslint/no-empty-interface',
-  '@typescript-eslint/no-inferrable-types',
-  '@typescript-eslint/no-misused-new',
-  '@typescript-eslint/no-namespace',
-  '@typescript-eslint/no-non-null-assertion',
-  '@typescript-eslint/no-this-alias',
-  '@typescript-eslint/prefer-as-const',
-  '@typescript-eslint/prefer-namespace-keyword',
-  '@typescript-eslint/triple-slash-reference'
-];
 
 /**
  * Detects crossover violations between ESLint and TypeScript
@@ -172,7 +151,8 @@ export class CrossoverDetector {
       .filter(([, violations]) => violations.ts.length > 0 && violations.eslint.length > 0);
 
     if (conflictingLocations.length > 0) {
-      const affectedFiles = [...new Set(conflictingLocations.map(([key]) => key.split(':')[0]))];
+      const affectedFiles = conflictingLocations.map(([key]) => key.split(':')[0]).filter((file): file is string => file !== undefined);
+      const uniqueAffectedFiles = [...new Set(affectedFiles)];
 
       this.warnings.push({
         type: 'duplicate-violation',
@@ -180,7 +160,7 @@ export class CrossoverDetector {
         details: 'Both engines are reporting issues at the same locations, suggesting overlapping responsibilities. This may indicate type-aware ESLint rules that duplicate TypeScript compiler checks.',
         suggestion: 'Review ESLint configuration to ensure it focuses on code quality rather than type checking. Consider disabling type-aware rules and letting TypeScript handle all type safety.',
         severity: 'warn',
-        affectedFiles
+        affectedFiles: uniqueAffectedFiles
       });
     }
   }
@@ -193,7 +173,7 @@ export class CrossoverDetector {
     const legacyTypeRules = eslintViolations.filter(v => v.category === 'legacy-type-rule');
 
     if (legacyTypeRules.length > 0) {
-      const rules = [...new Set(legacyTypeRules.map(v => v.rule).filter(Boolean))];
+      const rules = [...new Set(legacyTypeRules.map(v => v.rule).filter((rule): rule is string => rule !== undefined))];
 
       this.warnings.push({
         type: 'configuration-conflict',
@@ -206,7 +186,6 @@ export class CrossoverDetector {
     }
 
     // Check for performance indicators
-    const totalExecution = result.totalExecutionTime;
     const eslintExecution = result.engineResults
       .find(r => r.engineName === 'ESLint Audit')?.executionTime || 0;
 

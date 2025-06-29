@@ -455,7 +455,7 @@ export class StorageService {
     return await database
       .selectFrom('rule_schedules')
       .selectAll()
-      .where('enabled', '=', 1)
+      .where('enabled', '=', true)
       .where(eb => eb.or([
         eb('next_run_at', 'is', null),
         eb('next_run_at', '<=', now)
@@ -514,7 +514,7 @@ export class StorageService {
       database.selectFrom('violations').select(eb => eb.fn.count('id').as('count')).where('status', '=', 'active').executeTakeFirst(),
       database.selectFrom('violations').select(sql<number>`COUNT(DISTINCT file_path)`.as('count')).where('status', '=', 'active').executeTakeFirst(),
       database.selectFrom('rule_checks').select('completed_at').where('status', '=', 'completed').orderBy('completed_at', 'desc').limit(1).executeTakeFirst(),
-      database.selectFrom('rule_schedules').select('next_run_at').where('enabled', '=', 1).where('next_run_at', 'is not', null).orderBy('next_run_at', 'asc').limit(1).executeTakeFirst()
+      database.selectFrom('rule_schedules').select('next_run_at').where('enabled', '=', true).where('next_run_at', 'is not', null).orderBy('next_run_at', 'asc').limit(1).executeTakeFirst()
     ]);
 
     return {

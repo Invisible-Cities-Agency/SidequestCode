@@ -33,12 +33,16 @@ export interface WatchState {
   lastUpdate: number;
   baseline: ViolationSummary | null;
   current: ViolationSummary;
+  viewMode: 'dashboard' | 'tidy';
+  currentViolations: import('../utils/violation-types.js').Violation[];
 }
 
 export interface ViolationSummary {
   readonly total: number;
   readonly bySource: Readonly<Record<string, number>>;
   readonly byCategory: Readonly<Record<string, number>>;
+  readonly bySeverity?: Readonly<Record<string, Record<string, number>>>;
+  readonly byCategoryBySource?: Readonly<Record<string, Record<string, number>>>;
 }
 
 export interface TodayProgressData {

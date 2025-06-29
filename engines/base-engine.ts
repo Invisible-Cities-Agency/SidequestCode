@@ -134,8 +134,8 @@ export abstract class BaseAuditEngine {
    * @returns Array of violations found
    */
   protected abstract analyze(
-    targetPath: string,
-    options: Record<string, unknown>
+    _targetPath: string,
+    _options: Record<string, unknown>
   ): Promise<Violation[]>;
 
   /**
@@ -183,9 +183,9 @@ export abstract class BaseAuditEngine {
    * Override in subclasses to provide engine-specific suggestions
    */
   protected generateFixSuggestion?(
-    category: ViolationCategory,
-    rule?: string,
-    code?: string
+    _category: ViolationCategory,
+    _rule?: string,
+    _code?: string
   ): string | undefined;
 
   /**

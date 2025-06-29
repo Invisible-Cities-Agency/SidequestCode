@@ -30,9 +30,12 @@ export class DeveloperWatchDisplay {
       sessionStart: Date.now(),
       lastUpdate: 0,
       baseline: null,
-      current: { total: 0, bySource: {}, byCategory: {} }
+      current: { total: 0, bySource: {}, byCategory: {} },
+      viewMode: 'dashboard',
+      currentViolations: []
     };
     this.colors = this.createColorScheme();
+    this.setupKeyboardHandling();
     this.captureOutput();
   }
 
@@ -83,7 +86,121 @@ export class DeveloperWatchDisplay {
     }
   }
 
+  /**
+   * Set up keyboard input handling for view mode toggle
+   */
+  private setupKeyboardHandling(): void {
+    // Enable raw mode to capture individual keystrokes
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.setEncoding('utf8');
+
+      process.stdin.on('data', (key: string) => {
+        // Handle Ctrl+T (0x14 in ASCII) - toggle view mode
+        if (key === '\u0014') {
+          this.toggleViewMode();
+        }
+        // Handle Esc (0x1B in ASCII) - return to dashboard if in tidy mode
+        else if (key === '\u001B') {
+          if (this.state.viewMode === 'tidy') {
+            this.state.viewMode = 'dashboard';
+            this.renderCurrentView().catch(console.error);
+          }
+        }
+        // Handle Ctrl+C (0x03 in ASCII) - let it pass through normally
+        else if (key === '\u0003') {
+          process.stdin.setRawMode(false);
+          process.exit(0);
+        }
+      });
+    }
+  }
+
+  /**
+   * Toggle between dashboard and tidy view modes
+   */
+  private toggleViewMode(): void {
+    this.state.viewMode = this.state.viewMode === 'dashboard' ? 'tidy' : 'dashboard';
+    this.renderCurrentView().catch(console.error);
+  }
+
+  /**
+   * Render the current view based on state.viewMode
+   */
+  private async renderCurrentView(): Promise<void> {
+    if (this.state.viewMode === 'tidy') {
+      this.renderTidyView();
+    } else {
+      this.renderDashboardView();
+    }
+  }
+
+  /**
+   * Render a clean diagnostic view showing only actual issues
+   */
+  private renderTidyView(): void {
+    // Clear screen and show header
+    process.stdout.write('\u001B[2J\u001B[H');
+    process.stdout.write(`${this.colors.bold}${this.colors.info}🔍 Tidy Diagnostics View${this.colors.reset}\n`);
+    process.stdout.write(`${this.colors.secondary}${'─'.repeat(80)}${this.colors.reset}\n\n`);
+
+    if (this.state.currentViolations.length === 0) {
+      process.stdout.write(`${this.colors.success}✅ No violations found - all clear!${this.colors.reset}\n\n`);
+    } else {
+      // Group violations by file for cleaner display
+      const violationsByFile = new Map<string, typeof this.state.currentViolations>();
+      
+      for (const violation of this.state.currentViolations) {
+        if (!violationsByFile.has(violation.file)) {
+          violationsByFile.set(violation.file, []);
+        }
+        violationsByFile.get(violation.file)!.push(violation);
+      }
+
+      // Display each file's violations
+      for (const [file, violations] of violationsByFile) {
+        const severityIcon = violations.some(v => v.severity === 'error') ? '❌' : 
+                           violations.some(v => v.severity === 'warn') ? '⚠️' : 'ℹ️';
+        
+        process.stdout.write(`${severityIcon} ${this.colors.info}${file}${this.colors.reset} ${this.colors.secondary}(${violations.length} issues)${this.colors.reset}\n`);
+        
+        // Show each violation in compact format
+        for (const violation of violations.slice(0, 5)) { // Limit to 5 per file for tidiness
+          const sourceIcon = violation.source === 'typescript' ? '📝' : 
+                            violation.source === 'eslint' ? '🔍' : '🗂️';
+          process.stdout.write(`  ${sourceIcon} ${this.colors.secondary}Line ${violation.line}:${this.colors.reset} ${violation.message}\n`);
+        }
+        
+        if (violations.length > 5) {
+          process.stdout.write(`  ${this.colors.secondary}... and ${violations.length - 5} more issues${this.colors.reset}\n`);
+        }
+        process.stdout.write('\n');
+      }
+    }
+
+    process.stdout.write(`${this.colors.muted}Press Ctrl+T or Esc to return to dashboard | Ctrl+C to stop watching...${this.colors.reset}\n`);
+  }
+
+  /**
+   * Render the full dashboard view (original view)
+   */
+  private renderDashboardView(): void {
+    // Clear screen and recreate the dashboard
+    this.state.isInitialized = false;
+    // The next updateDisplay call will recreate the dashboard
+  }
+
   async updateDisplay(violations: OrchestratorViolation[], checksCount: number, orchestrator?: any): Promise<void> {
+    // Store current violations for tidy view
+    this.state.currentViolations = violations;
+
+    // If in tidy mode, just update the tidy view and return
+    if (this.state.viewMode === 'tidy') {
+      this.renderTidyView();
+      return;
+    }
+
     // Process current violations
     const current = this.processViolations(violations);
 
@@ -130,16 +247,32 @@ export class DeveloperWatchDisplay {
   private processViolations(violations: OrchestratorViolation[]): ViolationSummary {
     const bySource: Record<string, number> = {};
     const byCategory: Record<string, number> = {};
+    const bySeverity: Record<string, Record<string, number>> = {};
+    const byCategoryBySource: Record<string, Record<string, number>> = {};
 
     for (const violation of violations) {
       bySource[violation.source] = (bySource[violation.source] || 0) + 1;
       byCategory[violation.category] = (byCategory[violation.category] || 0) + 1;
+      
+      // Track severity by source
+      if (!bySeverity[violation.source]) {
+        bySeverity[violation.source] = {};
+      }
+      bySeverity[violation.source][violation.severity] = (bySeverity[violation.source][violation.severity] || 0) + 1;
+      
+      // Track categories by source
+      if (!byCategoryBySource[violation.source]) {
+        byCategoryBySource[violation.source] = {};
+      }
+      byCategoryBySource[violation.source][violation.category] = (byCategoryBySource[violation.source][violation.category] || 0) + 1;
     }
 
     return {
       total: violations.length,
       bySource,
-      byCategory
+      byCategory,
+      bySeverity,
+      byCategoryBySource
     };
   }
 
@@ -165,7 +298,7 @@ export class DeveloperWatchDisplay {
     process.stdout.write(`${colors.bold}Current Issues: ${colors.primary}${current.total}${deltaColor}${deltaText}${colors.reset}\n`);
     process.stdout.write(`${colors.muted}Last check: ${timestamp} | Session: ${sessionDuration}s | Checks: ${checksCount}${colors.reset}\n\n`);
 
-    // By Source
+    // By Source with severity breakdown
     if (Object.keys(current.bySource).length > 0) {
       process.stdout.write(`${colors.warning}By Source:${colors.reset}\n`);
       for (const [source, count] of Object.entries(current.bySource).sort(([,a], [,b]) => b - a)) {
@@ -173,9 +306,34 @@ export class DeveloperWatchDisplay {
         const delta = count - baselineCount;
         const deltaString = delta === 0 ? '' : ` (${delta > 0 ? '+' : ''}${delta})`;
         const deltaColor = delta > 0 ? colors.error : (delta < 0 ? colors.success : colors.reset);
-        const icon = source === 'typescript' ? '📝' : '🔍';
+        const icon = source === 'typescript' ? '📝' : 
+                     source === 'unused-exports' ? '🗂️' : '🔍';
 
         process.stdout.write(`  ${icon} ${colors.info}${source}:${colors.reset} ${colors.primary}${count}${deltaColor}${deltaString}${colors.reset}\n`);
+        
+        // Show severity breakdown for ESLint and TypeScript
+        if (current.bySeverity && current.bySeverity[source] && (source === 'eslint' || source === 'typescript')) {
+          const severities = current.bySeverity[source];
+          const severityOrder = ['error', 'warn', 'info'];
+          for (const severity of severityOrder) {
+            if (severities[severity]) {
+              const sevIcon = severity === 'error' ? '❌' : (severity === 'warn' ? '⚠️' : 'ℹ️');
+              process.stdout.write(`    ${sevIcon} ${colors.secondary}${severity}:${colors.reset} ${colors.primary}${severities[severity]}${colors.reset}\n`);
+            }
+          }
+        }
+        
+        // Show top categories for ESLint (limit to top 5 to avoid clutter)
+        if (current.byCategoryBySource && current.byCategoryBySource[source] && source === 'eslint') {
+          const categories = Object.entries(current.byCategoryBySource[source])
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 5);
+          
+          for (const [category, categoryCount] of categories) {
+            const displayLabel = getCategoryLabel(category as any);
+            process.stdout.write(`    • ${colors.secondary}${displayLabel}:${colors.reset} ${colors.primary}${categoryCount}${colors.reset}\n`);
+          }
+        }
       }
       process.stdout.write('\n');
     }
@@ -254,7 +412,7 @@ export class DeveloperWatchDisplay {
       }
     }
 
-    process.stdout.write(`\n${colors.muted}Press Ctrl+C to stop monitoring...${colors.reset}\n`);
+    process.stdout.write(`\n${colors.muted}Press Ctrl+T for tidy diagnostics view | Ctrl+C to stop monitoring...${colors.reset}\n`);
   }
 
   private getSeverity(category: string): 'error' | 'warn' | 'info' {
@@ -270,6 +428,10 @@ export class DeveloperWatchDisplay {
 
   shutdown(): void {
     this.restoreOutput();
+    // Restore stdin if it was modified
+    if (process.stdin.isTTY && process.stdin.isRaw) {
+      process.stdin.setRawMode(false);
+    }
     process.stdout.write('\u001B[?25h'); // Show cursor
   }
 }

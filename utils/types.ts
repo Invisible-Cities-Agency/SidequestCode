@@ -3,17 +3,17 @@
  * For code quality that Reddit can't criticize
  */
 
-import type { Simplify, RequireExactlyOne, LiteralUnion } from 'type-fest';
+import type { Simplify, LiteralUnion } from 'type-fest';
 
 /**
  * Exact string literal types with fallback
  */
-export type ColorScheme = LiteralUnion<'auto' | 'light' | 'dark', string>;
+type ColorScheme = LiteralUnion<'auto' | 'light' | 'dark', string>;
 
 /**
  * Clean deduplication strategy enum
  */
-export type DeduplicationStrategy = 'exact' | 'similar' | 'location';
+type DeduplicationStrategy = 'exact' | 'similar' | 'location';
 
 /**
  * Simplified CLI flags interface
@@ -73,6 +73,13 @@ export type OrchestratorConfigInput = Simplify<{
       timeout: number;
       allowFailure: boolean;
     };
+    unusedExports: {
+      enabled: boolean;
+      options: Record<string, unknown>;
+      priority: number;
+      timeout: number;
+      allowFailure: boolean;
+    };
   };
   output: {
     console: boolean;
@@ -90,21 +97,3 @@ export type OrchestratorConfigInput = Simplify<{
   };
 }>;
 
-/**
- * Clean error type with code property
- */
-export interface ErrorWithCode extends Error {
-  code?: string | number;
-}
-
-/**
- * Database query result with proper typing
- */
-export interface QueryResult {
-  sql: string;
-  parameters: readonly unknown[];
-  query: {
-    readonly sql: string;
-    readonly parameters: readonly unknown[];
-  };
-}

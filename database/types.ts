@@ -3,13 +3,13 @@
  * Matches the SQLite schema defined in schema.sql
  */
 
-import type { Generated, Insertable, Selectable, Updateable } from 'kysely';
+import type { Generated, Insertable, Selectable } from 'kysely';
 
 // ============================================================================
 // Table Interfaces
 // ============================================================================
 
-export interface ViolationTable {
+interface ViolationTable {
   id: Generated<number>;
   file_path: string;
   rule_id: string;
@@ -26,7 +26,7 @@ export interface ViolationTable {
   status: Generated<'active' | 'resolved' | 'ignored'>;
 }
 
-export interface RuleCheckTable {
+interface RuleCheckTable {
   id: Generated<number>;
   rule_id: string;
   engine: 'typescript' | 'eslint';
@@ -40,7 +40,7 @@ export interface RuleCheckTable {
   files_with_violations: Generated<number>;
 }
 
-export interface ViolationHistoryTable {
+interface ViolationHistoryTable {
   id: Generated<number>;
   check_id: number;
   violation_hash: string;
@@ -50,7 +50,7 @@ export interface ViolationHistoryTable {
   recorded_at: Generated<string>;
 }
 
-export interface RuleScheduleTable {
+interface RuleScheduleTable {
   id: Generated<number>;
   rule_id: string;
   engine: 'typescript' | 'eslint';
@@ -66,7 +66,7 @@ export interface RuleScheduleTable {
   updated_at: Generated<string>;
 }
 
-export interface WatchSessionTable {
+interface WatchSessionTable {
   id: Generated<number>;
   session_start: Generated<string>;
   session_end: string | null;
@@ -77,7 +77,7 @@ export interface WatchSessionTable {
   user_agent: string | null;
 }
 
-export interface PerformanceMetricTable {
+interface PerformanceMetricTable {
   id: Generated<number>;
   metric_type: string;
   metric_value: number;
@@ -105,25 +105,11 @@ export interface DatabaseSchema {
 
 export type Violation = Selectable<ViolationTable>;
 export type NewViolation = Insertable<ViolationTable>;
-export type ViolationUpdate = Updateable<ViolationTable>;
-
-export type RuleCheck = Selectable<RuleCheckTable>;
-export type NewRuleCheck = Insertable<RuleCheckTable>;
-export type RuleCheckUpdate = Updateable<RuleCheckTable>;
-
 export type ViolationHistory = Selectable<ViolationHistoryTable>;
-export type NewViolationHistory = Insertable<ViolationHistoryTable>;
-
 export type RuleSchedule = Selectable<RuleScheduleTable>;
 export type NewRuleSchedule = Insertable<RuleScheduleTable>;
-export type RuleScheduleUpdate = Updateable<RuleScheduleTable>;
 
-export type WatchSession = Selectable<WatchSessionTable>;
-export type NewWatchSession = Insertable<WatchSessionTable>;
-export type WatchSessionUpdate = Updateable<WatchSessionTable>;
 
-export type PerformanceMetric = Selectable<PerformanceMetricTable>;
-export type NewPerformanceMetric = Insertable<PerformanceMetricTable>;
 
 // ============================================================================
 // Business Logic Types
@@ -153,13 +139,6 @@ export interface RulePerformanceItem {
   failed_runs: number;
 }
 
-export interface SessionAnalyticsItem {
-  session_date: string;
-  sessions_count: number;
-  avg_checks_per_session: number;
-  avg_violation_delta: number;
-  avg_duration_minutes: number;
-}
 
 export interface ViolationDelta {
   violation_hash: string;
@@ -169,14 +148,6 @@ export interface ViolationDelta {
   current_violation?: Violation;
 }
 
-export interface WatchStateSnapshot {
-  timestamp: string;
-  total_violations: number;
-  violations_by_category: Record<string, number>;
-  violations_by_source: Record<string, number>;
-  active_rules: string[];
-  last_check_times: Record<string, string>;
-}
 
 // ============================================================================
 // Configuration Types

@@ -9,6 +9,7 @@
 import { BaseAuditEngine } from './engines/base-engine.js';
 import { TypeScriptAuditEngine } from './engines/typescript-engine.js';
 import { ESLintAuditEngine } from './engines/eslint-engine.js';
+import { UnusedExportsEngine } from './engines/unused-exports-engine.js';
 import type {
   Violation,
   EngineResult,
@@ -37,6 +38,7 @@ export interface OrchestratorConfig {
   engines: {
     typescript?: EngineConfig;
     eslint?: EngineConfig;
+    unusedExports?: EngineConfig;
   };
   /** Output configuration */
   output?: {
@@ -61,7 +63,7 @@ export class CodeQualityOrchestrator {
   private config: OrchestratorConfig;
   private watchMode = false;
   private watchInterval?: NodeJS.Timeout | undefined;
-  private eventListeners: Map<WatchEvent, ((data: WatchEventData) => void)[]> = new Map();
+  private eventListeners: Map<WatchEvent, ((_data: WatchEventData) => void)[]> = new Map();
 
   constructor(config: OrchestratorConfig) {
     this.config = config;
@@ -82,6 +84,12 @@ export class CodeQualityOrchestrator {
     if (this.config.engines.eslint?.enabled !== false) {
       const eslintEngine = new ESLintAuditEngine(this.config.engines.eslint as any);
       this.engines.set('eslint', eslintEngine);
+    }
+
+    // Initialize Unused Exports engine
+    if (this.config.engines.unusedExports?.enabled !== false) {
+      const unusedExportsEngine = new UnusedExportsEngine();
+      this.engines.set('unused-exports', unusedExportsEngine);
     }
   }
 
@@ -304,6 +312,7 @@ export class CodeQualityOrchestrator {
       bySource: {
         typescript: 0,
         eslint: 0,
+        'unused-exports': 0,
         parser: 0,
         complexity: 0,
         security: 0,
@@ -345,7 +354,7 @@ export class CodeQualityOrchestrator {
   /**
    * Event system for watch mode and integrations
    */
-  on(event: WatchEvent, callback: (data: WatchEventData) => void): void {
+  on(event: WatchEvent, callback: (_data: WatchEventData) => void): void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, []);
     }

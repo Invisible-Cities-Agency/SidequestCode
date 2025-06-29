@@ -45,6 +45,7 @@
     "test:ui": "vitest --ui",
     "test:ci": "NODE_OPTIONS='--no-warnings' vitest run --reporter=json --outputFile=./test-results.json",
     "lint": "eslint . --ext .ts,.tsx --fix",
+    "types:unused": "ts-unused-exports tsconfig.json --showLineNumber",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -98,6 +99,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20.0.0",
+    "ts-unused-exports": "^11.0.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitest/coverage-v8": "^1.0.0",

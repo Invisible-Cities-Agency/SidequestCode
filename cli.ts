@@ -375,13 +375,16 @@ function displayConsoleResults(result: OrchestratorResult): void {
   console.log(`\n${colors.bold}${colors.header}📊 Code Quality Analysis Results${colors.reset}`);
   console.log(`${colors.secondary}Total violations: ${colors.primary}${summary.total}${colors.reset}`);
 
-  if (summary.bySource.typescript > 0 || summary.bySource.eslint > 0) {
+  if (summary.bySource.typescript > 0 || summary.bySource.eslint > 0 || summary.bySource['unused-exports'] > 0) {
     console.log(`\n${colors.warning}By Source:${colors.reset}`);
     if (summary.bySource.typescript > 0) {
       console.log(`  📝 ${colors.info}TypeScript:${colors.reset} ${colors.primary}${summary.bySource.typescript}${colors.reset}`);
     }
     if (summary.bySource.eslint > 0) {
       console.log(`  🔍 ${colors.info}ESLint:${colors.reset} ${colors.primary}${summary.bySource.eslint}${colors.reset}`);
+    }
+    if (summary.bySource['unused-exports'] > 0) {
+      console.log(`  🗂️ ${colors.info}Unused Exports:${colors.reset} ${colors.primary}${summary.bySource['unused-exports']}${colors.reset}`);
     }
   }
 
@@ -770,9 +773,14 @@ async function main(): Promise<void> {
               priority: 1, timeout: 30_000, allowFailure: false
             },
             eslint: {
-              enabled: flags.includeESLint || flags.eslintOnly,
+              enabled: true, // Always enabled in watch mode for comprehensive analysis
               options: { roundRobin: false, maxWarnings: 1000, timeout: 30_000 },
               priority: 2, timeout: 35_000, allowFailure: true
+            },
+            unusedExports: {
+              enabled: true, // Always enabled for comprehensive analysis
+              options: {},
+              priority: 3, timeout: 30_000, allowFailure: true
             }
           },
           output: { console: false }, // SILENT: No console output during watch mode
@@ -863,9 +871,14 @@ async function main(): Promise<void> {
               priority: 1, timeout: 30_000, allowFailure: false
             },
             eslint: {
-              enabled: flags.includeESLint || flags.eslintOnly,
+              enabled: true, // Always enabled for comprehensive analysis
               options: { roundRobin: false, maxWarnings: 1000, timeout: 30_000 },
               priority: 2, timeout: 35_000, allowFailure: true
+            },
+            unusedExports: {
+              enabled: true, // Always enabled for comprehensive analysis
+              options: {},
+              priority: 3, timeout: 30_000, allowFailure: true
             }
           },
           output: { console: !flags.verbose, ...(flags.verbose ? { json: 'stdout' } : {}) },
@@ -939,6 +952,11 @@ async function main(): Promise<void> {
           enabled: flags.includeESLint || flags.eslintOnly,
           options: { roundRobin: true, maxWarnings: 500, timeout: 30_000 },
           priority: 2, timeout: 35_000, allowFailure: true
+        },
+        unusedExports: {
+          enabled: !flags.eslintOnly, // Enable unless ESLint-only mode
+          options: {},
+          priority: 3, timeout: 30_000, allowFailure: true
         }
       },
       output: {

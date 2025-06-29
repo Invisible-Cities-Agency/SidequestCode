@@ -60,16 +60,11 @@ export default defineConfig({
     },
 
     // Reporter configuration
-    reporter: ['verbose', 'json'],
-    outputFile: {
-      json: './test-results.json'
-    },
+    // Reporters configured in package.json scripts
 
-    // Setup files
-    setupFiles: [],
+    // Setup files removed (duplicate)
 
     // Test isolation for reliable testing
-    isolate: true,
     pool: 'forks',
     poolOptions: {
       forks: {
@@ -113,10 +108,9 @@ export default defineConfig({
     retry: 2,
 
     // Bail on first failure in CI
-    bail: process.env.CI ? 1 : 0,
+    bail: process.env['CI'] ? 1 : 0,
 
-    // Test isolation
-    isolate: true,
+    // Test isolation removed (duplicate)
 
     // Sequence configuration for deterministic test order
     sequence: {

@@ -153,35 +153,7 @@ export function formatDateTimeForDb(date: Date = new Date()): string {
   return date.toISOString();
 }
 
-/**
- * Parse datetime from SQLite storage
- */
-export function parseDateTimeFromDb(dateString: string): Date {
-  return new Date(dateString);
-}
 
-/**
- * Calculate time ago string for display
- */
-export function formatTimeAgo(dateString: string): string {
-  const now = new Date();
-  const date = parseDateTimeFromDb(dateString);
-  const diffMs = now.getTime() - date.getTime();
-  const diffSeconds = Math.floor(diffMs / 1000);
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
-  } else if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  } else {
-    return `${diffDays}d ago`;
-  }
-}
 
 /**
  * Batch array into chunks for efficient database operations
@@ -194,43 +166,12 @@ export function chunk<T>(array: T[], size: number): T[][] {
   return chunks;
 }
 
-/**
- * Clean up old historical data to prevent database bloat
- */
-export function calculateRetentionDate(retentionDays: number): string {
-  const retentionDate = new Date();
-  retentionDate.setDate(retentionDate.getDate() - retentionDays);
-  return formatDateTimeForDb(retentionDate);
-}
 
 // ============================================================================
 // Query Helpers
 // ============================================================================
 
-/**
- * Build WHERE clause for violation queries with filters
- */
-export function buildViolationFilters() {
-  return {
-    byStatus: (status: 'active' | 'resolved' | 'ignored') => ({ status }),
-    byCategories: (categories: string[]) => ({ category: categories }),
-    bySources: (sources: ('typescript' | 'eslint')[]) => ({ source: sources }),
-    bySeverities: (severities: ('error' | 'warn' | 'info')[]) => ({ severity: severities }),
-    byFilePaths: (filePaths: string[]) => ({ file_path: filePaths }),
-    since: (sinceDate: string) => ({ last_seen_at: { '>=': sinceDate } }),
-    until: (untilDate: string) => ({ last_seen_at: { '<=': untilDate } })
-  };
-}
 
-/**
- * Create pagination parameters
- */
-export function createPaginationParams(limit: number = 100, offset: number = 0) {
-  return {
-    limit: Math.min(limit, 1000), // Cap at 1000 for performance
-    offset: Math.max(offset, 0)
-  };
-}
 
 // ============================================================================
 // Performance Monitoring Helpers
@@ -254,28 +195,6 @@ export function createPerformanceMetric(
   };
 }
 
-/**
- * Measure execution time and create metric
- */
-export async function measureExecutionTime<T>(
-  operation: () => Promise<T>,
-  metricType: string,
-  context?: string
-): Promise<{ result: T; metric: ReturnType<typeof createPerformanceMetric> }> {
-  const startTime = performance.now();
-  const result = await operation();
-  const endTime = performance.now();
-  const executionTime = endTime - startTime;
-
-  const metric = createPerformanceMetric(
-    metricType,
-    executionTime,
-    'ms',
-    context
-  );
-
-  return { result, metric };
-}
 
 // ============================================================================
 // Validation Helpers
@@ -303,8 +222,8 @@ export function validateViolation(violation: Partial<NewViolation>): string[] {
     errors.push('severity must be error, warn, or info');
   }
 
-  if (!['typescript', 'eslint'].includes(violation.source as string)) {
-    errors.push('source must be typescript or eslint');
+  if (!['typescript', 'eslint', 'unused-exports'].includes(violation.source as string)) {
+    errors.push('source must be typescript, eslint, or unused-exports');
   }
 
   if (!violation.message?.trim()) {
