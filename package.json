@@ -49,12 +49,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sidequest/code-quality-orchestrator.git"
+    "url": "https://github.com/isarmstrong/SideQuestCode.git"
   },
   "bugs": {
-    "url": "https://github.com/sidequest/code-quality-orchestrator/issues"
+    "url": "https://github.com/isarmstrong/SideQuestCode/issues"
   },
-  "homepage": "https://github.com/sidequest/code-quality-orchestrator#readme",
+  "homepage": "https://github.com/isarmstrong/SideQuestCode#readme",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -87,6 +87,6 @@
   },
   "funding": {
     "type": "individual",
-    "url": "https://github.com/sponsors/sidequest"
+    "url": "https://github.com/sponsors/isarmstrong"
   }
 }
