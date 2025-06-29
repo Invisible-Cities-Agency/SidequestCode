@@ -8,7 +8,7 @@
  */
 
 import { BaseAuditEngine } from './base-engine.js';
-import type { AuditResult, Violation } from '../utils/violation-types.js';
+import type { Violation } from '../utils/violation-types.js';
 import { spawnSync } from 'child_process';
 
 interface ZodUsage {
@@ -28,26 +28,20 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     });
   }
 
-  async analyze(targetPath: string, _options: any = {}): Promise<AuditResult> {
+  async analyze(targetPath: string, _options: any = {}): Promise<Violation[]> {
     const violations: Violation[] = [];
 
     try {
       // Check if Zod is installed
       const hasZod = await this.hasZodDependency();
       if (!hasZod) {
-        return {
-          engine: this.name,
-          violations: [],
-          executionTime: 0,
-          metadata: { reason: 'Zod not detected in project' }
-        };
+        console.log('[Zod Detection] Zod not detected in project - skipping analysis');
+        return [];
       }
 
       console.log('[Zod Detection] Analyzing Zod usage patterns...');
       
-      const startTime = Date.now();
       const zodUsage = await this.analyzeZodUsage(targetPath);
-      console.log('[Zod Detection] Usage analysis completed:', zodUsage);
       
       // Detect unused schemas
       const unusedSchemas = this.findUnusedSchemas(zodUsage);
@@ -67,43 +61,22 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         violations.push(...missingValidations);
       }
 
-      const executionTime = Date.now() - startTime;
-      
       // Calculate runtime validation coverage
       const coverage = this.calculateValidationCoverage(zodUsage, targetPath);
-      console.log('[Zod Detection] Coverage calculated:', coverage);
       
       // Add coverage-based suggestions
       const coverageSuggestions = this.generateCoverageSuggestions(coverage);
-      console.log('[Zod Detection] Coverage suggestions:', coverageSuggestions);
       if (coverageSuggestions && Array.isArray(coverageSuggestions)) {
         violations.push(...coverageSuggestions);
       }
 
-      console.log('[Zod Detection] Final violations count:', violations.length);
-      const result = {
-        engine: this.engineName,
-        violations,
-        executionTime,
-        metadata: {
-          schemasFound: zodUsage.schemaDefinitions.length,
-          parseUsages: zodUsage.parseUsages.length,
-          safeParsUsages: zodUsage.safeParsUsages.length,
-          validationCoverage: coverage
-        }
-      };
-      console.log('[Zod Detection] Returning result:', result);
-      return result;
+      return violations;
 
     } catch (error: any) {
       console.error('[Zod Detection] Analysis failed:', error);
       if (this.config.allowFailure) {
-        return {
-          engine: this.engineName,
-          violations: [],
-          executionTime: 0,
-          metadata: { error: error.message }
-        };
+        console.warn('[Zod Detection] Analysis failed but continuing due to allowFailure setting');
+        return [];
       }
       throw error;
     }
@@ -443,7 +416,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     }
   }
 
-  protected override categorizeViolation(
+  protected categorizeViolation(
     _message: string,
     _category?: string,
     _rule?: string,
@@ -458,7 +431,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     return 'zod-analysis';
   }
 
-  protected override generateFixSuggestion(
+  protected generateFixSuggestion(
     _message: string,
     _category?: string,
     _rule?: string,

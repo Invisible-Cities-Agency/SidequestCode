@@ -321,6 +321,7 @@ export class CodeQualityOrchestrator {
         typescript: 0,
         eslint: 0,
         'unused-exports': 0,
+        'zod-detection': 0,
         parser: 0,
         complexity: 0,
         security: 0,

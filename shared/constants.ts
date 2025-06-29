@@ -58,7 +58,7 @@ export const ANSI_CODES = {
     PRIMARY: '\u001B[30m',      // Black - primary text
     SECONDARY: '\u001B[30m',    // Black - secondary text (was too light)
     SUCCESS: '\u001B[32m',      // Dark green - positive changes
-    WARNING: '\u001B[93m\u001B[1m', // Bold bright yellow - warnings (better visibility)
+    WARNING: '\u001B[38;5;208m\u001B[1m', // Bold orange - better accessibility than yellow
     ERROR: '\u001B[31m\u001B[1m', // Bold dark red - errors
     INFO: '\u001B[36m',         // Dark cyan - better than blue on light
     MUTED: '\u001B[30m',        // Black - totals should be readable (was dark gray)

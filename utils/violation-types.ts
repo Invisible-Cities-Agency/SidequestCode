@@ -56,6 +56,7 @@ export type ViolationCategory =
   | 'architecture'      // import restrictions, module structure
   | 'modernization'     // prefer nullish coalescing, optional chaining
   | 'unused-vars'       // unused variables and imports
+  | 'best-practices'    // code patterns and recommendations
   // Legacy type-aware ESLint rules (moving to tsc)
   | 'legacy-type-rule'  // explicit-function-return-type, etc.
   | 'return-type'       // function return type annotations
