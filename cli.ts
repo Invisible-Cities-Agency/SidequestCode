@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 /**
  * @fileoverview CLI interface for the Code Quality Orchestrator
  * 
