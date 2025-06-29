@@ -94,7 +94,7 @@ const flags: CLIFlags = {
       }
       return 'show'; // Default to show if just --config
     }
-    return null;
+    return undefined;
   })(),
   skipSetup: arguments_.includes('--skip-setup')
 };

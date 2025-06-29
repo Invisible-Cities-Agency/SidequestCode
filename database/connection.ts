@@ -19,9 +19,9 @@ const __dirname = path.dirname(__filename);
 // ============================================================================
 
 export class DatabaseConnection {
-  private static instance: Kysely<DatabaseSchema> | null = null;
-  private static config: DatabaseConfig | null = null;
-  private static sqliteDatabase: Database.Database | null = null;
+  private static instance: Kysely<DatabaseSchema> | undefined = undefined;
+  private static config: DatabaseConfig | undefined = undefined;
+  private static sqliteDatabase: Database.Database | undefined = undefined;
 
   /**
    * Initialize database connection with configuration
@@ -93,8 +93,8 @@ export class DatabaseConnection {
   static async close(): Promise<void> {
     if (this.instance) {
       await this.instance.destroy();
-      this.instance = null;
-      this.config = null;
+      this.instance = undefined;
+      this.config = undefined;
       console.log('[Database] Connection closed');
     }
   }

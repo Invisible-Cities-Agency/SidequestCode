@@ -18,7 +18,8 @@
       "Bash(gtimeout:*)",
       "Bash(npx ts-unused-exports:*)",
       "Bash(git reset:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

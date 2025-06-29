@@ -258,13 +258,13 @@ export class DeveloperWatchDisplay {
       if (!bySeverity[violation.source]) {
         bySeverity[violation.source] = {};
       }
-      bySeverity[violation.source][violation.severity] = (bySeverity[violation.source][violation.severity] || 0) + 1;
+      bySeverity[violation.source]![violation.severity] = (bySeverity[violation.source]![violation.severity] || 0) + 1;
       
       // Track categories by source
       if (!byCategoryBySource[violation.source]) {
         byCategoryBySource[violation.source] = {};
       }
-      byCategoryBySource[violation.source][violation.category] = (byCategoryBySource[violation.source][violation.category] || 0) + 1;
+      byCategoryBySource[violation.source]![violation.category] = (byCategoryBySource[violation.source]![violation.category] || 0) + 1;
     }
 
     return {
