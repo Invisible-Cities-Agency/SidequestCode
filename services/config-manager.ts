@@ -159,8 +159,8 @@ export class ConfigManager {
 
     // Ensure data directory exists
     const databasePath = this.config.database.path;
-    const dbDir = path.dirname(databasePath);
-    await fs.mkdir(dbDir, { recursive: true });
+    const databaseDirectory = path.dirname(databasePath);
+    await fs.mkdir(databaseDirectory, { recursive: true });
 
     // Create database configuration
     const databaseConfig: DatabaseConfig = {
@@ -275,13 +275,13 @@ export class ConfigManager {
     storage: any;
     performance: {
       uptime: number;
-      memoryUsage: NodeJS.MemoryUsage;
+      memoryUsage: ReturnType<typeof process.memoryUsage>;
     };
   }> {
     const stats = {
       config: this.config,
-      database: null as any,
-      storage: null as any,
+      database: undefined as any,
+      storage: undefined as any,
       performance: {
         uptime: process.uptime(),
         memoryUsage: process.memoryUsage()
@@ -316,7 +316,7 @@ export class ConfigManager {
     errors: string[];
   }> {
     const results = {
-      dataCleanup: null as any,
+      dataCleanup: undefined as any,
       databaseOptimization: false,
       errors: [] as string[]
     };

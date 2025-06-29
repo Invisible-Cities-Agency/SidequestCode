@@ -6,11 +6,11 @@
 import { getDatabase } from '../database/connection.js';
 import { sql } from 'kysely';
 import {
-  violationsToDbFormat as violationsToDatabaseFormat,
+  violationsToDatabaseFormat,
   computeViolationDeltas,
   prepareDeltasForInsertion,
   chunk,
-  formatDateTimeForDb as formatDateTimeForDatabase,
+  formatDateTimeForDatabase,
   createPerformanceMetric,
   validateViolation,
   sanitizeViolation
@@ -241,7 +241,11 @@ export class StorageService {
       .where('status', '=', 'active')
       .execute();
 
-    return result.reduce((sum, res) => sum + Number(res.numUpdatedRows || 0), 0);
+    let sum = 0;
+    for (const rowResult of result) {
+      sum += Number(rowResult.numUpdatedRows || 0);
+    }
+    return sum;
   }
 
   // ========================================================================
@@ -584,9 +588,9 @@ export class StorageService {
     ]);
 
     return {
-      violationHistoryDeleted: historyResult.reduce((sum, res) => sum + Number(res.numDeletedRows || 0), 0),
-      performanceMetricsDeleted: metricsResult.reduce((sum, res) => sum + Number(res.numDeletedRows || 0), 0),
-      resolvedViolationsDeleted: violationsResult.reduce((sum, res) => sum + Number(res.numDeletedRows || 0), 0)
+      violationHistoryDeleted: historyResult.reduce((sum, result) => sum + Number(result.numDeletedRows || 0), 0),
+      performanceMetricsDeleted: metricsResult.reduce((sum, result) => sum + Number(result.numDeletedRows || 0), 0),
+      resolvedViolationsDeleted: violationsResult.reduce((sum, result) => sum + Number(result.numDeletedRows || 0), 0)
     };
   }
 
@@ -634,7 +638,7 @@ export class StorageService {
 // Service Factory and Singleton
 // ============================================================================
 
-let storageServiceInstance: StorageService | undefined = undefined;
+let storageServiceInstance: StorageService | undefined;
 
 /**
  * Get or create storage service instance

@@ -138,17 +138,17 @@ export interface IAnalysisService {
 
   // Historical Analysis
   getViolationTrends(_timeRange: TimeRange): Promise<ViolationTrend[]>;
-  getRulePerformanceAnalysis(_ruleId?: string): Promise<RulePerformanceAnalysis[]>;
+  getRulePerformanceAnalysis(_ruleId?: string): RulePerformanceAnalysis[];
   getFileQualityTrends(_filePath?: string): Promise<FileQualityTrend[]>;
 
   // Statistical Analysis
   calculateViolationStats(_timeRange: TimeRange): Promise<ViolationStats>;
   identifyProblemFiles(_threshold?: number): Promise<ProblemFile[]>;
-  detectRuleFlakyness(_minRuns?: number): Promise<FlakyRule[]>;
+  detectRuleFlakyness(_minRuns?: number): FlakyRule[];
 
   // Predictive Analysis
   predictViolationGrowth(_timeRange: TimeRange): Promise<ViolationPrediction>;
-  recommendRuleFrequencies(): Promise<RuleFrequencyRecommendation[]>;
+  recommendRuleFrequencies(): RuleFrequencyRecommendation[];
 
   // Report Generation
   generateQualityReport(_timeRange: TimeRange): Promise<QualityReport>;
@@ -202,16 +202,16 @@ export interface IOrchestratorService {
   getViolationTracker(): IViolationTracker;
 
   // Watch Mode
-  startWatchMode(options?: WatchModeOptions): Promise<void>;
+  startWatchMode(_options?: WatchModeOptions): Promise<void>;
   stopWatchMode(): Promise<void>;
   isWatchModeActive(): boolean;
 
   // Manual Operations
-  runSingleCheck(rule: string, engine: 'typescript' | 'eslint'): Promise<RuleCheckResult>;
+  runSingleCheck(_rule: string, _engine: 'typescript' | 'eslint'): Promise<RuleCheckResult>;
   runAllChecks(): Promise<RuleCheckResult[]>;
 
   // Configuration
-  updateConfiguration(config: Partial<OrchestratorConfig>): Promise<void>;
+  updateConfiguration(_config: Partial<OrchestratorConfig>): Promise<void>;
   getConfiguration(): OrchestratorConfig;
 
   // Health and Monitoring
@@ -219,9 +219,9 @@ export interface IOrchestratorService {
   getSystemStats(): Promise<SystemStats>;
 
   // Events
-  on(event: string, listener: (...arguments_: any[]) => void): void;
-  off(event: string, listener: (...arguments_: any[]) => void): void;
-  emit(event: string, ...arguments_: any[]): void;
+  on(_event: string, _listener: (..._arguments: any[]) => void): void;
+  off(_event: string, _listener: (..._arguments: any[]) => void): void;
+  emit(_event: string, ..._arguments: any[]): void;
 }
 
 // ============================================================================
@@ -371,7 +371,7 @@ export interface HealthCheckResult {
 
 export interface SystemStats {
   uptime: number;
-  memoryUsage: NodeJS.MemoryUsage;
+  memoryUsage: ReturnType<typeof process.memoryUsage>;
   database: any;
   storage: any;
   activeChecks: number;

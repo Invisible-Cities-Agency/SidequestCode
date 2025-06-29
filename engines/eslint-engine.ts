@@ -36,32 +36,45 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   private readonly ZERO_THRESHOLD = 5;
   private readonly REDUCED_INTERVAL = 5;
 
-  constructor(config = {
-    enabled: true,
-    options: {
-      rules: [
-        '@typescript-eslint/explicit-function-return-type',
-        '@typescript-eslint/no-unused-vars',
-        '@typescript-eslint/no-explicit-any',
-        '@typescript-eslint/explicit-module-boundary-types',
-        '@typescript-eslint/no-deprecated',
-        '@typescript-eslint/no-non-null-assertion',
-        '@typescript-eslint/ban-ts-comment'
-      ],
-      maxWarnings: 500,
-      timeout: 30_000,
-      roundRobin: false  // Use comprehensive analysis by default
-    },
-    priority: 2,
-    timeout: 35_000,
-    allowFailure: true // ESLint failures shouldn't break the whole analysis
+  constructor(config?: {
+    enabled?: boolean;
+    options?: {
+      rules?: string[];
+      maxWarnings?: number;
+      timeout?: number;
+      roundRobin?: boolean;  // Use comprehensive analysis by default
+    };
+    priority?: number;
+    timeout?: number;
+    allowFailure?: boolean; // ESLint failures shouldn't break the whole analysis
   }) {
-    super('ESLint Audit', 'eslint', config);
+    const defaultConfig = {
+      enabled: true,
+      options: {
+        rules: [
+          '@typescript-eslint/explicit-function-return-type',
+          '@typescript-eslint/no-unused-vars',
+          '@typescript-eslint/no-explicit-any',
+          '@typescript-eslint/explicit-module-boundary-types',
+          '@typescript-eslint/no-deprecated',
+          '@typescript-eslint/no-non-null-assertion',
+          '@typescript-eslint/ban-ts-comment'
+        ],
+        maxWarnings: 500,
+        timeout: 30_000,
+        roundRobin: false  // Use comprehensive analysis by default
+      },
+      priority: 2,
+      timeout: 35_000,
+      allowFailure: true // ESLint failures shouldn't break the whole analysis
+    };
+    const mergedConfig = { ...defaultConfig, ...config };
+    super('ESLint Audit', 'eslint', mergedConfig);
     this.baseDir = process.cwd();
 
     // Extract rules with proper fallback
     // Following separation of concerns: ESLint for code quality, tsc for types
-    const rulesFromConfig = config.options?.rules;
+    const rulesFromConfig = mergedConfig.options?.rules;
     this.eslintRules = Array.isArray(rulesFromConfig) ? rulesFromConfig : [
       // Code Quality & Style (non-type-aware)
       'no-console',
@@ -103,7 +116,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     const roundRobin = options['roundRobin'] ?? this.config.options['roundRobin'];
 
     // For comprehensive analysis, disable round-robin to get all violations
-    return roundRobin ? this.analyzeWithRoundRobin(targetPath, options) : this.analyzeAllRules(targetPath, options);
+    return roundRobin ? await this.analyzeWithRoundRobin(targetPath, options) : this.analyzeAllRules(targetPath, options);
   }
 
   /**
@@ -144,7 +157,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Analyze with all rules at once (traditional approach)
    */
-  private async analyzeAllRules(
+  private analyzeAllRules(
     targetPath: string,
     _options: Record<string, unknown>
   ): Promise<Violation[]> {
@@ -213,7 +226,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Run ESLint for specific rules with robust handling
    */
-  private async runESLintForRules(
+  private runESLintForRules(
     rules: string[],
     targetPath: string
   ): Promise<Violation[]> {
@@ -223,7 +236,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     }
 
     // For round-robin with specific rules, use the original approach
-    return this.runESLintWithBuffer(rules, targetPath);
+    return Promise.resolve(this.runESLintWithBuffer(rules, targetPath));
   }
 
   /**
@@ -239,10 +252,10 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
       if (errorMessage.includes('ENOBUFS') || errorMessage.includes('buffer') || errorMessage.includes('too large')) {
         console.warn('[ESLint Engine] Large output detected, falling back to sequential rule processing...');
-        return await this.runESLintSequentially(targetPath);
+        return this.runESLintSequentially(targetPath);
       } else {
         console.warn('[ESLint Engine] Temp file approach failed, falling back to sequential:', errorMessage);
-        return await this.runESLintSequentially(targetPath);
+        return this.runESLintSequentially(targetPath);
       }
     }
   }
@@ -254,8 +267,8 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     const { mkdtemp, readFile, unlink } = await import('node:fs/promises');
     const { tmpdir } = await import('node:os');
 
-    const tempDir = await mkdtemp(path.join(tmpdir(), 'sidequest-eslint-'));
-    const temporaryFile = path.join(tempDir, 'results.json');
+    const temporaryDirectory = await mkdtemp(path.join(tmpdir(), 'sidequest-eslint-'));
+    const temporaryFile = path.join(temporaryDirectory, 'results.json');
     const maxWarnings = this.config.options['maxWarnings'] as number || 500;
     const timeout = this.config.options['timeout'] as number || 30_000;
 
@@ -314,11 +327,11 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Run ESLint sequentially by rule groups (reliable fallback)
    */
-  private async runESLintSequentially(targetPath: string): Promise<Violation[]> {
+  private runESLintSequentially(targetPath: string): Violation[] {
     const allViolations: Violation[] = [];
 
     // Get all rules from project's ESLint config
-    const projectRules = await this.getProjectESLintRules();
+    const projectRules = this.getProjectESLintRules();
 
     // Group rules to avoid too many individual calls
     const ruleGroups = this.chunkRules(projectRules, 10); // Process 10 rules at a time
@@ -333,7 +346,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       console.log(`[ESLint Engine] Processing group ${index + 1}/${ruleGroups.length}: ${ruleGroup.slice(0, 3).join(', ')}${ruleGroup.length > 3 ? '...' : ''}`);
 
       try {
-        const groupViolations = await this.runESLintWithSpecificRules(ruleGroup, targetPath);
+        const groupViolations = this.runESLintWithSpecificRules(ruleGroup, targetPath);
         allViolations.push(...groupViolations);
       } catch (error) {
         console.warn(`[ESLint Engine] Failed to process rule group ${index + 1}:`, error);
@@ -348,7 +361,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Get rules from project's ESLint config
    */
-  private async getProjectESLintRules(): Promise<string[]> {
+  private getProjectESLintRules(): string[] {
     try {
       // Try to get rules from the actual ESLint config using a test file
       const result = spawnSync('npx', ['eslint', '--print-config', 'cli.ts'], {
@@ -450,7 +463,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Run ESLint with specific rules enabled using project config
    */
-  private async runESLintWithSpecificRules(rules: string[], targetPath: string): Promise<Violation[]> {
+  private runESLintWithSpecificRules(rules: string[], targetPath: string): Violation[] {
     const maxWarnings = this.config.options['maxWarnings'] as number || 500;
     const timeout = this.config.options['timeout'] as number || 30_000;
 
@@ -489,10 +502,10 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Original buffer-based approach for round-robin mode
    */
-  private async runESLintWithBuffer(
+  private runESLintWithBuffer(
     rules: string[],
     targetPath: string
-  ): Promise<Violation[]> {
+  ): Violation[] {
     const maxWarnings = this.config.options['maxWarnings'] as number || 500;
     const timeout = this.config.options['timeout'] as number || 30_000;
 
@@ -602,84 +615,62 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   }
 
   /**
-   * Categorize ESLint violations based on rule names
-   * Following separation of concerns: ESLint for code quality, tsc for types
+   * Dynamically categorize ESLint violations based on rule patterns
+   * Uses pattern matching instead of hard-coded lists for maintainability
    */
   private categorizeESLintRule(rule: string): {
     category: ViolationCategory,
     severity: ViolationSeverity
   } {
-    // Code Quality & Style
-    if (rule === 'no-console') {
-      return { category: 'code-quality', severity: 'warn' };
-    }
-    if (rule === 'no-debugger') {
-      return { category: 'code-quality', severity: 'error' };
-    }
-    if (rule === 'prefer-const' || rule === 'no-var') {
-      return { category: 'style', severity: 'warn' };
-    }
-
-    // Performance & Architecture
-    if (rule === 'no-floating-promises') {
-      return { category: 'performance', severity: 'error' };
-    }
-    if (rule === 'no-restricted-imports') {
-      return { category: 'architecture', severity: 'warn' };
-    }
-
-    // Variables and Usage
-    if (rule === '@typescript-eslint/no-unused-vars' || rule === 'no-unused-vars') {
+    // Pattern-based categorization for unused variables
+    if (rule.includes('unused-vars') || rule.includes('no-unused')) {
       return { category: 'unused-vars', severity: 'warn' };
     }
 
-    // Modern JavaScript/TypeScript patterns
-    if (rule === '@typescript-eslint/prefer-nullish-coalescing' ||
-        rule === '@typescript-eslint/prefer-optional-chain') {
-      return { category: 'modernization', severity: 'info' };
-    }
-
-    // Unicorn modernization rules
+    // Pattern-based categorization for modernization (prefer-* and no-legacy patterns)
     if (rule.startsWith('unicorn/prefer-') ||
-        rule === 'unicorn/no-array-instanceof' ||
-        rule === 'unicorn/explicit-length-check' ||
-        rule === 'unicorn/no-useless-undefined' ||
-        rule === 'unicorn/no-null' ||
-        rule === 'unicorn/no-array-reduce' ||
-        rule === 'unicorn/text-encoding-identifier-case' ||
-        rule === 'unicorn/no-unnecessary-await') {
+        rule.startsWith('unicorn/no-') ||
+        rule.includes('prefer-') ||
+        rule === 'no-var') {
       return { category: 'modernization', severity: 'info' };
     }
 
-    // Unicorn naming and style rules
-    if (rule === 'unicorn/prevent-abbreviations' ||
-        rule === 'unicorn/filename-case' ||
-        rule === 'unicorn/better-regex') {
+    // Pattern-based categorization for style/formatting
+    if (rule.includes('consistent') ||
+        rule.includes('abbreviations') ||
+        rule.includes('destructuring') ||
+        rule.includes('spacing') ||
+        rule.includes('indent') ||
+        rule.includes('quote') ||
+        rule.includes('semi') ||
+        rule.includes('comma') ||
+        rule.includes('import') ||
+        rule.includes('duplicate')) {
       return { category: 'style', severity: 'info' };
     }
 
-    // Standard style rules
-    if (rule === 'no-multiple-empty-lines' ||
-        rule === 'eol-last' ||
-        rule === 'semi' ||
-        rule === 'quotes' ||
-        rule === 'comma-dangle' ||
-        rule === 'indent') {
-      return { category: 'style', severity: 'info' };
+    // Pattern-based categorization for code quality
+    if (rule.includes('undef') ||
+        rule.includes('console') ||
+        rule.includes('debugger') ||
+        rule.includes('await') ||
+        rule.includes('async') ||
+        rule.includes('quality')) {
+      return { category: 'code-quality', severity: 'warn' };
     }
 
-    // Syntax and parsing errors
-    if (rule.includes('parse') || rule.includes('syntax')) {
+    // Pattern-based categorization for TypeScript best practices
+    if (rule.startsWith('@typescript-eslint/') &&
+        (rule.includes('explicit') || rule.includes('any') || rule.includes('boundary'))) {
+      return { category: 'best-practices', severity: 'warn' };
+    }
+
+    // Pattern-based categorization for syntax/parsing errors
+    if (rule.includes('parse') || rule.includes('syntax') || rule.includes('error')) {
       return { category: 'syntax-error', severity: 'error' };
     }
 
-    // Legacy type-aware rules (should be moved to tsc)
-    if (rule === '@typescript-eslint/explicit-function-return-type' ||
-        rule === '@typescript-eslint/no-explicit-any' ||
-        rule === '@typescript-eslint/explicit-module-boundary-types') {
-      return { category: 'legacy-type-rule', severity: 'info' };
-    }
-
+    // Default fallback - let the session discovery handle unknown rules
     return { category: 'other-eslint', severity: 'info' };
   }
 

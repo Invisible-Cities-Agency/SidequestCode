@@ -104,22 +104,22 @@ export class PreferencesManager {
   private preferencesPath: string;
   private preferences: UserPreferences;
 
-  private constructor(dataDir?: string) {
+  private constructor(dataDirectory?: string) {
     // Store preferences in user's data directory or project-specific location
-    const baseDir = dataDir || path.join(os.homedir(), '.sidequest-cqo');
-    this.preferencesPath = path.join(baseDir, 'user-preferences.json');
+    const baseDirectory = dataDirectory || path.join(os.homedir(), '.sidequest-cqo');
+    this.preferencesPath = path.join(baseDirectory, 'user-preferences.json');
 
     // Ensure directory exists
-    if (!fs.existsSync(baseDir)) {
-      fs.mkdirSync(baseDir, { recursive: true });
+    if (!fs.existsSync(baseDirectory)) {
+      fs.mkdirSync(baseDirectory, { recursive: true });
     }
 
     this.preferences = this.loadPreferences();
   }
 
-  public static getInstance(dataDir?: string): PreferencesManager {
+  public static getInstance(dataDirectory?: string): PreferencesManager {
     if (!PreferencesManager.instance) {
-      PreferencesManager.instance = new PreferencesManager(dataDir);
+      PreferencesManager.instance = new PreferencesManager(dataDirectory);
     }
     return PreferencesManager.instance;
   }
@@ -243,7 +243,7 @@ export class PreferencesManager {
   /**
    * Show TypeScript/ESLint separation warning and get user choice
    */
-  public async showTscEslintSeparationWarning(): Promise<'typescript-only' | 'both-separate' | 'both-mixed' | 'disable-warning'> {
+  public showTscEslintSeparationWarning(): Promise<'typescript-only' | 'both-separate' | 'both-mixed' | 'disable-warning'> {
     console.log(`
 🔧 Configuration Best Practice Recommendation
 
@@ -281,7 +281,7 @@ Your choice will be saved and can be changed in preferences.
     }
 
     this.savePreferences();
-    return choice;
+    return Promise.resolve(choice);
   }
 
   /**

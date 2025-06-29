@@ -41,7 +41,7 @@ export function generateViolationHash(violation: {
 /**
  * Convert orchestrator violation to database violation format
  */
-export function violationToDbFormat(violation: ViolationType): NewViolation {
+export function violationToDatabaseFormat(violation: ViolationType): NewViolation {
   const hash = generateViolationHash({
     file_path: violation.file,
     line_number: violation.line,
@@ -56,9 +56,9 @@ export function violationToDbFormat(violation: ViolationType): NewViolation {
     severity: violation.severity,
     source: violation.source as 'typescript' | 'eslint',
     message: violation.message || 'No message provided',
-    line_number: violation.line || null,
-    column_number: violation.column || null,
-    code_snippet: violation.code || null,
+    line_number: violation.line || null, // eslint-disable-line unicorn/no-null
+    column_number: violation.column || null, // eslint-disable-line unicorn/no-null
+    code_snippet: violation.code || null, // eslint-disable-line unicorn/no-null
     hash
     // first_seen_at and last_seen_at will use DEFAULT CURRENT_TIMESTAMP
     // status will use DEFAULT 'active'
@@ -68,8 +68,8 @@ export function violationToDbFormat(violation: ViolationType): NewViolation {
 /**
  * Convert multiple violations to database format with batch processing
  */
-export function violationsToDbFormat(violations: ViolationType[]): NewViolation[] {
-  return violations.map(violationToDbFormat);
+export function violationsToDatabaseFormat(violations: ViolationType[]): NewViolation[] {
+  return violations.map(violation => violationToDatabaseFormat(violation));
 }
 
 // ============================================================================
@@ -137,8 +137,8 @@ export function prepareDeltasForInsertion(
     check_id: checkId,
     violation_hash: delta.violation_hash,
     action: delta.action,
-    previous_line: delta.previous_line || null,
-    previous_message: delta.previous_message || null
+    previous_line: delta.previous_line || null, // eslint-disable-line unicorn/no-null
+    previous_message: delta.previous_message || null // eslint-disable-line unicorn/no-null
   }));
 }
 
@@ -149,7 +149,7 @@ export function prepareDeltasForInsertion(
 /**
  * Format datetime for SQLite storage
  */
-export function formatDateTimeForDb(date: Date = new Date()): string {
+export function formatDateTimeForDatabase(date: Date = new Date()): string {
   return date.toISOString();
 }
 
@@ -188,8 +188,8 @@ export function createPerformanceMetric(
     metric_type: type,
     metric_value: value,
     metric_unit: unit,
-    context: context || null,
-    recorded_at: formatDateTimeForDb()
+    context: context || null, // eslint-disable-line unicorn/no-null
+    recorded_at: formatDateTimeForDatabase()
   };
 }
 

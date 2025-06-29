@@ -16,7 +16,7 @@ export class PollingService extends EventEmitter implements IPollingService {
   private storageService: IStorageService;
   private isActive = false;
   private isPaused = false;
-  private pollingInterval: NodeJS.Timeout | undefined = undefined;
+  private pollingInterval: ReturnType<typeof setTimeout> | undefined = undefined;
   private activeChecks = new Map<string, Promise<RuleCheckResult>>();
 
   // Configuration
@@ -34,10 +34,10 @@ export class PollingService extends EventEmitter implements IPollingService {
   // Lifecycle Management
   // ========================================================================
 
-  async start(): Promise<void> {
+  start(): Promise<void> {
     if (this.isActive) {
       console.log('[PollingService] Already running');
-      return;
+      return Promise.resolve();
     }
 
     console.log('[PollingService] Starting polling service...');
@@ -52,6 +52,7 @@ export class PollingService extends EventEmitter implements IPollingService {
     }, this.pollingIntervalMs);
 
     console.log('[PollingService] Polling service started');
+    return Promise.resolve();
   }
 
   async stop(): Promise<void> {
@@ -79,27 +80,29 @@ export class PollingService extends EventEmitter implements IPollingService {
     console.log('[PollingService] Polling service stopped');
   }
 
-  async pause(): Promise<void> {
+  pause(): Promise<void> {
     if (!this.isActive) {
       throw new Error('Cannot pause: polling service is not running');
     }
 
     console.log('[PollingService] Pausing polling service...');
     this.isPaused = true;
+    return Promise.resolve();
   }
 
-  async resume(): Promise<void> {
+  resume(): Promise<void> {
     if (!this.isActive) {
       throw new Error('Cannot resume: polling service is not running');
     }
 
     if (!this.isPaused) {
       console.log('[PollingService] Already running (not paused)');
-      return;
+      return Promise.resolve();
     }
 
     console.log('[PollingService] Resuming polling service...');
     this.isPaused = false;
+    return Promise.resolve();
   }
 
   isRunning(): boolean {
@@ -361,7 +364,7 @@ export class PollingService extends EventEmitter implements IPollingService {
 // Service Factory
 // ============================================================================
 
-let pollingServiceInstance: PollingService | undefined = undefined;
+let pollingServiceInstance: PollingService | undefined;
 
 /**
  * Get or create polling service instance

@@ -5,7 +5,7 @@
  * their preferences and understand best practices.
  */
 
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { PreferencesManager } from './preferences-manager.js';
 
 interface SetupChoices {
@@ -36,7 +36,7 @@ export class InteractiveSetup {
   /**
    * Run interactive first-time setup
    */
-  public async runSetup(): Promise<void> {
+  public runSetup(): void {
     console.log(`
 ${this.colors.bold}${this.colors.header}🚀 Welcome to SideQuest Code Quality Orchestrator!${this.colors.reset}
 
@@ -47,21 +47,21 @@ ${this.colors.secondary}━━━━━━━━━━━━━━━━━━�
 `);
 
     const choices: SetupChoices = {
-      analysisMode: await this.askAnalysisMode(),
-      toolSeparation: await this.askToolSeparation(),
-      colorScheme: await this.askColorScheme(),
-      verboseOutput: await this.askVerboseOutput(),
-      enableWarnings: await this.askWarnings()
+      analysisMode: this.askAnalysisMode(),
+      toolSeparation: this.askToolSeparation(),
+      colorScheme: this.askColorScheme(),
+      verboseOutput: this.askVerboseOutput(),
+      enableWarnings: this.askWarnings()
     };
 
-    await this.applyChoices(choices);
+    this.applyChoices(choices);
     this.showSetupComplete(choices);
   }
 
   /**
    * Ask about analysis mode preference
    */
-  private async askAnalysisMode(): Promise<'errors-only' | 'warnings-and-errors' | 'all'> {
+  private askAnalysisMode(): 'errors-only' | 'warnings-and-errors' | 'all' {
     console.log(`${this.colors.warning}📊 Analysis Scope${this.colors.reset}
 
 How comprehensive should the default analysis be?
@@ -83,7 +83,7 @@ ${this.colors.muted}3) Everything${this.colors.reset}
 `);
 
     // Simulate user input (in real implementation, use readline or similar)
-    const choice = await this.simulateUserChoice(['1', '2', '3'], '1');
+    const choice = this.simulateUserChoice(['1', '2', '3'], '1');
 
     switch (choice) {
     case '1': { return 'errors-only';
@@ -100,7 +100,7 @@ ${this.colors.muted}3) Everything${this.colors.reset}
   /**
    * Ask about TypeScript/ESLint separation
    */
-  private async askToolSeparation(): Promise<'typescript-only' | 'both-separate' | 'both-mixed'> {
+  private askToolSeparation(): 'typescript-only' | 'both-separate' | 'both-mixed' {
     console.log(`
 ${this.colors.warning}🔧 Tool Configuration${this.colors.reset}
 
@@ -123,7 +123,7 @@ ${this.colors.muted}3) Both tools, mixed${this.colors.reset}
    ⚠️  Performance impact
 `);
 
-    const choice = await this.simulateUserChoice(['1', '2', '3'], '2');
+    const choice = this.simulateUserChoice(['1', '2', '3'], '2');
 
     switch (choice) {
     case '1': { return 'typescript-only';
@@ -140,7 +140,7 @@ ${this.colors.muted}3) Both tools, mixed${this.colors.reset}
   /**
    * Ask about color scheme preference
    */
-  private async askColorScheme(): Promise<'auto' | 'light' | 'dark'> {
+  private askColorScheme(): 'auto' | 'light' | 'dark' {
     console.log(`
 ${this.colors.warning}🎨 Terminal Colors${this.colors.reset}
 
@@ -160,7 +160,7 @@ ${this.colors.info}3) Dark theme${this.colors.reset}
    ✅ High contrast on black/dark backgrounds
 `);
 
-    const choice = await this.simulateUserChoice(['1', '2', '3'], '1');
+    const choice = this.simulateUserChoice(['1', '2', '3'], '1');
 
     switch (choice) {
     case '1': { return 'auto';
@@ -177,7 +177,7 @@ ${this.colors.info}3) Dark theme${this.colors.reset}
   /**
    * Ask about verbose output preference
    */
-  private async askVerboseOutput(): Promise<boolean> {
+  private askVerboseOutput(): boolean {
     console.log(`
 ${this.colors.warning}📝 Output Detail${this.colors.reset}
 
@@ -194,14 +194,14 @@ ${this.colors.info}2) Verbose${this.colors.reset}
    ✅ Good for debugging
 `);
 
-    const choice = await this.simulateUserChoice(['1', '2'], '1');
+    const choice = this.simulateUserChoice(['1', '2'], '1');
     return choice === '2';
   }
 
   /**
    * Ask about warnings and hints
    */
-  private async askWarnings(): Promise<boolean> {
+  private askWarnings(): boolean {
     console.log(`
 ${this.colors.warning}💡 Helpful Hints${this.colors.reset}
 
@@ -218,14 +218,14 @@ ${this.colors.muted}2) No${this.colors.reset}
    ✅ Clean, quiet operation
 `);
 
-    const choice = await this.simulateUserChoice(['1', '2'], '1');
+    const choice = this.simulateUserChoice(['1', '2'], '1');
     return choice === '1';
   }
 
   /**
    * Apply user choices to preferences
    */
-  private async applyChoices(choices: SetupChoices): Promise<void> {
+  private applyChoices(choices: SetupChoices): void {
     // Update analysis preferences
     this.prefs.updatePreference('analysis', {
       defaultMode: choices.analysisMode,
@@ -287,7 +287,7 @@ ${this.colors.warning}Setup is now complete!${this.colors.reset} Future runs wil
   /**
    * Simulate user choice (in real implementation, use readline)
    */
-  private async simulateUserChoice(_options: string[], defaultChoice: string): Promise<string> {
+  private simulateUserChoice(_options: string[], defaultChoice: string): string {
     // In a real implementation, this would use readline to get user input
     // For now, return the default choice
     console.log(`${this.colors.secondary}[Simulating choice: ${defaultChoice}]${this.colors.reset}\n`);
@@ -296,7 +296,7 @@ ${this.colors.warning}Setup is now complete!${this.colors.reset} Future runs wil
 
   /**
    * Check if this is a first run and should show setup
-   * 
+   *
    * Smart detection that checks:
    * 1. User preferences exist and show setup completion
    * 2. Database directory exists (indicates previous usage)
@@ -306,12 +306,12 @@ ${this.colors.warning}Setup is now complete!${this.colors.reset} Future runs wil
       // Check user preferences first
       const prefs = PreferencesManager.getInstance(dataDir);
       const allPrefs = prefs.getAllPreferences();
-      
+
       // If user explicitly completed setup, don't run again
       if (allPrefs.userChoices.hasCompletedFirstRun) {
         return false;
       }
-      
+
       // Check if database directory exists (indicates previous usage)
       const dbDir = dataDir || './data';
       if (fs.existsSync(dbDir)) {
@@ -319,7 +319,7 @@ ${this.colors.warning}Setup is now complete!${this.colors.reset} Future runs wil
         // Skip setup to avoid annoying existing users
         return false;
       }
-      
+
       // Truly first run - no preferences and no database
       return true;
     } catch {

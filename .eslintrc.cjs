@@ -37,6 +37,14 @@ module.exports = {
     'prefer-promise-reject-errors': 'error',
     'require-await': 'error',
     
+    // Variable usage
+    'no-unused-vars': ['error', { 
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      ignoreRestSiblings: true,
+      destructuredArrayIgnorePattern: '^_'
+    }],
+    
     // Style and formatting
     'indent': ['error', 2],
     'quotes': ['error', 'single', { avoidEscape: true }],

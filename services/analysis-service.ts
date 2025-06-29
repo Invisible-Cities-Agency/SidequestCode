@@ -88,7 +88,7 @@ export class AnalysisService implements IAnalysisService {
     return [...trendsMap.values()].sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  async getRulePerformanceAnalysis(ruleId?: string): Promise<RulePerformanceAnalysis[]> {
+  getRulePerformanceAnalysis(ruleId?: string): RulePerformanceAnalysis[] {
     // const rulePerformance = await this.storageService.getRulePerformance();
     const rulePerformance: any[] = []; // TODO: Implement getRulePerformance on IStorageService
 
@@ -187,7 +187,7 @@ export class AnalysisService implements IAnalysisService {
       .sort((a, b) => b.severityScore - a.severityScore);
   }
 
-  async detectRuleFlakyness(minRuns: number = 10): Promise<FlakyRule[]> {
+  detectRuleFlakyness(minRuns: number = 10): FlakyRule[] {
     // const rulePerformance = await this.storageService.getRulePerformance();
     const rulePerformance: any[] = []; // TODO: Implement getRulePerformance
 
@@ -238,7 +238,7 @@ export class AnalysisService implements IAnalysisService {
     };
   }
 
-  async recommendRuleFrequencies(): Promise<RuleFrequencyRecommendation[]> {
+  recommendRuleFrequencies(): RuleFrequencyRecommendation[] {
     // const rulePerformance = await this.storageService.getRulePerformance();
     const rulePerformance: any[] = []; // TODO: Implement getRulePerformance
 
@@ -433,7 +433,7 @@ export class AnalysisService implements IAnalysisService {
 // Service Factory
 // ============================================================================
 
-let analysisServiceInstance: AnalysisService | undefined = undefined;
+let analysisServiceInstance: AnalysisService | undefined;
 
 /**
  * Get or create analysis service instance

@@ -26,19 +26,32 @@ import type {
 export class TypeScriptAuditEngine extends BaseAuditEngine {
   private readonly baseDir: string;
 
-  constructor(config = {
-    enabled: true,
-    options: {
-      includeAny: false, // Optional pattern checking
-      strict: false,     // For pattern checks only
-      targetPath: 'app',
-      checkCompilation: true // Primary function: run tsc --noEmit
-    },
-    priority: 1,
-    timeout: 30_000,
-    allowFailure: false
+  constructor(config?: {
+    enabled?: boolean;
+    options?: {
+      includeAny?: boolean; // Optional pattern checking
+      strict?: boolean;     // For pattern checks only
+      targetPath?: string;
+      checkCompilation?: boolean; // Primary function: run tsc --noEmit
+    };
+    priority?: number;
+    timeout?: number;
+    allowFailure?: boolean;
   }) {
-    super('TypeScript Compiler', 'typescript', config);
+    const defaultConfig = {
+      enabled: true,
+      options: {
+        includeAny: false, // Optional pattern checking
+        strict: false,     // For pattern checks only
+        targetPath: 'app',
+        checkCompilation: true // Primary function: run tsc --noEmit
+      },
+      priority: 1,
+      timeout: 30_000,
+      allowFailure: false
+    };
+    const mergedConfig = { ...defaultConfig, ...config };
+    super('TypeScript Compiler', 'typescript', mergedConfig);
     this.baseDir = process.cwd();
   }
 
@@ -56,13 +69,13 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
 
     // FIRST: Run TypeScript compiler to catch actual compilation errors
     if (checkCompilation) {
-      const compilationViolations = await this.checkTypeScriptCompilation(searchPath);
+      const compilationViolations = await Promise.resolve(this.checkTypeScriptCompilation(searchPath));
       violations.push(...compilationViolations);
     }
 
     // OPTIONAL: Run pattern-based checks for unknown/any usage
     if (includeAny) {
-      const patternViolations = await this.checkPatternViolations(targetPath, options);
+      const patternViolations = this.checkPatternViolations(targetPath, options);
       violations.push(...patternViolations);
     }
 
@@ -72,18 +85,18 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   /**
    * Run TypeScript compiler to detect compilation errors
    */
-  private async checkTypeScriptCompilation(searchPath: string): Promise<Violation[]> {
+  private checkTypeScriptCompilation(searchPath: string): Violation[] {
     const violations: Violation[] = [];
 
     // Find tsconfig.json
     const tsConfigPath = this.findTsConfig(searchPath);
     if (!tsConfigPath) {
       // If no tsconfig, try to run tsc on the directory directly
-      return await this.runTscOnDirectory(searchPath);
+      return this.runTscOnDirectory(searchPath);
     }
 
     // Store client's TypeScript configuration in database for fast access
-    await this.cacheTypeScriptConfig(tsConfigPath);
+    this.cacheTypeScriptConfig(tsConfigPath);
 
     try {
       // Run tsc --noEmit with the found tsconfig (respecting their exact configuration)
@@ -100,13 +113,13 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
 
       // Parse TypeScript compiler output
       if (result.stderr) {
-        const compilationViolations = await this.parseTypeScriptErrors(result.stderr, tsConfigPath);
+        const compilationViolations = this.parseTypeScriptErrors(result.stderr, tsConfigPath);
         violations.push(...compilationViolations);
       }
 
       // Some errors might be in stdout
       if (result.stdout && result.stdout.includes('error TS')) {
-        const compilationViolations = await this.parseTypeScriptErrors(result.stdout, tsConfigPath);
+        const compilationViolations = this.parseTypeScriptErrors(result.stdout, tsConfigPath);
         violations.push(...compilationViolations);
       }
 
@@ -121,14 +134,14 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    * Find tsconfig.json starting from search path and moving up
    */
   private findTsConfig(searchPath: string): string | null {
-    let currentDir = searchPath;
+    let currentDirectory = searchPath;
 
-    while (currentDir !== path.dirname(currentDir)) {
-      const tsConfigPath = path.join(currentDir, 'tsconfig.json');
+    while (currentDirectory !== path.dirname(currentDirectory)) {
+      const tsConfigPath = path.join(currentDirectory, 'tsconfig.json');
       if (fs.existsSync(tsConfigPath)) {
         return tsConfigPath;
       }
-      currentDir = path.dirname(currentDir);
+      currentDirectory = path.dirname(currentDirectory);
     }
 
     // Check project root
@@ -143,7 +156,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   /**
    * Run tsc directly on directory when no tsconfig found
    */
-  private async runTscOnDirectory(searchPath: string): Promise<Violation[]> {
+  private runTscOnDirectory(searchPath: string): Violation[] {
     const violations: Violation[] = [];
 
     try {
@@ -154,7 +167,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       });
 
       if (result.stderr) {
-        const compilationViolations = await this.parseTypeScriptErrors(result.stderr);
+        const compilationViolations = this.parseTypeScriptErrors(result.stderr);
         violations.push(...compilationViolations);
       }
 
@@ -168,7 +181,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   /**
    * Parse TypeScript compiler error output into violations
    */
-  private async parseTypeScriptErrors(errorOutput: string, _tsConfigPath?: string): Promise<Violation[]> {
+  private parseTypeScriptErrors(errorOutput: string, _tsConfigPath?: string): Violation[] {
     const violations: Violation[] = [];
     const lines = errorOutput.split('\n');
 
@@ -193,7 +206,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         const severity: ViolationSeverity = severityString === 'error' ? 'error' : 'warn';
 
         // Get category from database mapping or use default
-        const category: ViolationCategory = await this.getCategoryForRule(ruleCode || 'TS0000');
+        const category: ViolationCategory = this.getCategoryForRule(ruleCode || 'TS0000');
 
         violations.push(this.createViolation(
           relativePath,
@@ -213,7 +226,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   /**
    * Cache TypeScript configuration in database for fast access during watch mode
    */
-  private async cacheTypeScriptConfig(tsConfigPath: string): Promise<void> {
+  private cacheTypeScriptConfig(tsConfigPath: string): void {
     try {
       const configContent = fs.readFileSync(tsConfigPath, 'utf8');
       const config = JSON.parse(configContent);
@@ -247,7 +260,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    * Get category for rule from database mapping or create new mapping
    * Uses dynamic database-driven approach instead of hard-coded mappings
    */
-  private async getCategoryForRule(ruleCode: string): Promise<ViolationCategory> {
+  private getCategoryForRule(ruleCode: string): ViolationCategory {
     // TODO: Implement database lookup for rule category mapping
     // For now, use pattern-based fallback until database service is connected
     return this.getDefaultCategoryFromPattern(ruleCode);
@@ -321,10 +334,10 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   /**
    * Run pattern-based checks for unknown/any usage (legacy functionality)
    */
-  private async checkPatternViolations(
+  private checkPatternViolations(
     targetPath: string,
     options: Record<string, unknown>
-  ): Promise<Violation[]> {
+  ): Violation[] {
     const violations: Violation[] = [];
     const includeAny = options['includeAny'] || this.config.options['includeAny'];
     const strict = options['strict'] || this.config.options['strict'];
@@ -380,7 +393,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       const code = rest.join(':').trim();
 
       // Skip invalid entries
-      if (!filePath || isNaN(lineNumber) || !code) {
+      if (!filePath || Number.isNaN(lineNumber) || !code) {
         continue;
       }
 

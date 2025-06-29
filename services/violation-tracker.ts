@@ -134,23 +134,23 @@ export class ViolationTracker implements IViolationTracker {
     return await this.storageService.resolveViolations(violationHashes);
   }
 
-  async markAsIgnored(violationHashes: string[]): Promise<number> {
+  markAsIgnored(violationHashes: string[]): Promise<number> {
     console.log(`[ViolationTracker] Marking ${violationHashes.length} violations as ignored`);
 
     // Note: StorageService doesn't have markAsIgnored method yet,
     // this would need to be implemented similarly to resolveViolations
     // For now, we'll log the operation
     console.log('markAsIgnored operation logged - implementation needed in StorageService');
-    return violationHashes.length;
+    return Promise.resolve(violationHashes.length);
   }
 
-  async reactivateViolations(violationHashes: string[]): Promise<number> {
+  reactivateViolations(violationHashes: string[]): Promise<number> {
     console.log(`[ViolationTracker] Reactivating ${violationHashes.length} violations`);
 
     // Note: StorageService doesn't have reactivateViolations method yet
     // This would need to be implemented to set status back to 'active'
     console.log('reactivateViolations operation logged - implementation needed in StorageService');
-    return violationHashes.length;
+    return Promise.resolve(violationHashes.length);
   }
 
   // ========================================================================
@@ -369,19 +369,23 @@ export class ViolationTracker implements IViolationTracker {
    * Get aggregated statistics from batch processing results
    */
   aggregateBatchResults(results: ProcessingResult[]): ProcessingResult {
-    return results.reduce((total, result) => ({
-      processed: total.processed + result.processed,
-      inserted: total.inserted + result.inserted,
-      updated: total.updated + result.updated,
-      deduplicated: total.deduplicated + result.deduplicated,
-      errors: [...total.errors, ...result.errors]
-    }), {
+    const total = {
       processed: 0,
       inserted: 0,
       updated: 0,
       deduplicated: 0,
-      errors: []
-    });
+      errors: [] as string[]
+    };
+    
+    for (const result of results) {
+      total.processed += result.processed;
+      total.inserted += result.inserted;
+      total.updated += result.updated;
+      total.deduplicated += result.deduplicated;
+      total.errors.push(...result.errors);
+    }
+    
+    return total;
   }
 
   // ========================================================================
@@ -428,7 +432,7 @@ export class ViolationTracker implements IViolationTracker {
 // Service Factory
 // ============================================================================
 
-let violationTrackerInstance: ViolationTracker | undefined = undefined;
+let violationTrackerInstance: ViolationTracker | undefined;
 
 /**
  * Get or create violation tracker instance

@@ -35,7 +35,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
 
   private initialized = false;
   private watchModeActive = false;
-  private watchModeInterval: NodeJS.Timeout | undefined = undefined;
+  private watchModeInterval: ReturnType<typeof setTimeout> | undefined = undefined;
   private silent = false;
 
   constructor(configManager?: ConfigManager) {
@@ -439,7 +439,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
 // Service Factory and Utilities
 // ============================================================================
 
-let orchestratorServiceInstance: OrchestratorService | undefined = undefined;
+let orchestratorServiceInstance: OrchestratorService | undefined;
 
 /**
  * Get or create orchestrator service instance

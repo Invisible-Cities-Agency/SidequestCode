@@ -7,10 +7,10 @@
  * Attempt to detect terminal background color using OSC 11 escape sequence
  * This is an async method that queries the terminal directly
  */
-export async function detectTerminalBackground(): Promise<'light' | 'dark' | null> {
+export function detectTerminalBackground(): Promise<'light' | 'dark' | undefined> {
   // Skip detection in non-interactive environments
   if (!process.stdout.isTTY || process.env['CI'] || process.env['NODE_ENV'] === 'test') {
-    return null;
+    return Promise.resolve(undefined);
   }
 
   // Check if terminal supports OSC queries
@@ -28,21 +28,21 @@ export async function detectTerminalBackground(): Promise<'light' | 'dark' | nul
     process.env['COLORTERM'] === 'truecolor';
 
   if (!supportsOSC) {
-    return null;
+    return Promise.resolve(undefined);
   }
 
   return new Promise((resolve) => {
-    let timeout: NodeJS.Timeout;
     let response = '';
 
     // Set up timeout (300ms should be enough, shorter for better UX)
-    timeout = setTimeout(() => {
+    const timeout = setTimeout(() => {
       cleanup();
-      resolve(null);
+      resolve(undefined);
     }, 300);
 
     const cleanup = () => {
       try {
+        clearTimeout(timeout);
         process.stdin.removeAllListeners('data');
         if (process.stdin.isTTY && process.stdin.setRawMode) {
           process.stdin.setRawMode(false);
@@ -113,12 +113,12 @@ export async function detectTerminalBackground(): Promise<'light' | 'dark' | nul
         process.stdout.write('\u001B]11;?\u001B\\');
       } else {
         cleanup();
-        resolve(null);
+        resolve(undefined);
       }
 
     } catch {
       cleanup();
-      resolve(null);
+      resolve(undefined);
     }
   });
 }
