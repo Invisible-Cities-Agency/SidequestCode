@@ -10,6 +10,7 @@ import { BaseAuditEngine } from './engines/base-engine.js';
 import { TypeScriptAuditEngine } from './engines/typescript-engine.js';
 import { ESLintAuditEngine } from './engines/eslint-engine.js';
 import { UnusedExportsEngine } from './engines/unused-exports-engine.js';
+import { ZodDetectionEngine } from './engines/zod-detection-engine.js';
 import type {
   Violation,
   EngineResult,
@@ -39,6 +40,7 @@ export interface OrchestratorConfig {
     typescript?: EngineConfig;
     eslint?: EngineConfig;
     unusedExports?: EngineConfig;
+    zodDetection?: EngineConfig;
   };
   /** Output configuration */
   output?: {
@@ -90,6 +92,12 @@ export class CodeQualityOrchestrator {
     if (this.config.engines.unusedExports?.enabled !== false) {
       const unusedExportsEngine = new UnusedExportsEngine();
       this.engines.set('unused-exports', unusedExportsEngine);
+    }
+
+    // Initialize Zod Detection engine
+    if (this.config.engines.zodDetection?.enabled !== false) {
+      const zodEngine = new ZodDetectionEngine(this.config.engines.zodDetection as any);
+      this.engines.set('zod-detection', zodEngine);
     }
   }
 

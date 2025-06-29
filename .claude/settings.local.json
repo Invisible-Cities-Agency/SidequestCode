@@ -23,7 +23,8 @@
       "Bash(sqlite3:*)",
       "Bash(npx eslint:*)",
       "Bash(sed:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

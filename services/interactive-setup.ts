@@ -5,8 +5,7 @@
  * their preferences and understand best practices.
  */
 
-// import * as fs from 'fs';
-// import * as path from 'path';
+import * as fs from 'fs';
 import { PreferencesManager } from './preferences-manager.js';
 
 interface SetupChoices {

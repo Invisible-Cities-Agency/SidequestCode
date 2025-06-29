@@ -145,10 +145,10 @@ function showAIContext(): void {
       "npx tsx cli.ts"                       // Inconsistent behavior in some shells
     ],
     "workflow": {
-      "step_1": "Run \\`npm run sidequest:report\\` to catch TypeScript errors.",
+      "step_1": "Run 'npm run sidequest:report' to catch TypeScript errors.",
       "step_2": "Resolve all TS compilation issues first – they block builds.",
-      "step_3": "Optionally run \\`npm run sidequest:report:eslint\\` for style and lint rules.",
-      "step_4": "Validate with \\`npm run typecheck\\` and \\`npm run test\\`."
+      "step_3": "Optionally run 'npm run sidequest:report:eslint' for style and lint rules.",
+      "step_4": "Validate with 'npm run typecheck' and 'npm run test'."
     }
   },
   "rationale": {
@@ -159,14 +159,14 @@ function showAIContext(): void {
     }
   },
   "type_guidance": {
-    "strategy": "Replace \\`any\\` with meaningful types using docs, \\`node_modules\\`, or known interfaces.",
-    "avoid": "\\`unknown\\` is not a safe placeholder. Prefer explicitly defined interfaces.",
-    "validation": "Use Zod (or similar) to validate unknown inputs at runtime."
+    "strategy": "Replace 'any' with meaningful types using docs, 'node_modules', or known interfaces.",
+    "avoid": "'unknown' is not a safe placeholder. Prefer explicitly defined interfaces.",
+    "validation": "Consider Zod for enhanced runtime type safety at external boundaries (APIs, user input). Optional but recommended - SideQuest will detect and analyze Zod usage patterns if present."
   },
   "recommended_libraries": {
     "typescript": {
-      "type-fest": "Utility types (e.g., \\`PackageJson\\`, \\`Merge\\`) by Sindre Sorhus.",
-      "ts-reset": "Safe TS defaults by Matt Pocock – improves behavior of \\`Object\\`, \\`includes\\`, etc.",
+      "type-fest": "Utility types (e.g., 'PackageJson', 'Merge') by Sindre Sorhus.",
+      "ts-reset": "Safe TS defaults by Matt Pocock – improves behavior of 'Object', 'includes', etc.",
       "zod": "Schema-based validation with automatic TS inference.",
       "utility-types": "Extra tools for structural typing and transformation."
     },
@@ -179,7 +179,8 @@ function showAIContext(): void {
     "tools": {
       "tsup": "Fast TypeScript bundler (uses esbuild under the hood).",
       "tsx": "Fast alternative to ts-node for running scripts.",
-      "type-challenges": "Excellent resource to learn deep TS pattern mastery."
+      "type-challenges": "Excellent resource to learn deep TS pattern mastery.",
+      "ripgrep": "Essential tool: Use 'rg' instead of 'grep' for blazing-fast code searches."
     }
   },
   "watch_mode": {
@@ -190,13 +191,14 @@ function showAIContext(): void {
   "type_discovery": {
     "best_practices": [
       "Check official docs for accurate types.",
-      "Browse \\`@types\\` packages and source code inside \\`node_modules\\`.",
-      "Avoid masking issues with \\`any\\` or overuse of utility types – prefer clarity over cleverness."
+      "Browse '@types' packages and source code inside 'node_modules'.",
+      "Avoid masking issues with 'any' or overuse of utility types – prefer clarity over cleverness.",
+      "Use 'rg' (ripgrep) instead of 'grep' or 'find' for efficient codebase searches - much faster for type fixing workflows."
     ]
   },
   "if_confused": {
-    "recovery": "Run \\`npm run sidequest:ai-context\\` to reload LLM context.",
-    "npx_warning": "If \\`npx\\` fails, prefer \\`npm run\\` for consistency and reliability."
+    "recovery": "Run 'npm run sidequest:ai-context' to reload LLM context.",
+    "npx_warning": "If 'npx' fails, prefer 'npm run' for consistency and reliability."
   },
   "philosophy": "SideQuest exists to help – not enforce. LLMs should focus on reducing noise, highlighting meaningful violations, and guiding users toward clean, type-safe, maintainable code."
 }`);

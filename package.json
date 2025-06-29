@@ -97,12 +97,12 @@
   ],
   "dependencies": {
     "better-sqlite3": "^9.0.0",
-    "kysely": "^0.27.0"
+    "kysely": "^0.27.0",
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20.0.0",
-    "ts-unused-exports": "^11.0.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitest/coverage-v8": "^1.0.0",
@@ -110,6 +110,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-unicorn": "^50.0.0",
     "prettier": "^3.0.0",
+    "ts-unused-exports": "^11.0.1",
     "tsx": "^4.0.0",
     "type-fest": "^4.10.0",
     "typescript": "^5.8.3",

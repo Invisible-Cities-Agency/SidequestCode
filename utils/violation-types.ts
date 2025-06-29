@@ -114,6 +114,7 @@ export type ViolationSource =
   | 'unused-exports'
   | 'parser'
   | 'complexity'
+  | 'zod-detection'
   | 'security'
   | 'performance'
   | 'custom';

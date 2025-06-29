@@ -1,0 +1,481 @@
+/**
+ * @fileoverview Zod Detection Engine
+ *
+ * Detects Zod usage patterns and anti-patterns:
+ * - Unused schemas (defined but never parsed)
+ * - Over-validation (validating internal type-safe data)
+ * - Missing validation (external APIs without schemas)
+ */
+
+import { BaseAuditEngine } from './base-engine.js';
+import type { AuditResult, Violation } from '../utils/violation-types.js';
+import { spawnSync } from 'child_process';
+
+interface ZodUsage {
+  schemaDefinitions: Array<{ file: string; line: number; name: string }>;
+  parseUsages: Array<{ file: string; line: number; schema: string }>;
+  safeParsUsages: Array<{ file: string; line: number; schema: string }>;
+}
+
+export class ZodDetectionEngine extends BaseAuditEngine {
+  constructor(config: any = {}) {
+    super('Zod Detection', 'zod-detection', {
+      enabled: true,
+      priority: 3,
+      timeout: 30_000,
+      allowFailure: true,
+      ...config
+    });
+  }
+
+  async analyze(targetPath: string, _options: any = {}): Promise<AuditResult> {
+    const violations: Violation[] = [];
+
+    try {
+      // Check if Zod is installed
+      const hasZod = await this.hasZodDependency();
+      if (!hasZod) {
+        return {
+          engine: this.name,
+          violations: [],
+          executionTime: 0,
+          metadata: { reason: 'Zod not detected in project' }
+        };
+      }
+
+      console.log('[Zod Detection] Analyzing Zod usage patterns...');
+      
+      const startTime = Date.now();
+      const zodUsage = await this.analyzeZodUsage(targetPath);
+      console.log('[Zod Detection] Usage analysis completed:', zodUsage);
+      
+      // Detect unused schemas
+      const unusedSchemas = this.findUnusedSchemas(zodUsage);
+      if (unusedSchemas && Array.isArray(unusedSchemas)) {
+        violations.push(...unusedSchemas);
+      }
+      
+      // Detect over-validation patterns
+      const overValidations = this.findOverValidations(zodUsage);
+      if (overValidations && Array.isArray(overValidations)) {
+        violations.push(...overValidations);
+      }
+      
+      // Detect missing validation opportunities
+      const missingValidations = await this.findMissingValidations(targetPath);
+      if (missingValidations && Array.isArray(missingValidations)) {
+        violations.push(...missingValidations);
+      }
+
+      const executionTime = Date.now() - startTime;
+      
+      // Calculate runtime validation coverage
+      const coverage = this.calculateValidationCoverage(zodUsage, targetPath);
+      console.log('[Zod Detection] Coverage calculated:', coverage);
+      
+      // Add coverage-based suggestions
+      const coverageSuggestions = this.generateCoverageSuggestions(coverage);
+      console.log('[Zod Detection] Coverage suggestions:', coverageSuggestions);
+      if (coverageSuggestions && Array.isArray(coverageSuggestions)) {
+        violations.push(...coverageSuggestions);
+      }
+
+      console.log('[Zod Detection] Final violations count:', violations.length);
+      const result = {
+        engine: this.engineName,
+        violations,
+        executionTime,
+        metadata: {
+          schemasFound: zodUsage.schemaDefinitions.length,
+          parseUsages: zodUsage.parseUsages.length,
+          safeParsUsages: zodUsage.safeParsUsages.length,
+          validationCoverage: coverage
+        }
+      };
+      console.log('[Zod Detection] Returning result:', result);
+      return result;
+
+    } catch (error: any) {
+      console.error('[Zod Detection] Analysis failed:', error);
+      if (this.config.allowFailure) {
+        return {
+          engine: this.engineName,
+          violations: [],
+          executionTime: 0,
+          metadata: { error: error.message }
+        };
+      }
+      throw error;
+    }
+  }
+
+  private async hasZodDependency(): Promise<boolean> {
+    try {
+      const packageJson = await import(`${process.cwd()}/package.json`);
+      return !!(packageJson.dependencies?.zod || packageJson.devDependencies?.zod);
+    } catch {
+      return false;
+    }
+  }
+
+  private async analyzeZodUsage(baseDir: string): Promise<ZodUsage> {
+    const usage: ZodUsage = {
+      schemaDefinitions: [],
+      parseUsages: [],
+      safeParsUsages: []
+    };
+
+    // Find schema definitions (z.object, z.string, z.array, etc.)
+    const schemaResult = spawnSync('rg', [
+      '--type', 'ts',
+      '--line-number',
+      'z\\.(object|string|number|boolean|array|record|union|intersection|literal|enum)\\(',
+      '.'
+    ], {
+      encoding: 'utf8',
+      cwd: baseDir
+    });
+
+    if (schemaResult.stdout) {
+      for (const line of schemaResult.stdout.split('\n')) {
+        if (line.trim()) {
+          const match = line.match(/^([^:]+):(\d+):(.*)/);
+          if (match) {
+            const [, file, lineNum, content] = match;
+            if (file && lineNum && content) {
+              const schemaMatch = content.match(/(\w+)\s*=.*z\.\w+/);
+              if (schemaMatch) {
+                usage.schemaDefinitions.push({
+                  file: file.replace(`${baseDir}/`, ''),
+                  line: Number.parseInt(lineNum, 10),
+                  name: schemaMatch[1]
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Find .parse() usages
+    const parseResult = spawnSync('rg', [
+      '--type', 'ts',
+      '--line-number',
+      '\\.parse\\(',
+      '.'
+    ], {
+      encoding: 'utf8',
+      cwd: baseDir
+    });
+
+    if (parseResult.stdout) {
+      for (const line of parseResult.stdout.split('\n')) {
+        if (line.trim()) {
+          const match = line.match(/^([^:]+):(\d+):(.*)/);
+          if (match) {
+            const [, file, lineNum, content] = match;
+            if (file && lineNum && content) {
+              const parseMatch = content.match(/(\w+)\.parse\(/);
+              if (parseMatch) {
+                usage.parseUsages.push({
+                  file: file.replace(`${baseDir}/`, ''),
+                  line: Number.parseInt(lineNum, 10),
+                  schema: parseMatch[1]
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Find .safeParse() usages
+    const safeParseResult = spawnSync('rg', [
+      '--type', 'ts',
+      '--line-number',
+      '\\.safeParse\\(',
+      '.'
+    ], {
+      encoding: 'utf8',
+      cwd: baseDir
+    });
+
+    if (safeParseResult.stdout) {
+      for (const line of safeParseResult.stdout.split('\n')) {
+        if (line.trim()) {
+          const match = line.match(/^([^:]+):(\d+):(.*)/);
+          if (match) {
+            const [, file, lineNum, content] = match;
+            if (file && lineNum && content) {
+              const safeParseMatch = content.match(/(\w+)\.safeParse\(/);
+              if (safeParseMatch) {
+                usage.safeParsUsages.push({
+                  file: file.replace(`${baseDir}/`, ''),
+                  line: Number.parseInt(lineNum, 10),
+                  schema: safeParseMatch[1]
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return usage;
+  }
+
+  private findUnusedSchemas(usage: ZodUsage): Violation[] {
+    const violations: Violation[] = [];
+    const usedSchemas = new Set([
+      ...usage.parseUsages.map(u => u.schema),
+      ...usage.safeParsUsages.map(u => u.schema)
+    ]);
+
+    for (const schema of usage.schemaDefinitions) {
+      if (!usedSchemas.has(schema.name)) {
+        violations.push({
+          file: schema.file,
+          line: schema.line,
+          code: `Unused Zod schema '${schema.name}'`,
+          category: 'unused-code',
+          severity: 'warn',
+          source: this.source,
+          rule: 'zod-unused-schema',
+          message: `Zod schema '${schema.name}' is defined but never used with .parse() or .safeParse()`,
+          fixSuggestion: `Remove unused schema '${schema.name}' or add validation calls`
+        });
+      }
+    }
+
+    return violations;
+  }
+
+  private findOverValidations(usage: ZodUsage): Violation[] {
+    const violations: Violation[] = [];
+
+    // Look for Zod validation inside TypeScript functions with typed parameters
+    // This is a simplified heuristic - in practice you'd want more sophisticated analysis
+    for (const parseUsage of [...usage.parseUsages, ...usage.safeParsUsages]) {
+      // Check if this appears to be validating already type-safe data
+      // Heuristic: look for validation of function parameters in .ts files
+      if (parseUsage.file.endsWith('.ts') && !parseUsage.file.includes('api') && !parseUsage.file.includes('external')) {
+        violations.push({
+          file: parseUsage.file,
+          line: parseUsage.line,
+          code: `Potential over-validation with Zod`,
+          category: 'best-practices',
+          severity: 'info',
+          source: this.source,
+          rule: 'zod-potential-over-validation',
+          message: `Consider if Zod validation is needed here - TypeScript may provide sufficient type safety`,
+          fixSuggestion: `Review if this data is already type-safe and consider using TypeScript types instead`
+        });
+      }
+    }
+
+    return violations;
+  }
+
+  private async findMissingValidations(baseDir: string): Promise<Violation[]> {
+    const violations: Violation[] = [];
+
+    // Look for external API calls without Zod validation
+    const apiCallResult = spawnSync('rg', [
+      '--type', 'ts',
+      '--line-number',
+      '(fetch\\(|axios\\.|request\\()',
+      '.'
+    ], {
+      encoding: 'utf8',
+      cwd: baseDir
+    });
+
+    if (apiCallResult.stdout) {
+      for (const line of apiCallResult.stdout.split('\n')) {
+        if (line.trim()) {
+          const match = line.match(/^([^:]+):(\d+):(.*)/);
+          if (match) {
+            const [, file, lineNum] = match;
+            if (file && lineNum) {
+              violations.push({
+                file: file.replace(`${baseDir}/`, ''),
+                line: Number.parseInt(lineNum, 10),
+                code: 'External API call without Zod validation',
+                category: 'best-practices',
+                severity: 'info',
+                source: this.source,
+                rule: 'zod-missing-validation',
+                message: 'Consider adding Zod validation for external API responses',
+                fixSuggestion: 'Add Zod schema to validate and type external API responses'
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return violations;
+  }
+
+  /**
+   * Calculate runtime validation coverage metrics
+   */
+  private calculateValidationCoverage(usage: ZodUsage, baseDir: string) {
+    const totalSchemas = usage.schemaDefinitions.length;
+    const usedSchemas = new Set([
+      ...usage.parseUsages.map(u => u.schema),
+      ...usage.safeParsUsages.map(u => u.schema)
+    ]).size;
+
+    const coverage = totalSchemas > 0 ? (usedSchemas / totalSchemas) * 100 : 0;
+    
+    return {
+      totalSchemas,
+      usedSchemas,
+      unusedSchemas: totalSchemas - usedSchemas,
+      coveragePercentage: Number(coverage.toFixed(1)),
+      validationCallsTotal: usage.parseUsages.length + usage.safeParsUsages.length,
+      parseCallsCount: usage.parseUsages.length,
+      safeParseCallsCount: usage.safeParsUsages.length,
+      riskLevel: this.assessRiskLevel(coverage, usage),
+      baseline: this.getBaselineRecommendation(baseDir)
+    };
+  }
+
+  /**
+   * Generate coverage-based suggestions and violations
+   */
+  private generateCoverageSuggestions(coverage: any): Violation[] {
+    const suggestions: Violation[] = [];
+
+    // Coverage too low
+    if (coverage.coveragePercentage < 70) {
+      suggestions.push({
+        file: 'package.json',
+        line: 1,
+        code: `Low Zod validation coverage: ${coverage.coveragePercentage}%`,
+        category: 'code-quality',
+        severity: 'warn',
+        source: this.source,
+        rule: 'zod-low-coverage',
+        message: `Runtime validation coverage is ${coverage.coveragePercentage}% (${coverage.usedSchemas}/${coverage.totalSchemas} schemas used). Consider increasing validation for better type safety.`,
+        fixSuggestion: `Target 80%+ validation coverage. Add .parse() or .safeParse() calls for unused schemas.`
+      });
+    }
+
+    // Too many unsafe parse() calls
+    const unsafeParseRatio = coverage.parseCallsCount / Math.max(coverage.validationCallsTotal, 1);
+    if (unsafeParseRatio > 0.7 && coverage.parseCallsCount > 5) {
+      suggestions.push({
+        file: 'zod-usage',
+        line: 1,
+        code: `High ratio of unsafe .parse() calls: ${(unsafeParseRatio * 100).toFixed(1)}%`,
+        category: 'best-practices',
+        severity: 'info',
+        source: this.source,
+        rule: 'zod-unsafe-parse-ratio',
+        message: `${coverage.parseCallsCount} .parse() vs ${coverage.safeParseCallsCount} .safeParse() calls. Consider using .safeParse() for better error handling.`,
+        fixSuggestion: 'Replace .parse() with .safeParse() for external data validation to avoid throwing exceptions.'
+      });
+    }
+
+    // Perfect coverage recognition
+    if (coverage.coveragePercentage === 100 && coverage.totalSchemas > 0) {
+      suggestions.push({
+        file: 'zod-coverage',
+        line: 1,
+        code: `Excellent Zod validation coverage: 100%`,
+        category: 'code-quality',
+        severity: 'info',
+        source: this.source,
+        rule: 'zod-excellent-coverage',
+        message: `Perfect validation coverage achieved! All ${coverage.totalSchemas} Zod schemas are actively used.`,
+        fixSuggestion: 'Maintain this excellent validation discipline in future code changes.'
+      });
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * Assess risk level based on coverage and usage patterns
+   */
+  private assessRiskLevel(coverage: number, usage: ZodUsage): 'low' | 'medium' | 'high' {
+    const hasExternalAPIs = usage.parseUsages.length + usage.safeParsUsages.length > 0;
+    
+    if (coverage >= 80 && hasExternalAPIs) return 'low';
+    if (coverage >= 50 || !hasExternalAPIs) return 'medium';
+    return 'high';
+  }
+
+  /**
+   * Get baseline recommendation based on project characteristics
+   */
+  private getBaselineRecommendation(baseDir: string): string {
+    // Detect project type to provide contextual baselines
+    const hasAPI = this.hasPattern(baseDir, '(api|routes|handlers)');
+    const hasDatabase = this.hasPattern(baseDir, '(prisma|sequelize|mongoose|database)');
+    const hasExternalServices = this.hasPattern(baseDir, '(fetch|axios|http)');
+
+    if (hasAPI && hasDatabase && hasExternalServices) {
+      return 'Full-stack app: Target 85%+ coverage. Focus on API inputs, DB queries, and external service responses.';
+    } else if (hasAPI) {
+      return 'API service: Target 90%+ coverage. Validate all request/response data at boundaries.';
+    } else if (hasExternalServices) {
+      return 'External service integration: Target 80%+ coverage. Focus on validating external API responses.';
+    } else {
+      return 'General TypeScript project: Target 70%+ coverage for external data sources and user inputs.';
+    }
+  }
+
+  /**
+   * Check if baseDir contains files matching a pattern
+   */
+  private hasPattern(baseDir: string, pattern: string): boolean {
+    try {
+      const result = spawnSync('rg', ['-l', '--type', 'ts', pattern, '.'], {
+        cwd: baseDir,
+        encoding: 'utf8'
+      });
+      return !!result.stdout && result.stdout.trim().length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  protected override categorizeViolation(
+    _message: string,
+    _category?: string,
+    _rule?: string,
+    code?: string
+  ): string | undefined {
+    if (!code) {return undefined;}
+
+    if (code.includes('unused')) {return 'unused-validation';}
+    if (code.includes('over-validation')) {return 'over-validation';}
+    if (code.includes('missing')) {return 'missing-validation';}
+    
+    return 'zod-analysis';
+  }
+
+  protected override generateFixSuggestion(
+    _message: string,
+    _category?: string,
+    _rule?: string,
+    code?: string
+  ): string | undefined {
+    if (!code) {return undefined;}
+
+    if (code.includes('unused')) {
+      return 'Remove the unused Zod schema or add .parse()/.safeParse() calls where needed';
+    }
+    if (code.includes('over-validation')) {
+      return 'Consider using TypeScript types instead of runtime validation for internal data';
+    }
+    if (code.includes('missing')) {
+      return 'Add Zod schema validation for external data sources to ensure type safety at runtime';
+    }
+
+    return 'Review Zod usage patterns for optimal type safety';
+  }
+}
