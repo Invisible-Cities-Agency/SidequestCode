@@ -73,7 +73,17 @@ module.exports = {
     'unicorn/prefer-includes': 'error',
     'unicorn/prefer-object-from-entries': 'error',
     'unicorn/no-useless-undefined': 'error',
-    'unicorn/prefer-ternary': 'error'
+    'unicorn/prefer-ternary': 'error',
+    
+    // Additional unicorn rules for NPM package quality
+    'unicorn/filename-case': ['error', { case: 'kebabCase', ignore: ['CLAUDE.md', 'README.md'] }],
+    'unicorn/consistent-function-scoping': 'error',
+    'unicorn/no-lonely-if': 'error',
+    'unicorn/prefer-logical-operator-over-ternary': 'error',
+    'unicorn/prefer-native-coercion-functions': 'error',
+    'unicorn/prefer-number-properties': 'error',
+    'unicorn/prefer-optional-catch-binding': 'error',
+    'unicorn/throw-new-error': 'error'
   },
   ignorePatterns: [
     'dist/',
