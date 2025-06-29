@@ -243,9 +243,12 @@ export class DeveloperWatchDisplay {
   /**
    * Render the burndown progress view for active fixing sessions
    */
-  private renderBurndownView(checksCount?: number, _actionableViolations?: OrchestratorViolation[]): void {
+  private renderBurndownView(checksCount?: number, actionableViolations?: OrchestratorViolation[]): void {
     const { colors } = this;
     const { sessionStart, currentViolations, baseline, current } = this.state;
+    
+    // Use filtered actionable violations (errors + warnings only) instead of all violations
+    const displayViolations = actionableViolations || this.filterActionableViolations(currentViolations);
     const sessionDuration = Math.floor((Date.now() - sessionStart) / 1000);
     const timestamp = new Date().toLocaleTimeString();
 
@@ -255,6 +258,7 @@ export class DeveloperWatchDisplay {
     process.stdout.write('\u001B[3J');   // Clear scrollback buffer
     process.stdout.write('\u001B[H');    // Move cursor to home
     process.stdout.write(`${colors.bold}${colors.error}🔥 SideQuest Burndown Dashboard${colors.reset}\n`);
+    process.stdout.write(`${colors.secondary}Showing actionable issues only (errors + warnings)${colors.reset}\n`);
     process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n\n`);
 
     process.stdout.write(`Session Goal: Fix Critical Issues • Started: ${timestamp} • ${Math.floor(sessionDuration / 60)}m ${sessionDuration % 60}s • Checks: ${checksCount || 0}\n\n`);
@@ -264,7 +268,7 @@ export class DeveloperWatchDisplay {
     process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
 
     // Find the largest category to show as "working on"
-    const currentData = this.processViolations(currentViolations);
+    const currentData = this.processViolations(displayViolations);
     const topCategory = Object.entries(currentData.byCategory)
       .sort(([,a], [,b]) => b - a)[0];
 
@@ -295,15 +299,14 @@ export class DeveloperWatchDisplay {
     process.stdout.write(`📈 Added: ${addedIssues} new issues\n`);
     process.stdout.write(`📊 Net Progress: ${fixedIssues - addedIssues >= 0 ? '+' : ''}${fixedIssues - addedIssues}\n\n`);
 
-    // Focus Queue with Progress Bars
-    process.stdout.write('Focus Queue:                                             Progress\n');
+    // Burndown Progress by Category
+    process.stdout.write('Burndown Progress:                                  Start → Current (Change)\n');
     process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
 
-    // Get real-time data from current violations
-    const violationData = this.processViolations(currentViolations);
-    const maxCount = Math.max(...Object.values(violationData.byCategory), 1);
-
-    // ESLint Categories (ordered by count from monitor data)
+    // Get real-time data from actionable violations only
+    const violationData = this.processViolations(displayViolations);
+    
+    // Show meaningful progress bars based on reduction from baseline
     process.stdout.write('🔍 ESLint Categories:\n');
     const eslintCategoryData = [
       { key: 'unused-vars', name: 'Unused Variables', severity: '⚠️' },
@@ -314,10 +317,18 @@ export class DeveloperWatchDisplay {
     ];
 
     for (const category of eslintCategoryData) {
-      const count = violationData.byCategory[category.key] || 0;
-      if (count > 0) {
-        const progressBar = this.createProgressBar(count, maxCount);
-        process.stdout.write(`  ${category.severity} ${category.name.padEnd(20)} ${count.toString().padStart(3)} ${progressBar}\n`);
+      const currentCount = violationData.byCategory[category.key] || 0;
+      const baselineCount = baseline?.byCategory[category.key] || currentCount;
+      
+      if (currentCount > 0 || baselineCount > 0) {
+        const change = currentCount - baselineCount;
+        const changeText = change === 0 ? '±0' : (change > 0 ? `+${change}` : `${change}`);
+        const changeColor = change > 0 ? colors.error : (change < 0 ? colors.success : colors.muted);
+        
+        // Create burndown progress bar: shows current vs baseline
+        const burndownBar = this.createBurndownBar(baselineCount, currentCount);
+        
+        process.stdout.write(`  ${category.severity} ${category.name.padEnd(18)} ${baselineCount.toString().padStart(2)} → ${currentCount.toString().padStart(2)} ${changeColor}(${changeText})${colors.reset} ${burndownBar}\n`);
       }
     }
 
@@ -329,21 +340,34 @@ export class DeveloperWatchDisplay {
     ];
 
     for (const category of tsCategoryData) {
-      const count = violationData.byCategory[category.key] || 0;
-      if (count > 0) {
-        const progressBar = this.createProgressBar(count, maxCount);
-        process.stdout.write(`  ${category.severity} ${category.name.padEnd(20)} ${count.toString().padStart(3)} ${progressBar}\n`);
+      const currentCount = violationData.byCategory[category.key] || 0;
+      const baselineCount = baseline?.byCategory[category.key] || currentCount;
+      
+      if (currentCount > 0 || baselineCount > 0) {
+        const change = currentCount - baselineCount;
+        const changeText = change === 0 ? '±0' : (change > 0 ? `+${change}` : `${change}`);
+        const changeColor = change > 0 ? colors.error : (change < 0 ? colors.success : colors.muted);
+        
+        const burndownBar = this.createBurndownBar(baselineCount, currentCount);
+        
+        process.stdout.write(`  ${category.severity} ${category.name.padEnd(18)} ${baselineCount.toString().padStart(2)} → ${currentCount.toString().padStart(2)} ${changeColor}(${changeText})${colors.reset} ${burndownBar}\n`);
       }
     }
 
     // Unused Exports
     const unusedExportsCount = violationData.bySource['unused-exports'] || 0;
-    if (unusedExportsCount > 0) {
-      process.stdout.write(`\n🗂️ Unused Exports ${' '.repeat(20)} ${unusedExportsCount} ${this.createProgressBar(unusedExportsCount, maxCount)}\n\n`);
+    const baselineUnusedExports = baseline?.bySource['unused-exports'] || unusedExportsCount;
+    if (unusedExportsCount > 0 || baselineUnusedExports > 0) {
+      const change = unusedExportsCount - baselineUnusedExports;
+      const changeText = change === 0 ? '±0' : (change > 0 ? `+${change}` : `${change}`);
+      const changeColor = change > 0 ? colors.error : (change < 0 ? colors.success : colors.muted);
+      const burndownBar = this.createBurndownBar(baselineUnusedExports, unusedExportsCount);
+      
+      process.stdout.write(`\n🗂️ Unused Exports       ${baselineUnusedExports.toString().padStart(2)} → ${unusedExportsCount.toString().padStart(2)} ${changeColor}(${changeText})${colors.reset} ${burndownBar}\n\n`);
     }
 
     // Zod Validation Health (using real-time data)
-    const zodViolations = currentViolations.filter(v => v.source === 'zod-detection');
+    const zodViolations = displayViolations.filter(v => v.source === 'zod-detection');
     if (zodViolations.length > 0) {
       process.stdout.write('🛡️ Zod Validation Health\n');
       process.stdout.write(`${colors.muted}${'─'.repeat(60)}${colors.reset}\n`);
@@ -403,13 +427,32 @@ export class DeveloperWatchDisplay {
     process.stdout.write('\u001B[?25h'); // Show cursor
   }
 
+
   /**
-   * Create a progress bar for burndown mode
+   * Create a burndown progress bar showing reduction from baseline
    */
-  private createProgressBar(current: number, max: number, width: number = 32): string {
-    const filled = Math.floor((current / max) * width);
-    const empty = width - filled;
-    return '█'.repeat(filled) + '░'.repeat(empty);
+  private createBurndownBar(baseline: number, current: number, width: number = 20): string {
+    if (baseline === 0 && current === 0) {
+      return '░'.repeat(width);
+    }
+
+    const maxCount = Math.max(baseline, current, 1);
+    const baselineBar = Math.floor((baseline / maxCount) * width);
+    const currentBar = Math.floor((current / maxCount) * width);
+    
+    if (current <= baseline) {
+      // Progress made (reduction) - show green completed portion
+      const completed = baselineBar - currentBar;
+      const remaining = currentBar;
+      const empty = width - baselineBar;
+      return '🟩'.repeat(completed) + '🟨'.repeat(remaining) + '░'.repeat(empty);
+    } else {
+      // Regression (increase) - show red
+      const baseline_portion = baselineBar;
+      const increase = currentBar - baselineBar;
+      const empty = width - currentBar;
+      return '🟨'.repeat(baseline_portion) + '🟥'.repeat(increase) + '░'.repeat(empty);
+    }
   }
 
   /**
