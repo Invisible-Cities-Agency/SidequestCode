@@ -259,43 +259,48 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   private getDefaultCategoryFromPattern(ruleCode: string): ViolationCategory {
     const numericCode = ruleCode.replace('TS', '');
 
-    // Type annotation issues (7xxx codes)
-    if (/^7\d{3}$/.test(numericCode)) {
-      return 'annotation';
-    }
-
-    // Module resolution issues
-    if (['2307', '2305', '2306', '1016', '1259', '1192', '1149', '2451', '2393', '2440', '2300', '1038'].includes(numericCode)) {
+    // Module resolution and import/export issues
+    if (['2307', '2305', '2306', '1016', '1259', '1192', '1149', '2451', '2393', '2440', '2300', '1038', '2339'].includes(numericCode)) {
       return 'module-resolution';
     }
 
-    // Unused code issues (6xxx codes)
-    if (/^6\d{3}$/.test(numericCode)) {
-      return 'unused-code';
-    }
-
-    // Null safety issues
-    if (['2532', '2533', '2531', '18048', '18047', '2454', '2722', '2721'].includes(numericCode)) {
+    // Null safety and undefined issues  
+    if (['2532', '2533', '2531', '18048', '18047', '2454', '2722', '2721', '2345', '2322', '2349'].includes(numericCode)) {
       return 'null-safety';
     }
 
-    // Class/inheritance issues
-    if (['4114', '2515', '2564', '2334', '2335', '2336', '2337', '2510', '2511', '2512', '2513'].includes(numericCode)) {
+    // Type annotation and type issues (most 7xxx codes and common type errors)
+    if (/^7\d{3}$/.test(numericCode) || ['2322', '2304', '2314', '2315', '2344', '2362', '2355', '2741'].includes(numericCode)) {
+      return 'type-alias';
+    }
+
+    // Unused code issues (6xxx codes and specific unused patterns)
+    if (/^6\d{3}$/.test(numericCode) || ['2695', '2578'].includes(numericCode)) {
+      return 'unused-code';
+    }
+
+    // Class/inheritance and override issues
+    if (['4114', '2515', '2564', '2334', '2335', '2336', '2337', '2510', '2511', '2512', '2513', '2416', '2417'].includes(numericCode)) {
       return 'inheritance';
     }
 
-    // Index access issues
-    if (numericCode === '4111') {
+    // Index access and element access issues
+    if (['4111', '2339', '2740', '2538', '7053'].includes(numericCode)) {
       return 'index-access';
     }
 
-    // Strict config issues
-    if (['2375', '2379', '2412'].includes(numericCode)) {
+    // Strict config and exactOptionalPropertyTypes issues
+    if (['2375', '2379', '2412', '2783', '2784'].includes(numericCode)) {
       return 'strict-config';
     }
 
-    // Modernization (decorators, async/await)
-    if (['1206', '1207', '1208', '1219', '1308', '1353', '2794'].includes(numericCode)) {
+    // Syntax and parsing errors
+    if (/^1\d{3}$/.test(numericCode) || ['1005', '1109', '1161', '1434'].includes(numericCode)) {
+      return 'syntax-error';
+    }
+
+    // Modernization (decorators, async/await, newer TS features)
+    if (['1206', '1207', '1208', '1219', '1308', '1353', '2794', '2705', '2706'].includes(numericCode)) {
       return 'modernization';
     }
 

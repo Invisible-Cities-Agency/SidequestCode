@@ -106,37 +106,8 @@ CREATE TABLE performance_metrics (
     recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Rule category mappings - dynamic mapping of rule codes to human-readable categories
--- This allows the tool to learn and adapt category mappings based on actual usage
-CREATE TABLE rule_category_mappings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    rule_id TEXT NOT NULL,           -- e.g., 'TS2304', 'no-console', '@typescript-eslint/no-explicit-any'
-    engine TEXT NOT NULL,            -- 'typescript', 'eslint'
-    category TEXT NOT NULL,          -- ViolationCategory enum value
-    display_label TEXT NOT NULL,     -- Human-readable label (e.g., 'Type Issues', 'Code Quality')
-    confidence_score REAL DEFAULT 1.0, -- 0-1 score for how confident we are in this mapping
-    source TEXT DEFAULT 'auto',      -- 'auto', 'user', 'builtin'
-    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'deprecated')),
-    usage_count INTEGER DEFAULT 0,   -- How many times this mapping has been used
-    last_used_at DATETIME,
-    deprecated_at DATETIME,          -- When this mapping was marked as deprecated
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(rule_id, engine)
-);
-
--- Rule pattern definitions - for dynamic detection of new rules
-CREATE TABLE rule_patterns (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    engine TEXT NOT NULL,
-    pattern TEXT NOT NULL,           -- Regex pattern to match rule IDs
-    category TEXT NOT NULL,          -- Default category for matching rules
-    display_label TEXT NOT NULL,    -- Default display label
-    priority INTEGER DEFAULT 1,     -- Priority when multiple patterns match
-    description TEXT,               -- Description of what this pattern matches
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(engine, pattern)
-);
+-- Dynamic categorization now handled in-memory by engines
+-- Removed rule_category_mappings and rule_patterns tables for cleaner schema
 
 -- ============================================================================
 -- INDEXES for performance optimization

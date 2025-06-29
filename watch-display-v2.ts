@@ -311,8 +311,8 @@ export class DeveloperWatchDisplay {
 
         process.stdout.write(`  ${icon} ${colors.info}${source}:${colors.reset} ${colors.primary}${count}${deltaColor}${deltaString}${colors.reset}\n`);
         
-        // Show severity breakdown for ESLint and TypeScript
-        if (current.bySeverity && current.bySeverity[source] && (source === 'eslint' || source === 'typescript')) {
+        // Show severity breakdown for ESLint only (TypeScript errors are mostly all "error" severity)
+        if (current.bySeverity && current.bySeverity[source] && source === 'eslint') {
           const severities = current.bySeverity[source];
           const severityOrder = ['error', 'warn', 'info'];
           for (const severity of severityOrder) {
@@ -323,8 +323,8 @@ export class DeveloperWatchDisplay {
           }
         }
         
-        // Show top categories for ESLint (limit to top 5 to avoid clutter)
-        if (current.byCategoryBySource && current.byCategoryBySource[source] && source === 'eslint') {
+        // Show top categories for ESLint and TypeScript (limit to top 5 to avoid clutter)
+        if (current.byCategoryBySource && current.byCategoryBySource[source] && (source === 'eslint' || source === 'typescript')) {
           const categories = Object.entries(current.byCategoryBySource[source])
             .sort(([,a], [,b]) => b - a)
             .slice(0, 5);
