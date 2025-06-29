@@ -3,7 +3,7 @@
  * Includes hashing, deduplication, and data transformation helpers
  */
 
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import type { Violation as ViolationType } from '../utils/violation-types.js';
 import type { NewViolation, ViolationDelta } from './types.js';
 
@@ -24,8 +24,8 @@ export function generateViolationHash(violation: {
 }): string {
   // Normalize the message to make it more stable
   const normalizedMessage = violation.message
-    .replace(/line \d+/g, 'line X')  // Replace specific line numbers in messages
-    .replace(/\d+:\d+/g, 'X:Y')     // Replace line:column references
+    .replaceAll(/line \d+/g, 'line X')  // Replace specific line numbers in messages
+    .replaceAll(/\d+:\d+/g, 'X:Y')     // Replace line:column references
     .trim();
 
   const hashInput = [
@@ -45,21 +45,21 @@ export function violationToDbFormat(violation: ViolationType): NewViolation {
   const hash = generateViolationHash({
     file_path: violation.file,
     line_number: violation.line,
-    rule_id: violation.ruleId || violation.code,
-    message: violation.message
+    rule_id: violation.rule || violation.code || 'unknown',
+    message: violation.message || 'No message provided'
   });
 
   return {
     file_path: violation.file,
-    rule_id: violation.ruleId || violation.code || 'unknown',
+    rule_id: violation.rule || violation.code || 'unknown',
     category: violation.category,
     severity: violation.severity,
-    source: violation.source,
-    message: violation.message,
+    source: violation.source as 'typescript' | 'eslint',
+    message: violation.message || 'No message provided',
     line_number: violation.line || null,
     column_number: violation.column || null,
     code_snippet: violation.code || null,
-    hash,
+    hash
     // first_seen_at and last_seen_at will use DEFAULT CURRENT_TIMESTAMP
     // status will use DEFAULT 'active'
   };
@@ -97,7 +97,7 @@ export function computeViolationDeltas(
     }
   }
 
-  // Find removed violations  
+  // Find removed violations
   for (const hash of previousHashes) {
     if (!currentSet.has(hash)) {
       deltas.push({
@@ -188,8 +188,8 @@ export function formatTimeAgo(dateString: string): string {
  */
 export function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
+  for (let index = 0; index < array.length; index += size) {
+    chunks.push(array.slice(index, index + size));
   }
   return chunks;
 }

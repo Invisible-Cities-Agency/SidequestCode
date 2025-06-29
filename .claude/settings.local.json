@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(grep:*)",
+      "Bash(timeout 10s npm run sidequest:start)",
+      "Bash(true)",
+      "Bash(timeout:*)",
+      "Bash(mv:*)",
+      "Bash(npm install)",
+      "Bash(/dev/null)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

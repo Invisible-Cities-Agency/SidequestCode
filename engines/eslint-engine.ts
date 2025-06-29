@@ -1,22 +1,22 @@
 /**
  * @fileoverview ESLint audit engine with robust error handling
- * 
+ *
  * Provides ESLint integration that can handle syntax errors gracefully,
  * continuing to analyze valid files while reporting parsing failures separately.
  */
 
-import { spawnSync } from "child_process";
-import * as path from "path";
+import { spawnSync } from 'node:child_process';
+import * as path from 'node:path';
 import { BaseAuditEngine } from './base-engine.js';
-import type { 
-  Violation, 
-  ViolationCategory, 
-  ViolationSeverity 
+import type {
+  Violation,
+  ViolationCategory,
+  ViolationSeverity
 } from '../utils/violation-types.js';
 
 /**
  * Engine for ESLint-based code quality analysis
- * 
+ *
  * Key features:
  * - Graceful handling of syntax errors
  * - Round-robin rule checking for performance
@@ -49,36 +49,36 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         '@typescript-eslint/ban-ts-comment'
       ],
       maxWarnings: 500,
-      timeout: 30000,
-      roundRobin: true
+      timeout: 30_000,
+      roundRobin: false  // Use comprehensive analysis by default
     },
     priority: 2,
-    timeout: 35000,
+    timeout: 35_000,
     allowFailure: true // ESLint failures shouldn't break the whole analysis
   }) {
     super('ESLint Audit', 'eslint', config);
     this.baseDir = process.cwd();
-    
+
     // Extract rules with proper fallback
     // Following separation of concerns: ESLint for code quality, tsc for types
     const rulesFromConfig = config.options?.rules;
     this.eslintRules = Array.isArray(rulesFromConfig) ? rulesFromConfig : [
       // Code Quality & Style (non-type-aware)
       'no-console',
-      'no-debugger', 
+      'no-debugger',
       'prefer-const',
       'no-var',
       'no-unused-vars',
-      
+
       // Performance & Architecture
       'no-floating-promises',
       'no-restricted-imports',
-      
+
       // TypeScript-specific but performance-focused
       '@typescript-eslint/no-unused-vars',
       '@typescript-eslint/prefer-nullish-coalescing',
       '@typescript-eslint/prefer-optional-chain',
-      
+
       // Comprehensive Unicorn rules (matching actual ESLint config)
       'unicorn/prefer-node-protocol',
       'unicorn/prefer-module',
@@ -90,37 +90,34 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       'unicorn/explicit-length-check',
       'unicorn/no-useless-undefined'
     ];
-    
+
   }
 
   /**
    * Analyze files with ESLint
    */
   protected async analyze(
-    targetPath: string, 
+    targetPath: string,
     options: Record<string, unknown> = {}
   ): Promise<Violation[]> {
-    const roundRobin = options.roundRobin ?? this.config.options.roundRobin;
-    
-    if (roundRobin) {
-      return this.analyzeWithRoundRobin(targetPath, options);
-    } else {
-      return this.analyzeAllRules(targetPath, options);
-    }
+    const roundRobin = options['roundRobin'] ?? this.config.options['roundRobin'];
+
+    // For comprehensive analysis, disable round-robin to get all violations
+    return roundRobin ? this.analyzeWithRoundRobin(targetPath, options) : this.analyzeAllRules(targetPath, options);
   }
 
   /**
    * Round-robin analysis for better performance and error isolation
    */
   private async analyzeWithRoundRobin(
-    targetPath: string, 
-    options: Record<string, unknown>
+    targetPath: string,
+    _options: Record<string, unknown>
   ): Promise<Violation[]> {
     this.checksCount++;
-    
+
     // Determine which rule to check this cycle
     const ruleToCheck = this.selectNextRule();
-    
+
     if (!ruleToCheck) {
       // Return cached violations if no rule selected
       return this.getAllCachedViolations();
@@ -128,11 +125,11 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
     // Run ESLint for the selected rule
     const ruleViolations = await this.runESLintForRules([ruleToCheck], targetPath);
-    
+
     // Update cache
     this.violationCache.set(ruleToCheck, ruleViolations);
     this.ruleLastCheck.set(ruleToCheck, this.checksCount);
-    
+
     // Update zero count tracking
     if (ruleViolations.length === 0) {
       this.ruleZeroCount.set(ruleToCheck, (this.ruleZeroCount.get(ruleToCheck) || 0) + 1);
@@ -148,10 +145,11 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    * Analyze with all rules at once (traditional approach)
    */
   private async analyzeAllRules(
-    targetPath: string, 
-    options: Record<string, unknown>
+    targetPath: string,
+    _options: Record<string, unknown>
   ): Promise<Violation[]> {
-    return this.runESLintForRules(this.eslintRules, targetPath);
+    // Pass empty array to disable rule filtering and get ALL violations
+    return this.runESLintForRules([], targetPath);
   }
 
   /**
@@ -164,13 +162,18 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
     let ruleToCheck: string | null = null;
     let attempts = 0;
-    
+
     // Find the next rule to check (respecting adaptive intervals)
     while (attempts < this.eslintRules.length && !ruleToCheck) {
       const candidateRule = this.eslintRules[this.currentRuleIndex];
+      if (!candidateRule) {
+        this.currentRuleIndex = (this.currentRuleIndex + 1) % this.eslintRules.length;
+        attempts++;
+        continue;
+      }
       const zeroCount = this.ruleZeroCount.get(candidateRule) || 0;
       const lastCheck = this.ruleLastCheck.get(candidateRule) || 0;
-      
+
       // First run or normal frequency checking
       if (this.checksCount <= 1 || zeroCount < this.ZERO_THRESHOLD) {
         ruleToCheck = candidateRule;
@@ -181,18 +184,18 @@ export class ESLintAuditEngine extends BaseAuditEngine {
           ruleToCheck = candidateRule;
         }
       }
-      
+
       // Move to next rule regardless
       this.currentRuleIndex = (this.currentRuleIndex + 1) % this.eslintRules.length;
       attempts++;
     }
-    
+
     // Fallback: if no rule was selected, force check the first rule
     if (!ruleToCheck) {
-      ruleToCheck = this.eslintRules[0];
+      ruleToCheck = this.eslintRules[0] || null;
       this.currentRuleIndex = 1 % this.eslintRules.length;
     }
-    
+
     return ruleToCheck;
   }
 
@@ -208,73 +211,338 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   }
 
   /**
-   * Run ESLint for specific rules
+   * Run ESLint for specific rules with robust handling
    */
   private async runESLintForRules(
-    rules: string[], 
+    rules: string[],
     targetPath: string
   ): Promise<Violation[]> {
-    const maxWarnings = this.config.options.maxWarnings as number || 500;
-    const timeout = this.config.options.timeout as number || 30000;
-    
-    // For round-robin mode, we'll run ESLint normally and filter results
-    // Rather than trying to override rules via command line which requires plugin configuration
-    const eslintArgs = [
+    // For comprehensive analysis (empty rules array), use robust approach
+    if (rules.length === 0) {
+      return this.runESLintRobustly(targetPath);
+    }
+
+    // For round-robin with specific rules, use the original approach
+    return this.runESLintWithBuffer(rules, targetPath);
+  }
+
+  /**
+   * Robust ESLint execution with temp file + sequential fallback
+   */
+  private async runESLintRobustly(targetPath: string): Promise<Violation[]> {
+    try {
+      // Try temp file approach first (fastest for complete analysis)
+      console.log('[ESLint Engine] Running comprehensive analysis with temp file...');
+      return await this.runESLintWithTempFile(targetPath);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      if (errorMessage.includes('ENOBUFS') || errorMessage.includes('buffer') || errorMessage.includes('too large')) {
+        console.warn('[ESLint Engine] Large output detected, falling back to sequential rule processing...');
+        return await this.runESLintSequentially(targetPath);
+      } else {
+        console.warn('[ESLint Engine] Temp file approach failed, falling back to sequential:', errorMessage);
+        return await this.runESLintSequentially(targetPath);
+      }
+    }
+  }
+
+  /**
+   * Run ESLint with temp file output (fastest for large results)
+   */
+  private async runESLintWithTempFile(targetPath: string): Promise<Violation[]> {
+    const { mkdtemp, readFile, unlink } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+
+    const tempDir = await mkdtemp(path.join(tmpdir(), 'sidequest-eslint-'));
+    const temporaryFile = path.join(tempDir, 'results.json');
+    const maxWarnings = this.config.options['maxWarnings'] as number || 500;
+    const timeout = this.config.options['timeout'] as number || 30_000;
+
+    try {
+      const eslintArguments = [
+        '--format', 'json',
+        '--output-file', temporaryFile,
+        '--max-warnings', maxWarnings.toString(),
+        '--ext', '.ts',
+        targetPath
+      ];
+
+      console.log('[ESLint Engine] Running with temp file:', eslintArguments.join(' '));
+      const result = spawnSync('npx', ['eslint', ...eslintArguments], {
+        encoding: 'utf-8',
+        cwd: this.baseDir,
+        timeout,
+        signal: this.abortController?.signal
+      });
+
+      console.log('[ESLint Engine] Temp file command exit status:', result.status);
+      if (result.stderr) {
+        console.log('[ESLint Engine] Temp file stderr:', result.stderr.substring(0, 200));
+      }
+
+      // Handle ESLint exit codes
+      if (result.status === 2) {
+        throw new Error(`ESLint configuration error: ${result.stderr}`);
+      }
+
+      // Read results from temp file
+      const output = await readFile(temporaryFile, 'utf-8');
+
+      console.log('[ESLint Engine] Temp file output length:', output.length);
+      if (output.length > 100) {
+        console.log('[ESLint Engine] First 200 chars:', output.substring(0, 200));
+      }
+
+      if (!output.trim()) {
+        console.warn('[ESLint Engine] Temp file is empty');
+        return [];
+      }
+
+      return this.parseESLintOutput(output, []);
+
+    } finally {
+      // Cleanup temp file
+      try {
+        await unlink(temporaryFile);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
+  /**
+   * Run ESLint sequentially by rule groups (reliable fallback)
+   */
+  private async runESLintSequentially(targetPath: string): Promise<Violation[]> {
+    const allViolations: Violation[] = [];
+
+    // Get all rules from project's ESLint config
+    const projectRules = await this.getProjectESLintRules();
+
+    // Group rules to avoid too many individual calls
+    const ruleGroups = this.chunkRules(projectRules, 10); // Process 10 rules at a time
+
+    console.log(`[ESLint Engine] Processing ${ruleGroups.length} rule groups sequentially...`);
+
+    for (let index = 0; index < ruleGroups.length; index++) {
+      const ruleGroup = ruleGroups[index];
+      if (!ruleGroup) {
+        continue; // Skip undefined groups
+      }
+      console.log(`[ESLint Engine] Processing group ${index + 1}/${ruleGroups.length}: ${ruleGroup.slice(0, 3).join(', ')}${ruleGroup.length > 3 ? '...' : ''}`);
+
+      try {
+        const groupViolations = await this.runESLintWithSpecificRules(ruleGroup, targetPath);
+        allViolations.push(...groupViolations);
+      } catch (error) {
+        console.warn(`[ESLint Engine] Failed to process rule group ${index + 1}:`, error);
+        // Continue with other groups
+      }
+    }
+
+    console.log(`[ESLint Engine] Sequential processing complete: ${allViolations.length} violations found`);
+    return allViolations;
+  }
+
+  /**
+   * Get rules from project's ESLint config
+   */
+  private async getProjectESLintRules(): Promise<string[]> {
+    try {
+      // Try to get rules from the actual ESLint config using a test file
+      const result = spawnSync('npx', ['eslint', '--print-config', 'cli.ts'], {
+        encoding: 'utf-8',
+        cwd: this.baseDir,
+        timeout: 10_000
+      });
+
+      if (result.status === 0 && result.stdout) {
+        const config = JSON.parse(result.stdout);
+        const rules = Object.keys(config.rules || {});
+        console.log(`[ESLint Engine] Found ${rules.length} rules from project config`);
+        if (rules.length > 0) {
+          return rules;
+        }
+      } else {
+        console.warn('[ESLint Engine] Failed to get project config:', result.stderr);
+      }
+    } catch (error) {
+      console.warn('[ESLint Engine] Could not parse project rules:', error);
+    }
+
+    // Fallback to rules explicitly defined in .eslintrc.cjs
+    console.log('[ESLint Engine] Using fallback rules from .eslintrc.cjs');
+    return [
+      // Core ESLint rules from .eslintrc.cjs
+      'no-debugger',
+      'no-alert',
+      'no-eval',
+      'no-implied-eval',
+      'no-new-func',
+      'no-script-url',
+      'no-self-compare',
+      'no-sequences',
+      'no-throw-literal',
+      'no-unmodified-loop-condition',
+      'no-unused-expressions',
+      'no-useless-call',
+      'no-useless-concat',
+      'no-useless-return',
+      'no-void',
+      'prefer-promise-reject-errors',
+      'require-await',
+      'indent',
+      'quotes',
+      'semi',
+      'comma-dangle',
+      'object-curly-spacing',
+      'array-bracket-spacing',
+      'space-before-function-paren',
+      'keyword-spacing',
+      'space-infix-ops',
+      'eol-last',
+      'no-trailing-spaces',
+      'no-multiple-empty-lines',
+      'curly',
+      'eqeqeq',
+      'no-var',
+      'prefer-const',
+      'prefer-arrow-callback',
+      'arrow-spacing',
+      'no-duplicate-imports',
+      'object-shorthand',
+      'prefer-template',
+
+      // Unicorn rules that are enabled in .eslintrc.cjs
+      'unicorn/prefer-string-slice',
+      'unicorn/prefer-array-some',
+      'unicorn/prefer-includes',
+      'unicorn/prefer-object-from-entries',
+      'unicorn/no-useless-undefined',
+      'unicorn/prefer-ternary',
+
+      // Additional unicorn rules from plugin:unicorn/recommended
+      'unicorn/prevent-abbreviations',
+      'unicorn/no-null',
+      'unicorn/no-array-reduce',
+      'unicorn/prefer-node-protocol',
+      'unicorn/prefer-array-flat-map',
+      'unicorn/prefer-string-starts-ends-with',
+      'unicorn/prefer-number-properties',
+      'unicorn/no-array-instanceof',
+      'unicorn/prefer-spread',
+      'unicorn/explicit-length-check'
+    ];
+  }
+
+  /**
+   * Chunk rules into groups for sequential processing
+   */
+  private chunkRules(rules: string[], chunkSize: number): string[][] {
+    const chunks: string[][] = [];
+    for (let index = 0; index < rules.length; index += chunkSize) {
+      chunks.push(rules.slice(index, index + chunkSize));
+    }
+    return chunks;
+  }
+
+  /**
+   * Run ESLint with specific rules enabled using project config
+   */
+  private async runESLintWithSpecificRules(rules: string[], targetPath: string): Promise<Violation[]> {
+    const maxWarnings = this.config.options['maxWarnings'] as number || 500;
+    const timeout = this.config.options['timeout'] as number || 30_000;
+
+    // Use project's ESLint config but filter results to specific rules
+    const eslintArguments = [
       '--format', 'json',
       '--max-warnings', maxWarnings.toString(),
-      `${targetPath}/**/*.ts`,
-      `${targetPath}/**/*.tsx`
+      '--ext', '.ts',
+      targetPath
+    ];
+
+    const result = spawnSync('npx', ['eslint', ...eslintArguments], {
+      encoding: 'utf-8',
+      cwd: this.baseDir,
+      maxBuffer: 1024 * 1024 * 2, // Smaller buffer for rule groups
+      timeout,
+      signal: this.abortController?.signal
+    });
+
+    if (result.error) {
+      throw new Error(`ESLint execution failed for rules ${rules.join(', ')}: ${result.error.message}`);
+    }
+
+    if (result.status === 2) {
+      throw new Error(`ESLint configuration error for rules ${rules.join(', ')}: ${result.stderr}`);
+    }
+
+    if (!result.stdout) {
+      return [];
+    }
+
+    // Parse and filter to only the specified rules
+    return this.parseESLintOutput(result.stdout, rules);
+  }
+
+  /**
+   * Original buffer-based approach for round-robin mode
+   */
+  private async runESLintWithBuffer(
+    rules: string[],
+    targetPath: string
+  ): Promise<Violation[]> {
+    const maxWarnings = this.config.options['maxWarnings'] as number || 500;
+    const timeout = this.config.options['timeout'] as number || 30_000;
+
+    const eslintArguments = [
+      '--format', 'json',
+      '--max-warnings', maxWarnings.toString(),
+      '--ext', '.ts',
+      targetPath
     ];
 
     try {
-      const result = spawnSync("npx", ["eslint", ...eslintArgs], {
-        encoding: "utf-8",
+      const result = spawnSync('npx', ['eslint', ...eslintArguments], {
+        encoding: 'utf-8',
         cwd: this.baseDir,
         maxBuffer: 1024 * 1024 * 10, // 10MB buffer
         timeout,
         signal: this.abortController?.signal
       });
 
-
-      // Handle various error conditions gracefully
       if (result.error) {
-        if (result.error.code === 'ENOBUFS') {
-          console.warn(`[ESLint Engine] Output buffer overflow - results may be incomplete`);
-        } else if (result.error.code === 'ETIMEDOUT') {
-          console.warn(`[ESLint Engine] Timeout - skipping ESLint results for this check`);
+        const errorCode = (result.error as any).code;
+        if (errorCode === 'ENOBUFS') {
+          throw new Error('Buffer overflow - switching to robust mode');
+        } else if (errorCode === 'ETIMEDOUT') {
+          console.warn('[ESLint Engine] Timeout - skipping ESLint results for this check');
           return [];
         } else {
-          console.warn(`[ESLint Engine] Execution error:`, result.error.message);
+          console.warn('[ESLint Engine] Execution error:', result.error.message);
           return [];
         }
       }
 
-      // Handle ESLint exit codes:
-      // 0 = no linting errors
-      // 1 = linting errors found
-      // 2 = configuration error
       if (result.status === 2) {
-        console.warn(`[ESLint Engine] ESLint configuration error:`);
-        if (result.stderr) {
-          console.warn(`[ESLint Engine] stderr:`, result.stderr.substring(0, 500));
-        }
+        console.warn('[ESLint Engine] ESLint configuration error:', result.stderr?.slice(0, 500));
         return [];
       }
 
-      // Log stderr for debugging (but don't fail on it for status 0 or 1)
       if (result.stderr) {
-        console.warn(`[ESLint Engine] stderr:`, result.stderr.substring(0, 200));
+        console.warn('[ESLint Engine] stderr:', result.stderr.slice(0, 200));
       }
 
       if (!result.stdout) {
-        console.warn(`[ESLint Engine] No output received`);
+        console.warn('[ESLint Engine] No output received');
         return [];
       }
 
       return this.parseESLintOutput(result.stdout, rules);
 
     } catch (error) {
-      console.warn(`[ESLint Engine] Failed to execute ESLint:`, error);
+      console.warn('[ESLint Engine] Buffer-based execution failed:', error);
       return [];
     }
   }
@@ -284,18 +552,18 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private parseESLintOutput(output: string, filterRules?: string[]): Violation[] {
     let eslintResults;
-    
+
     try {
       eslintResults = JSON.parse(output);
-    } catch (parseError) {
-      console.warn(`[ESLint Engine] Failed to parse JSON output, trying to extract partial results`);
+    } catch {
+      console.warn('[ESLint Engine] Failed to parse JSON output, trying to extract partial results');
       // Try to extract partial JSON if output was truncated
       const lastBracket = output.lastIndexOf(']');
       if (lastBracket > 0) {
         try {
-          eslintResults = JSON.parse(output.substring(0, lastBracket + 1));
+          eslintResults = JSON.parse(output.slice(0, Math.max(0, lastBracket + 1)));
         } catch {
-          console.warn(`[ESLint Engine] Could not recover partial JSON`);
+          console.warn('[ESLint Engine] Could not recover partial JSON');
           return [];
         }
       } else {
@@ -307,17 +575,16 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
     for (const fileResult of eslintResults) {
       const relativePath = path.relative(this.baseDir, fileResult.filePath);
-      
+
       for (const message of fileResult.messages) {
         // Filter by specific rules if provided (for round-robin mode)
-        if (filterRules && filterRules.length > 0 && filterRules.length < this.eslintRules.length) {
-          if (!message.ruleId || !filterRules.includes(message.ruleId)) {
-            continue;
-          }
+        // If filterRules is empty, include ALL violations (comprehensive mode)
+        if (filterRules && filterRules.length > 0 && (!message.ruleId || !filterRules.includes(message.ruleId))) {
+          continue;
         }
 
         const { category, severity } = this.categorizeESLintRule(message.ruleId || 'unknown');
-        
+
         violations.push(this.createViolation(
           relativePath,
           message.line || 1,
@@ -338,9 +605,9 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    * Categorize ESLint violations based on rule names
    * Following separation of concerns: ESLint for code quality, tsc for types
    */
-  private categorizeESLintRule(rule: string): { 
-    category: ViolationCategory, 
-    severity: ViolationSeverity 
+  private categorizeESLintRule(rule: string): {
+    category: ViolationCategory,
+    severity: ViolationSeverity
   } {
     // Code Quality & Style
     if (rule === 'no-console') {
@@ -352,7 +619,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     if (rule === 'prefer-const' || rule === 'no-var') {
       return { category: 'style', severity: 'warn' };
     }
-    
+
     // Performance & Architecture
     if (rule === 'no-floating-promises') {
       return { category: 'performance', severity: 'error' };
@@ -360,38 +627,38 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     if (rule === 'no-restricted-imports') {
       return { category: 'architecture', severity: 'warn' };
     }
-    
+
     // Variables and Usage
     if (rule === '@typescript-eslint/no-unused-vars' || rule === 'no-unused-vars') {
       return { category: 'unused-vars', severity: 'warn' };
     }
-    
+
     // Modern JavaScript/TypeScript patterns
-    if (rule === '@typescript-eslint/prefer-nullish-coalescing' || 
+    if (rule === '@typescript-eslint/prefer-nullish-coalescing' ||
         rule === '@typescript-eslint/prefer-optional-chain') {
       return { category: 'modernization', severity: 'info' };
     }
-    
+
     // Unicorn modernization rules
-    if (rule.startsWith('unicorn/prefer-') || 
+    if (rule.startsWith('unicorn/prefer-') ||
         rule === 'unicorn/no-array-instanceof' ||
         rule === 'unicorn/explicit-length-check' ||
         rule === 'unicorn/no-useless-undefined') {
       return { category: 'modernization', severity: 'info' };
     }
-    
+
     // Syntax and parsing errors
     if (rule.includes('parse') || rule.includes('syntax')) {
       return { category: 'syntax-error', severity: 'error' };
     }
-    
+
     // Legacy type-aware rules (should be moved to tsc)
     if (rule === '@typescript-eslint/explicit-function-return-type' ||
         rule === '@typescript-eslint/no-explicit-any' ||
         rule === '@typescript-eslint/explicit-module-boundary-types') {
       return { category: 'legacy-type-rule', severity: 'info' };
     }
-    
+
     return { category: 'other-eslint', severity: 'info' };
   }
 
@@ -403,13 +670,13 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     progress: string;
     adaptiveRules: number;
     totalChecks: number;
-  } {
-    const lastCheckedRule = Array.from(this.ruleLastCheck.entries())
+    } {
+    const lastCheckedRule = [...this.ruleLastCheck.entries()]
       .sort(([,a], [,b]) => b - a)[0]?.[0] || 'none';
-    
+
     const progress = `${this.currentRuleIndex}/${this.eslintRules.length}`;
-    
-    const adaptiveRules = this.eslintRules.filter(rule => 
+
+    const adaptiveRules = this.eslintRules.filter(rule =>
       (this.ruleZeroCount.get(rule) || 0) >= this.ZERO_THRESHOLD
     ).length;
 

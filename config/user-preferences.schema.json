@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SideQuest Code Quality Orchestrator - User Preferences",
+  "description": "Configuration schema for user preferences and choices",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Schema version for migration compatibility"
+    },
+    "preferences": {
+      "type": "object",
+      "properties": {
+        "analysis": {
+          "type": "object",
+          "properties": {
+            "defaultMode": {
+              "type": "string",
+              "enum": ["errors-only", "warnings-and-errors", "all"],
+              "description": "Default analysis scope"
+            },
+            "strictMode": {
+              "type": "boolean",
+              "description": "Enable strict analysis mode by default"
+            },
+            "includePatternChecking": {
+              "type": "boolean", 
+              "description": "Include unknown/any pattern checking by default"
+            }
+          }
+        },
+        "warnings": {
+          "type": "object",
+          "properties": {
+            "showTscEslintSeparationWarning": {
+              "type": "boolean",
+              "description": "Show warning when TypeScript and ESLint rules might overlap"
+            },
+            "showPerformanceWarnings": {
+              "type": "boolean",
+              "description": "Show warnings about performance implications"
+            },
+            "showConfigurationHints": {
+              "type": "boolean",
+              "description": "Show hints about optimal configuration"
+            }
+          }
+        },
+        "display": {
+          "type": "object",
+          "properties": {
+            "colorScheme": {
+              "type": "string",
+              "enum": ["auto", "light", "dark"],
+              "description": "Preferred color scheme"
+            },
+            "verboseOutput": {
+              "type": "boolean",
+              "description": "Show verbose output by default"
+            },
+            "showProgressIndicators": {
+              "type": "boolean",
+              "description": "Show progress indicators during analysis"
+            }
+          }
+        },
+        "watch": {
+          "type": "object",
+          "properties": {
+            "autoDetectConfigChanges": {
+              "type": "boolean",
+              "description": "Automatically detect tsconfig.json and .eslintrc changes"
+            },
+            "debounceMs": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 5000,
+              "description": "Debounce delay for file change detection"
+            },
+            "intervalMs": {
+              "type": "number",
+              "minimum": 1000,
+              "maximum": 30000,
+              "description": "Watch mode polling interval"
+            }
+          }
+        }
+      }
+    },
+    "userChoices": {
+      "type": "object",
+      "properties": {
+        "hasSeenTscEslintWarning": {
+          "type": "boolean",
+          "description": "User has seen the TypeScript/ESLint separation warning"
+        },
+        "hasConfiguredSeparationOfConcerns": {
+          "type": "boolean",
+          "description": "User has explicitly configured tool separation"
+        },
+        "preferredEngine": {
+          "type": "string",
+          "enum": ["typescript-only", "eslint-only", "both-separate", "both-mixed"],
+          "description": "User's preferred engine configuration"
+        },
+        "lastConfigUpdate": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "When preferences were last updated"
+        }
+      }
+    }
+  },
+  "required": ["schemaVersion", "preferences", "userChoices"]
+}

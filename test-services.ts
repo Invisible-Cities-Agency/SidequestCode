@@ -38,7 +38,7 @@ async function testServices() {
         category: 'record-type',
         severity: 'info',
         source: 'typescript',
-        ruleId: 'record-type-check',
+        rule: 'record-type-check',
         code: 'Record<string, unknown>'
       },
       {
@@ -49,7 +49,7 @@ async function testServices() {
         category: 'code-quality',
         severity: 'warn',
         source: 'eslint',
-        ruleId: 'no-console',
+        rule: 'no-console',
         code: 'console.log'
       },
       {
@@ -60,7 +60,7 @@ async function testServices() {
         category: 'type-alias',
         severity: 'error',
         source: 'typescript',
-        ruleId: 'type-alias-check',
+        rule: 'type-alias-check',
         code: 'type ApiResponse = Record<string, unknown>;'
       }
     ];
@@ -74,20 +74,20 @@ async function testServices() {
 
     // Test violation queries
     console.log('4. Testing violation queries...');
-    
+
     // Get all violations
     const allViolations = await storageService.getViolations();
     console.log(`✅ Found ${allViolations.length} total violations`);
-    
+
     // Get violations by category
-    const typeViolations = await storageService.getViolations({ 
-      categories: ['record-type', 'type-alias'] 
+    const typeViolations = await storageService.getViolations({
+      categories: ['record-type', 'type-alias']
     });
     console.log(`✅ Found ${typeViolations.length} type-related violations`);
-    
+
     // Get violations by severity
-    const errorViolations = await storageService.getViolations({ 
-      severities: ['error'] 
+    const errorViolations = await storageService.getViolations({
+      severities: ['error']
     });
     console.log(`✅ Found ${errorViolations.length} error-level violations`);
     console.log('');
@@ -103,27 +103,27 @@ async function testServices() {
 
     // Test rule check tracking
     console.log('6. Testing rule check tracking...');
-    
+
     // Start a rule check
     const checkId = await storageService.startRuleCheck('record-type-check', 'typescript');
     console.log(`✅ Started rule check with ID: ${checkId}`);
-    
+
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     // Complete the rule check
     await storageService.completeRuleCheck(checkId, 2, 150, 10, 3);
-    console.log(`✅ Completed rule check`);
+    console.log('✅ Completed rule check');
     console.log('');
 
     // Test violation deltas
     console.log('7. Testing violation deltas...');
-    
+
     // Record initial state
     const initialHashes = allViolations.map(v => v.hash);
     const deltaResult = await storageService.recordViolationDeltas(checkId, initialHashes);
     console.log(`✅ Recorded deltas: ${deltaResult.added} added, ${deltaResult.removed} removed, ${deltaResult.unchanged} unchanged`);
-    
+
     // Add a new violation and test delta tracking
     const newViolation: OrchestratorViolation = {
       file: 'src/new-file.ts',
@@ -133,32 +133,32 @@ async function testServices() {
       category: 'test',
       severity: 'info',
       source: 'typescript',
-      ruleId: 'test-rule',
+      rule: 'test-rule',
       code: 'test code'
     };
-    
+
     await storageService.storeViolations([newViolation]);
     const newCheckId = await storageService.startRuleCheck('test-rule', 'typescript');
     const updatedViolations = await storageService.getViolations();
     const newHashes = updatedViolations.map(v => v.hash);
-    
+
     const newDeltaResult = await storageService.recordViolationDeltas(newCheckId, newHashes);
     console.log(`✅ New deltas: ${newDeltaResult.added} added, ${newDeltaResult.removed} removed, ${newDeltaResult.unchanged} unchanged`);
     console.log('');
 
     // Test rule scheduling
     console.log('8. Testing rule scheduling...');
-    
+
     // Create rule schedules
     const scheduleId = await storageService.upsertRuleSchedule({
       rule_id: 'record-type-check',
       engine: 'typescript',
       enabled: 1,
       priority: 1,
-      check_frequency_ms: 30000
+      check_frequency_ms: 30_000
     });
     console.log(`✅ Created rule schedule with ID: ${scheduleId}`);
-    
+
     // Get next rules to check
     const nextRules = await storageService.getNextRulesToCheck(5);
     console.log(`✅ Found ${nextRules.length} rules ready to check`);
@@ -176,7 +176,7 @@ async function testServices() {
     // Test dashboard data
     console.log('10. Testing dashboard data...');
     const dashboardData = await storageService.getDashboardData();
-    console.log(`✅ Dashboard data generated:`);
+    console.log('✅ Dashboard data generated:');
     console.log(`   - Active violations: ${dashboardData.active_violations}`);
     console.log(`   - Files affected: ${dashboardData.total_files_affected}`);
     console.log(`   - Summary categories: ${dashboardData.summary.length}`);
@@ -187,7 +187,7 @@ async function testServices() {
     // Test health check
     console.log('11. Testing health check...');
     const healthStatus = await configManager.healthCheck();
-    console.log(`✅ Health check results:`);
+    console.log('✅ Health check results:');
     console.log(`   - Database: ${healthStatus.database ? '✅' : '❌'}`);
     console.log(`   - Storage Service: ${healthStatus.storageService ? '✅' : '❌'}`);
     console.log(`   - Overall: ${healthStatus.overall ? '✅' : '❌'}`);
@@ -196,7 +196,7 @@ async function testServices() {
     // Test system stats
     console.log('12. Testing system statistics...');
     const systemStats = await configManager.getSystemStats();
-    console.log(`✅ System statistics:`);
+    console.log('✅ System statistics:');
     console.log(`   - Uptime: ${Math.round(systemStats.performance.uptime)}s`);
     console.log(`   - Memory: ${Math.round(systemStats.performance.memoryUsage.heapUsed / 1024 / 1024)}MB`);
     if (systemStats.database) {
@@ -212,7 +212,7 @@ async function testServices() {
     // Test maintenance
     console.log('13. Testing maintenance operations...');
     const maintenanceResult = await configManager.performMaintenance();
-    console.log(`✅ Maintenance completed:`);
+    console.log('✅ Maintenance completed:');
     if (maintenanceResult.dataCleanup) {
       console.log(`   - History cleaned: ${maintenanceResult.dataCleanup.violationHistoryDeleted} records`);
       console.log(`   - Metrics cleaned: ${maintenanceResult.dataCleanup.performanceMetricsDeleted} records`);

@@ -1,22 +1,22 @@
 /**
  * @fileoverview Crossover Detection System
- * 
+ *
  * Detects when ESLint and TypeScript are stepping on each other's toes,
  * violating the separation of concerns principle. Provides warnings and
  * suggestions for optimal tool configuration.
  */
 
-import type { 
-  Violation, 
-  CrossoverConfig, 
-  CrossoverWarning, 
-  OrchestratorResult 
+import type {
+  Violation,
+  CrossoverConfig,
+  CrossoverWarning,
+  OrchestratorResult
 } from './violation-types.js';
 
 /**
  * Type-aware ESLint rules that should be handled by TypeScript compiler
  */
-const TYPE_AWARE_ESLINT_RULES = [
+const TYPE_AWARE_ESLINT_RULES = new Set([
   '@typescript-eslint/explicit-function-return-type',
   '@typescript-eslint/explicit-module-boundary-types',
   '@typescript-eslint/no-explicit-any',
@@ -51,7 +51,7 @@ const TYPE_AWARE_ESLINT_RULES = [
   '@typescript-eslint/prefer-namespace-keyword',
   '@typescript-eslint/prefer-nullish-coalescing',
   '@typescript-eslint/prefer-optional-chain'
-];
+]);
 
 /**
  * Performance-focused TypeScript rules that are acceptable in ESLint
@@ -125,7 +125,7 @@ export class CrossoverDetector {
     const typeAwareRules = new Set<string>();
 
     for (const violation of eslintViolations) {
-      if (violation.rule && TYPE_AWARE_ESLINT_RULES.includes(violation.rule)) {
+      if (violation.rule && TYPE_AWARE_ESLINT_RULES.has(violation.rule)) {
         typeAwareRules.add(violation.rule);
       }
     }
@@ -134,10 +134,10 @@ export class CrossoverDetector {
       this.warnings.push({
         type: 'type-aware-rule',
         message: `Found ${typeAwareRules.size} type-aware ESLint rule(s) that duplicate TypeScript compiler functionality`,
-        details: `Type-aware rules detected: ${Array.from(typeAwareRules).join(', ')}. These rules require full type checking and significantly slow down ESLint while duplicating what TypeScript already does.`,
+        details: `Type-aware rules detected: ${[...typeAwareRules].join(', ')}. These rules require full type checking and significantly slow down ESLint while duplicating what TypeScript already does.`,
         suggestion: 'Disable these rules in ESLint and rely on TypeScript compiler with strict settings (noImplicitAny, strictNullChecks, etc.) for type safety.',
         severity: 'warn',
-        affectedRules: Array.from(typeAwareRules)
+        affectedRules: [...typeAwareRules]
       });
     }
   }
@@ -168,16 +168,16 @@ export class CrossoverDetector {
     }
 
     // Find locations with violations from both engines
-    const conflictingLocations = Array.from(duplicates.entries())
+    const conflictingLocations = [...duplicates.entries()]
       .filter(([, violations]) => violations.ts.length > 0 && violations.eslint.length > 0);
 
     if (conflictingLocations.length > 0) {
       const affectedFiles = [...new Set(conflictingLocations.map(([key]) => key.split(':')[0]))];
-      
+
       this.warnings.push({
         type: 'duplicate-violation',
         message: `Found ${conflictingLocations.length} location(s) with violations from both TypeScript and ESLint`,
-        details: `Both engines are reporting issues at the same locations, suggesting overlapping responsibilities. This may indicate type-aware ESLint rules that duplicate TypeScript compiler checks.`,
+        details: 'Both engines are reporting issues at the same locations, suggesting overlapping responsibilities. This may indicate type-aware ESLint rules that duplicate TypeScript compiler checks.',
         suggestion: 'Review ESLint configuration to ensure it focuses on code quality rather than type checking. Consider disabling type-aware rules and letting TypeScript handle all type safety.',
         severity: 'warn',
         affectedFiles
@@ -194,7 +194,7 @@ export class CrossoverDetector {
 
     if (legacyTypeRules.length > 0) {
       const rules = [...new Set(legacyTypeRules.map(v => v.rule).filter(Boolean))];
-      
+
       this.warnings.push({
         type: 'configuration-conflict',
         message: `Found ${legacyTypeRules.length} violations from legacy type-aware ESLint rules`,
@@ -210,7 +210,7 @@ export class CrossoverDetector {
     const eslintExecution = result.engineResults
       .find(r => r.engineName === 'ESLint Audit')?.executionTime || 0;
 
-    if (eslintExecution > 10000) { // > 10 seconds
+    if (eslintExecution > 10_000) { // > 10 seconds
       this.warnings.push({
         type: 'configuration-conflict',
         message: `ESLint execution time is high (${Math.round(eslintExecution / 1000)}s), suggesting type-aware rules`,
@@ -252,7 +252,7 @@ export class CrossoverDetector {
       return;
     }
 
-    console.log(`\n⚠️  Crossover Detection Report`);
+    console.log('\n⚠️  Crossover Detection Report');
     console.log('━'.repeat(50));
 
     for (const warning of this.warnings) {
@@ -260,13 +260,13 @@ export class CrossoverDetector {
       console.log(`\n${icon} ${warning.message}`);
       console.log(`   ${warning.details}`);
       console.log(`   💡 Suggestion: ${warning.suggestion}`);
-      
+
       if (warning.affectedRules && warning.affectedRules.length > 0) {
         console.log(`   📋 Rules: ${warning.affectedRules.slice(0, 3).join(', ')}${warning.affectedRules.length > 3 ? '...' : ''}`);
       }
     }
 
-    console.log(`\n🎯 Optimization Suggestions:`);
+    console.log('\n🎯 Optimization Suggestions:');
     this.getOptimizationSuggestions().forEach(suggestion => {
       console.log(`   ${suggestion}`);
     });

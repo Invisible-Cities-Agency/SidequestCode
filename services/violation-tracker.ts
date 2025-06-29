@@ -3,19 +3,17 @@
  * Manages violation lifecycle and deduplication
  */
 
-import { createHash } from 'crypto';
-import type { 
-  IViolationTracker, 
+// import { createHash } from 'crypto';
+import type {
+  IViolationTracker,
   IStorageService,
   ProcessingResult,
   ValidationResult
 } from './interfaces.js';
 
 import type { Violation as OrchestratorViolation } from '../utils/violation-types.js';
-import { 
-  validateViolation, 
-  sanitizeViolation,
-  generateViolationHash 
+import {
+  generateViolationHash
 } from '../database/utils.js';
 
 // ============================================================================
@@ -42,7 +40,7 @@ export class ViolationTracker implements IViolationTracker {
 
   async processViolations(violations: OrchestratorViolation[]): Promise<ProcessingResult> {
     const startTime = performance.now();
-    
+
     if (!this.silent) {
       console.log(`[ViolationTracker] Processing ${violations.length} violations...`);
     }
@@ -87,7 +85,7 @@ export class ViolationTracker implements IViolationTracker {
     }
 
     const executionTime = performance.now() - startTime;
-    
+
     // Record performance metric
     await this.storageService.recordPerformanceMetric(
       'violation_processing',
@@ -116,7 +114,7 @@ export class ViolationTracker implements IViolationTracker {
 
     for (const violation of violations) {
       const hash = this.generateViolationHash(violation);
-      
+
       if (!seenHashes.has(hash)) {
         seenHashes.add(hash);
         deduplicated.push(violation);
@@ -132,14 +130,14 @@ export class ViolationTracker implements IViolationTracker {
 
   async markAsResolved(violationHashes: string[]): Promise<number> {
     console.log(`[ViolationTracker] Marking ${violationHashes.length} violations as resolved`);
-    
+
     return await this.storageService.resolveViolations(violationHashes);
   }
 
   async markAsIgnored(violationHashes: string[]): Promise<number> {
     console.log(`[ViolationTracker] Marking ${violationHashes.length} violations as ignored`);
-    
-    // Note: StorageService doesn't have markAsIgnored method yet, 
+
+    // Note: StorageService doesn't have markAsIgnored method yet,
     // this would need to be implemented similarly to resolveViolations
     // For now, we'll log the operation
     console.log('markAsIgnored operation logged - implementation needed in StorageService');
@@ -148,7 +146,7 @@ export class ViolationTracker implements IViolationTracker {
 
   async reactivateViolations(violationHashes: string[]): Promise<number> {
     console.log(`[ViolationTracker] Reactivating ${violationHashes.length} violations`);
-    
+
     // Note: StorageService doesn't have reactivateViolations method yet
     // This would need to be implemented to set status back to 'active'
     console.log('reactivateViolations operation logged - implementation needed in StorageService');
@@ -161,8 +159,8 @@ export class ViolationTracker implements IViolationTracker {
 
   generateViolationHash(violation: OrchestratorViolation): string {
     // Create cache key for this violation
-    const cacheKey = `${violation.file}:${violation.line}:${violation.ruleId}:${violation.message}`;
-    
+    const cacheKey = `${violation.file}:${violation.line}:${violation.rule}:${violation.message}`;
+
     // Check cache first
     if (this.hashCache.has(cacheKey)) {
       return this.hashCache.get(cacheKey)!;
@@ -172,13 +170,13 @@ export class ViolationTracker implements IViolationTracker {
     const hash = generateViolationHash({
       file_path: violation.file,
       line_number: violation.line || null,
-      rule_id: violation.ruleId || null,
-      message: violation.message
+      rule_id: violation.rule || null,
+      message: violation.message || ''
     });
 
     // Cache the result
     this.hashCache.set(cacheKey, hash);
-    
+
     return hash;
   }
 
@@ -193,21 +191,21 @@ export class ViolationTracker implements IViolationTracker {
 
   filterViolationsByRule(violations: OrchestratorViolation[], ruleIds: string[]): OrchestratorViolation[] {
     const ruleSet = new Set(ruleIds);
-    return violations.filter(violation => 
-      violation.ruleId && ruleSet.has(violation.ruleId)
+    return violations.filter(violation =>
+      violation.rule && ruleSet.has(violation.rule)
     );
   }
 
   filterViolationsBySeverity(violations: OrchestratorViolation[], severities: string[]): OrchestratorViolation[] {
     const severitySet = new Set(severities);
-    return violations.filter(violation => 
+    return violations.filter(violation =>
       severitySet.has(violation.severity)
     );
   }
 
   filterViolationsByFile(violations: OrchestratorViolation[], filePaths: string[]): OrchestratorViolation[] {
     const fileSet = new Set(filePaths);
-    return violations.filter(violation => 
+    return violations.filter(violation =>
       fileSet.has(violation.file)
     );
   }
@@ -219,7 +217,7 @@ export class ViolationTracker implements IViolationTracker {
   validateViolation(violation: OrchestratorViolation): ValidationResult {
     // Create cache key
     const cacheKey = `${violation.file}:${violation.line}:${violation.message}`;
-    
+
     // Check cache first
     if (this.validationCache.has(cacheKey)) {
       return this.validationCache.get(cacheKey)!;
@@ -271,7 +269,7 @@ export class ViolationTracker implements IViolationTracker {
     }
 
     // File path validation
-    if (violation.file && !violation.file.match(/\.(ts|tsx|js|jsx)$/)) {
+    if (violation.file && !/\.(ts|tsx|js|jsx)$/.test(violation.file)) {
       warnings.push(`File '${violation.file}' does not have a typical TypeScript/JavaScript extension`);
     }
 
@@ -293,17 +291,28 @@ export class ViolationTracker implements IViolationTracker {
   }
 
   sanitizeViolation(violation: OrchestratorViolation): OrchestratorViolation {
-    return {
+    const result: any = {
       file: violation.file?.trim() || '',
-      line: violation.line || undefined,
-      column: violation.column || undefined,
       message: violation.message?.trim() || '',
-      category: violation.category?.trim() || '',
-      severity: violation.severity?.trim() || 'info',
-      source: violation.source?.trim() || 'unknown',
-      ruleId: violation.ruleId?.trim() || undefined,
-      code: violation.code?.trim() || undefined
+      category: (violation.category?.trim() || 'unknown') as any,
+      severity: (violation.severity?.trim() || 'info') as any,
+      source: (violation.source?.trim() || 'unknown') as any
     };
+
+    if (violation.line !== undefined) {
+      result.line = violation.line;
+    }
+    if (violation.column !== undefined) {
+      result.column = violation.column;
+    }
+    if (violation.rule !== undefined) {
+      result.rule = violation.rule.trim() || undefined;
+    }
+    if (violation.code !== undefined) {
+      result.code = violation.code.trim() || undefined;
+    }
+
+    return result;
   }
 
   // ========================================================================
@@ -326,7 +335,7 @@ export class ViolationTracker implements IViolationTracker {
     validationCacheSize: number;
     hashCacheSize: number;
     totalCacheSize: number;
-  } {
+    } {
     return {
       validationCacheSize: this.validationCache.size,
       hashCacheSize: this.hashCache.size,
@@ -342,13 +351,13 @@ export class ViolationTracker implements IViolationTracker {
    * Process violations in batches for better performance
    */
   async processBatchedViolations(
-    violations: OrchestratorViolation[], 
+    violations: OrchestratorViolation[],
     batchSize: number = 100
   ): Promise<ProcessingResult[]> {
     const results: ProcessingResult[] = [];
-    
-    for (let i = 0; i < violations.length; i += batchSize) {
-      const batch = violations.slice(i, i + batchSize);
+
+    for (let index = 0; index < violations.length; index += batchSize) {
+      const batch = violations.slice(index, index + batchSize);
       const result = await this.processViolations(batch);
       results.push(result);
     }

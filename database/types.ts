@@ -163,7 +163,7 @@ export interface SessionAnalyticsItem {
 
 export interface ViolationDelta {
   violation_hash: string;
-  action: 'added' | 'removed' | 'modified';
+  action: 'added' | 'removed' | 'modified' | 'unchanged';
   previous_line?: number;
   previous_message?: string;
   current_violation?: Violation;
@@ -203,7 +203,7 @@ export interface StorageServiceConfig {
 // Query Result Types
 // ============================================================================
 
-export interface ViolationQueryParams {
+export interface ViolationQueryParameters {
   status?: 'active' | 'resolved' | 'ignored';
   categories?: string[];
   sources?: ('typescript' | 'eslint')[];
@@ -214,7 +214,7 @@ export interface ViolationQueryParams {
   since?: string; // ISO datetime string
 }
 
-export interface HistoryQueryParams {
+export interface HistoryQueryParameters {
   since?: string;
   until?: string;
   actions?: ('added' | 'removed' | 'modified' | 'unchanged')[];

@@ -3,11 +3,11 @@
  * Handles SQLite setup, migrations, and Kysely configuration
  */
 
-import { Kysely, SqliteDialect, FileMigrationProvider, Migrator } from 'kysely';
+import { Kysely, SqliteDialect, FileMigrationProvider, Migrator, sql } from 'kysely';
 import Database from 'better-sqlite3';
-import * as path from 'path';
-import * as fs from 'fs/promises';
-import { fileURLToPath } from 'url';
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import type { DatabaseSchema, DatabaseConfig } from './types.js';
 
 // ES module equivalent of __dirname
@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 export class DatabaseConnection {
   private static instance: Kysely<DatabaseSchema> | null = null;
   private static config: DatabaseConfig | null = null;
-  private static sqliteDatabase: Database | null = null;
+  private static sqliteDatabase: Database.Database | null = null;
 
   /**
    * Initialize database connection with configuration
@@ -45,10 +45,10 @@ export class DatabaseConnection {
     const defaultPragmas = {
       journal_mode: 'WAL',      // Write-Ahead Logging for better concurrency
       synchronous: 'NORMAL',    // Good balance of safety and performance
-      cache_size: -64000,       // 64MB cache
+      cache_size: -64_000,       // 64MB cache
       foreign_keys: 'ON',       // Enable foreign key constraints
       temp_store: 'memory',     // Store temp tables in memory
-      mmap_size: 134217728,     // 128MB memory map
+      mmap_size: 134_217_728,     // 128MB memory map
       ...config.pragmas
     };
 
@@ -108,8 +108,8 @@ export class DatabaseConnection {
     }
 
     const migrationProvider = new FileMigrationProvider({
-      fs: await import('fs/promises'),
-      path: await import('path'),
+      fs: await import('node:fs/promises'),
+      path: await import('node:path'),
       migrationFolder: this.config.migrations.path
     });
 
@@ -129,8 +129,8 @@ export class DatabaseConnection {
       results.forEach((result) => {
         if (result.status === 'Success') {
           console.log(`[Database] Migration "${result.migrationName}" executed successfully`);
-        } else if (result.status === 'Error') {
-          console.error(`[Database] Migration "${result.migrationName}" failed:`, result.errorMessage);
+        } else {
+          console.error(`[Database] Migration "${result.migrationName}" failed with status:`, result.status);
         }
       });
     }
@@ -163,10 +163,10 @@ export class DatabaseConnection {
 
       // Read schema.sql
       const schemaPath = path.join(__dirname, 'schema.sql');
-      const schemaSQL = await fs.readFile(schemaPath, 'utf-8');
-      
+      const schemaSQL = await fs.readFile(schemaPath, 'utf8');
+
       console.log('[Database] Initializing schema...');
-      
+
       // Use better-sqlite3's exec method which can handle multiple statements
       this.sqliteDatabase.exec(schemaSQL);
 
@@ -213,12 +213,12 @@ export class DatabaseConnection {
       throw new Error('Database not initialized');
     }
 
-    const db = this.instance;
+    const database = this.instance;
 
     // Get table counts
     const [violationsResult, ruleChecksResult] = await Promise.all([
-      db.selectFrom('violations').select((eb) => eb.fn.count('id').as('count')).executeTakeFirst(),
-      db.selectFrom('rule_checks').select((eb) => eb.fn.count('id').as('count')).executeTakeFirst()
+      database.selectFrom('violations').select((eb) => eb.fn.count('id').as('count')).executeTakeFirst(),
+      database.selectFrom('rule_checks').select((eb) => eb.fn.count('id').as('count')).executeTakeFirst()
     ]);
 
     // Get file sizes
@@ -226,10 +226,10 @@ export class DatabaseConnection {
     let walSizeMb = 0;
 
     try {
-      const dbStats = await fs.stat(this.config.path);
-      databaseSizeMb = dbStats.size / (1024 * 1024);
+      const databaseStats = await fs.stat(this.config.path);
+      databaseSizeMb = databaseStats.size / (1024 * 1024);
 
-      const walPath = this.config.path + '-wal';
+      const walPath = `${this.config.path  }-wal`;
       try {
         const walStats = await fs.stat(walPath);
         walSizeMb = walStats.size / (1024 * 1024);
@@ -259,10 +259,7 @@ export class DatabaseConnection {
     console.log('[Database] Starting VACUUM operation...');
     const startTime = Date.now();
 
-    await this.instance.executeQuery({
-      sql: 'VACUUM',
-      parameters: []
-    });
+    await sql`VACUUM`.execute(this.instance);
 
     const duration = Date.now() - startTime;
     console.log(`[Database] VACUUM completed in ${duration}ms`);
@@ -277,10 +274,7 @@ export class DatabaseConnection {
     }
 
     console.log('[Database] Running ANALYZE...');
-    await this.instance.executeQuery({
-      sql: 'ANALYZE',
-      parameters: []
-    });
+    await sql`ANALYZE`.execute(this.instance);
     console.log('[Database] ANALYZE completed');
   }
 }
@@ -294,17 +288,17 @@ export class DatabaseConnection {
  */
 export function createDefaultDatabaseConfig(databasePath?: string): DatabaseConfig {
   const defaultPath = databasePath || path.join(process.cwd(), 'data', 'code-quality.db');
-  
+
   return {
     path: defaultPath,
     enableWAL: true,
     pragmas: {
       journal_mode: 'WAL',
       synchronous: 'NORMAL',
-      cache_size: -64000,
+      cache_size: -64_000,
       foreign_keys: 'ON',
       temp_store: 'memory',
-      mmap_size: 134217728
+      mmap_size: 134_217_728
     },
     migrations: {
       enabled: false, // Use direct schema initialization for now

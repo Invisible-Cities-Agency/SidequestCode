@@ -13,7 +13,7 @@ export type {
   IAnalysisService,
   IViolationTracker,
   IOrchestratorService,
-  
+
   // Supporting Types
   TimeRange,
   ViolationTrend,
@@ -87,7 +87,6 @@ export {
 // ============================================================================
 
 import { ConfigManager } from './config-manager.js';
-import { getStorageService } from './storage-service.js';
 import { getPollingService } from './polling-service.js';
 import { getAnalysisService } from './analysis-service.js';
 import { getViolationTracker } from './violation-tracker.js';
@@ -101,7 +100,7 @@ export async function createServiceSuite(
 ) {
   const configManager = ConfigManager.createEnvironmentConfig(environment);
   const { storageService } = await configManager.initializeServices();
-  
+
   return {
     configManager,
     storageService,

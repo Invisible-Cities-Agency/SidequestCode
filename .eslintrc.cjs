@@ -1,34 +1,21 @@
 module.exports = {
   root: true,
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
+  plugins: ['unicorn'],
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
-    '@typescript-eslint/recommended-requiring-type-checking'
+    'plugin:unicorn/recommended'
   ],
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json',
-    tsconfigRootDir: __dirname,
   },
   env: {
     node: true,
     es2022: true,
   },
   rules: {
-    // TypeScript specific rules
-    '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    '@typescript-eslint/explicit-function-return-type': 'warn',
-    '@typescript-eslint/no-floating-promises': 'error',
-    '@typescript-eslint/await-thenable': 'error',
-    '@typescript-eslint/no-misused-promises': 'error',
-    '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-    '@typescript-eslint/prefer-optional-chain': 'warn',
-    '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
-    '@typescript-eslint/no-non-null-assertion': 'warn',
+    // Let TypeScript handle type checking - ESLint focuses on code style and logic
     
     // General code quality
     'no-console': 'off', // We need console for CLI output
@@ -73,13 +60,29 @@ module.exports = {
     'arrow-spacing': 'error',
     'no-duplicate-imports': 'error',
     'object-shorthand': 'error',
-    'prefer-template': 'error'
+    'prefer-template': 'error',
+    
+    // Unicorn rule adjustments for CLI tool
+    'unicorn/no-console-spaces': 'off', // We format console output deliberately
+    'unicorn/no-process-exit': 'off', // CLI tool needs to exit
+    'unicorn/prefer-module': 'off', // Using CommonJS for config files
+    'unicorn/prefer-top-level-await': 'off', // Not needed in all contexts
+    'unicorn/no-array-for-each': 'off', // forEach is fine for side effects
+    'unicorn/prefer-string-slice': 'error',
+    'unicorn/prefer-array-some': 'error',
+    'unicorn/prefer-includes': 'error',
+    'unicorn/prefer-object-from-entries': 'error',
+    'unicorn/no-useless-undefined': 'error',
+    'unicorn/prefer-ternary': 'error'
   },
   ignorePatterns: [
     'dist/',
     'node_modules/',
     '*.js', // Ignore built JS files
-    '.eslintrc.js' // Allow this config file
+    '.eslintrc.cjs', // Allow this config file
+    '__tests__/', // Ignore test files that aren't in tsconfig
+    '**/*.test.ts',
+    '**/*.spec.ts'
   ],
   overrides: [
     {
@@ -88,8 +91,8 @@ module.exports = {
         jest: true
       },
       rules: {
-        '@typescript-eslint/no-explicit-any': 'off', // Allow any in tests
-        '@typescript-eslint/no-non-null-assertion': 'off' // Allow ! in tests
+        // Allow more flexibility in test files
+        'unicorn/no-null': 'off'
       }
     }
   ]

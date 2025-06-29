@@ -60,45 +60,45 @@ class StatefulWatchDisplay {
 
   private getColorScheme() {
     // Auto-detect terminal background or use environment variable
-    const colorMode = process.env.TERM_COLOR_MODE || 
-                     this.state.detectedColorMode || 
+    const colorMode = process.env.TERM_COLOR_MODE ||
+                     this.state.detectedColorMode ||
                      this.detectTerminalMode();
-    
+
     if (colorMode === 'light') {
       // Light mode: Replicate macOS Terminal "Man Page" theme colors
       return {
-        reset: '\x1b[0m',
-        bold: '\x1b[1m',
-        primary: '\x1b[30m',      // Black text (Man Page style)
-        secondary: '\x1b[90m',    // Dark gray
-        info: '\x1b[34m',         // Deep blue 
-        success: '\x1b[32m',      // Deep green
-        warning: '\x1b[33m',      // Amber/brown
-        error: '\x1b[31m',        // Deep red
-        muted: '\x1b[37m',        // Medium gray
-        header: '\x1b[35m',       // Purple (Man Page style)
+        reset: '\u001B[0m',
+        bold: '\u001B[1m',
+        primary: '\u001B[30m',      // Black text (Man Page style)
+        secondary: '\u001B[90m',    // Dark gray
+        info: '\u001B[34m',         // Deep blue
+        success: '\u001B[32m',      // Deep green
+        warning: '\u001B[33m',      // Amber/brown
+        error: '\u001B[31m',        // Deep red
+        muted: '\u001B[37m',        // Medium gray
+        header: '\u001B[35m',       // Purple (Man Page style)
         // Delta colors optimized for cream/light backgrounds
-        deltaUp: '\x1b[31m',      // Deep red for increases
-        deltaDown: '\x1b[32m',    // Deep green for decreases  
-        deltaStable: '\x1b[90m'   // Dark gray for no change
+        deltaUp: '\u001B[31m',      // Deep red for increases
+        deltaDown: '\u001B[32m',    // Deep green for decreases
+        deltaStable: '\u001B[90m'   // Dark gray for no change
       };
     } else {
       // Dark mode: Replicate macOS Terminal "Pro" theme colors
       return {
-        reset: '\x1b[0m',
-        bold: '\x1b[1m',
-        primary: '\x1b[97m',      // Bright white (Pro theme style)
-        secondary: '\x1b[37m',    // Light gray
-        info: '\x1b[94m',         // Bright blue (Pro theme blue)
-        success: '\x1b[92m',      // Bright green (Pro theme green)
-        warning: '\x1b[93m',      // Bright yellow (Pro theme yellow)
-        error: '\x1b[91m',        // Bright red (Pro theme red)
-        muted: '\x1b[90m',        // Dim gray
-        header: '\x1b[96m',       // Bright cyan (Pro theme cyan)
+        reset: '\u001B[0m',
+        bold: '\u001B[1m',
+        primary: '\u001B[97m',      // Bright white (Pro theme style)
+        secondary: '\u001B[37m',    // Light gray
+        info: '\u001B[94m',         // Bright blue (Pro theme blue)
+        success: '\u001B[92m',      // Bright green (Pro theme green)
+        warning: '\u001B[93m',      // Bright yellow (Pro theme yellow)
+        error: '\u001B[91m',        // Bright red (Pro theme red)
+        muted: '\u001B[90m',        // Dim gray
+        header: '\u001B[96m',       // Bright cyan (Pro theme cyan)
         // Delta colors optimized for dark/black backgrounds
-        deltaUp: '\x1b[91m',      // Bright red for increases
-        deltaDown: '\x1b[92m',    // Bright green for decreases
-        deltaStable: '\x1b[90m'   // Dim gray for no change
+        deltaUp: '\u001B[91m',      // Bright red for increases
+        deltaDown: '\u001B[92m',    // Bright green for decreases
+        deltaStable: '\u001B[90m'   // Dim gray for no change
       };
     }
   }
@@ -122,7 +122,7 @@ class StatefulWatchDisplay {
         // Refresh color scheme with new detection
         this.colors = this.getColorScheme();
       }
-    } catch (error) {
+    } catch {
       // Detection failed, keep using heuristics
     }
   }
@@ -131,13 +131,13 @@ class StatefulWatchDisplay {
    * Initialize the display (one-time full render)
    */
   async initializeDisplay(): Promise<void> {
-    if (this.state.isInitialized) return;
+    if (this.state.isInitialized) {return;}
 
     // Start background color detection (async, non-blocking)
     this.detectBackgroundColorAsync();
 
     // Clear screen and hide cursor BEFORE capturing output
-    process.stdout.write('\x1b[2J\x1b[H\x1b[?25l');
+    process.stdout.write('\u001B[2J\u001B[H\u001B[?25l');
 
     // Draw static layout using direct writes (before output capture)
     process.stdout.write(`${this.colors.bold}${this.colors.header}📊 Code Quality Watch (Enhanced)${this.colors.reset}\n`);
@@ -152,15 +152,15 @@ class StatefulWatchDisplay {
     process.stdout.write(`  🔍 ${this.colors.info}ESLint:${this.colors.reset} ${this.colors.primary}--${this.colors.reset}\n\n`);
 
     process.stdout.write(`${this.colors.warning}By Category (with deltas):${this.colors.reset}\n`);
-    
+
     // Reserve space for category lines (we'll update these)
-    for (let i = 0; i < 15; i++) {
+    for (let index = 0; index < 15; index++) {
       process.stdout.write('\n'); // Empty lines to be filled
     }
 
     process.stdout.write(`\n${this.colors.muted}Session Stats:${this.colors.reset}\n`);
     process.stdout.write(`${this.colors.secondary}  Checks: ${this.colors.primary}--${this.colors.reset} ${this.colors.secondary}| DB Records: ${this.colors.primary}--${this.colors.reset}\n`);
-    
+
     process.stdout.write(`\n${this.colors.muted}Press Ctrl+C to stop watching...${this.colors.reset}\n`);
 
     // NOW capture output to prevent future interference
@@ -176,7 +176,7 @@ class StatefulWatchDisplay {
     // Only update if content has actually changed or is different from current state
     // Save cursor, move to line, clear line, write content, restore cursor
     const originalStdout = this.state.originalStdout!;
-    originalStdout.call(process.stdout, `\x1b[s\x1b[${line};1H\x1b[2K${content}\x1b[u`);
+    originalStdout.call(process.stdout, `\u001B[s\u001B[${line};1H\u001B[2K${content}\u001B[u`);
   }
 
   /**
@@ -200,10 +200,10 @@ class StatefulWatchDisplay {
       const sessionBaseline = this.state.sessionBaseline.get(item.category) || 0;
       const delta = previousState ? item.count - previousState.count : 0;
       const sessionDelta = item.count - sessionBaseline;
-      
+
       let trend: 'up' | 'down' | 'stable' = 'stable';
-      if (delta > 0) trend = 'up';
-      else if (delta < 0) trend = 'down';
+      if (delta > 0) {trend = 'up';}
+      else if (delta < 0) {trend = 'down';}
 
       newCategories.set(item.category, {
         count: item.count,
@@ -241,19 +241,19 @@ class StatefulWatchDisplay {
 
     // Calculate actual live violations count from current data
     const currentViolationsCount = violations.length;
-    
+
     // Update total violations count (line 3)
     if (this.state.lastTotalViolations !== currentViolationsCount) {
-      const deltaText = this.state.lastTotalViolations > 0 
+      const deltaText = this.state.lastTotalViolations > 0
         ? ` (${currentViolationsCount > this.state.lastTotalViolations ? '+' : ''}${currentViolationsCount - this.state.lastTotalViolations})`
         : '';
-      const deltaColor = currentViolationsCount > this.state.lastTotalViolations 
-        ? this.colors.deltaUp 
-        : currentViolationsCount < this.state.lastTotalViolations 
-          ? this.colors.deltaDown 
-          : this.colors.deltaStable;
-      
-      this.updateZone(3, 
+      const deltaColor = currentViolationsCount > this.state.lastTotalViolations
+        ? this.colors.deltaUp
+        : (currentViolationsCount < this.state.lastTotalViolations
+          ? this.colors.deltaDown
+          : this.colors.deltaStable);
+
+      this.updateZone(3,
         `${this.colors.bold}${this.colors.primary}Current Violations:${this.colors.reset} ${this.colors.primary}${currentViolationsCount}${this.colors.reset}${deltaColor}${deltaText}${this.colors.reset} 📊`
       );
       this.state.lastTotalViolations = currentViolationsCount;
@@ -268,9 +268,9 @@ class StatefulWatchDisplay {
     }
 
     // Update source breakdown (lines 6-7)
-    const sourceBreakdown = violations.reduce((acc, v) => {
-      acc[v.source] = (acc[v.source] || 0) + 1;
-      return acc;
+    const sourceBreakdown = violations.reduce((accumulator, v) => {
+      accumulator[v.source] = (accumulator[v.source] || 0) + 1;
+      return accumulator;
     }, {} as Record<string, number>);
 
     const typescriptCount = sourceBreakdown.typescript || 0;
@@ -280,38 +280,38 @@ class StatefulWatchDisplay {
     this.updateZone(7, `  🔍 ${this.colors.info}ESLint:${this.colors.reset} ${this.colors.primary}${eslintCount}${this.colors.reset}`);
 
     // Update categories (lines 9-24) - this is the key improvement
-    let lineOffset = 9;
-    const sortedCategories = Array.from(this.state.categories.entries())
+    const lineOffset = 9;
+    const sortedCategories = [...this.state.categories.entries()]
       .sort(([, a], [, b]) => b.count - a.count)
       .slice(0, 15);
 
-    for (let i = 0; i < 15; i++) {
-      const currentLine = lineOffset + i;
-      
-      if (i < sortedCategories.length) {
-        const [category, state] = sortedCategories[i];
+    for (let index = 0; index < 15; index++) {
+      const currentLine = lineOffset + index;
+
+      if (index < sortedCategories.length) {
+        const [category, state] = sortedCategories[index];
         const isESLint = ['code-quality', 'style', 'architecture', 'modernization', 'unused-vars', 'legacy-type-rule', 'return-type', 'no-explicit-any', 'other-eslint', 'explicit-function-return-type'].includes(category);
         const prefix = isESLint ? '🔍' : '📝';
-        
+
         // Determine severity icon from summary
         const summaryItem = summary.find(s => s.category === category);
-        const severityIcon = summaryItem?.severity === 'error' ? '❌' : summaryItem?.severity === 'warn' ? '⚠️' : 'ℹ️';
-        
+        const severityIcon = summaryItem?.severity === 'error' ? '❌' : (summaryItem?.severity === 'warn' ? '⚠️' : 'ℹ️');
+
         // Format delta with color
         let deltaText = '';
         let deltaColor = this.colors.deltaStable;
-        
+
         if (state.delta !== 0) {
           const sign = state.delta > 0 ? '+' : '';
           deltaText = ` (${sign}${state.delta})`;
           deltaColor = state.delta > 0 ? this.colors.deltaUp : this.colors.deltaDown;
         }
-        
+
         // Trend arrows
-        const trendIcon = state.trend === 'up' ? '📈' : state.trend === 'down' ? '📉' : '➡️';
-        
+        const trendIcon = state.trend === 'up' ? '📈' : (state.trend === 'down' ? '📉' : '➡️');
+
         const categoryLine = `  ${severityIcon} ${prefix} ${this.colors.info}${category}:${this.colors.reset} ${this.colors.primary}${state.count}${this.colors.reset}${deltaColor}${deltaText}${this.colors.reset} ${this.colors.secondary}(${state.files} files)${this.colors.reset} ${trendIcon}`;
-        
+
         this.updateZone(currentLine, categoryLine);
       } else {
         // Clear unused lines
@@ -346,25 +346,25 @@ class StatefulWatchDisplay {
     };
 
     // Intercept stdout writes that aren't our positioned updates
-    const originalStdoutWrite = this.state.originalStdout!;
+    const originalStdoutWrite = this.state.originalStdout;
     process.stdout.write = (chunk: any, encoding?: any, callback?: any): boolean => {
-      const chunkStr = chunk.toString();
-      
+      const chunkString = chunk.toString();
+
       // Allow our ANSI positioned updates through (cursor save/restore + positioning)
-      if (chunkStr.includes('\x1b[s') && chunkStr.includes('\x1b[u')) {
+      if (chunkString.includes('\u001B[s') && chunkString.includes('\u001B[u')) {
         return originalStdoutWrite.call(process.stdout, chunk, encoding, callback);
       }
-      
+
       // Allow clear screen and cursor control during initialization
-      if (chunkStr.includes('\x1b[2J') || chunkStr.includes('\x1b[?25')) {
+      if (chunkString.includes('\u001B[2J') || chunkString.includes('\u001B[?25')) {
         return originalStdoutWrite.call(process.stdout, chunk, encoding, callback);
       }
 
       // Allow our static layout writes during initialization (before capture is active)
-      if (!this.state.isInitialized && (chunkStr.includes('📊') || chunkStr.includes('─'))) {
+      if (!this.state.isInitialized && (chunkString.includes('📊') || chunkString.includes('─'))) {
         return originalStdoutWrite.call(process.stdout, chunk, encoding, callback);
       }
-      
+
       // Silently drop ALL other stdout writes during watch mode
       if (typeof encoding === 'function') {
         encoding();
@@ -379,15 +379,15 @@ class StatefulWatchDisplay {
     const originalConsoleError = console.error;
     const originalConsoleWarn = console.warn;
 
-    console.log = (...args: any[]) => {
+    console.log = (...arguments_: any[]) => {
       // Silently drop console.log during watch mode
     };
 
-    console.error = (...args: any[]) => {
+    console.error = (...arguments_: any[]) => {
       // Silently drop console.error during watch mode
     };
 
-    console.warn = (...args: any[]) => {
+    console.warn = (...arguments_: any[]) => {
       // Silently drop console.warn during watch mode
     };
 
@@ -425,7 +425,7 @@ class StatefulWatchDisplay {
    */
   shutdown(): void {
     this.restoreOutput();
-    process.stdout.write('\x1b[?25h'); // Show cursor
+    process.stdout.write('\u001B[?25h'); // Show cursor
   }
 }
 

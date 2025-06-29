@@ -45,6 +45,27 @@ CREATE TABLE violation_history (
     recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Client TypeScript configuration cache
+-- Stores the client's tsconfig.json settings for fast access during watch mode
+CREATE TABLE typescript_configs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_path TEXT NOT NULL,
+    config_path TEXT NOT NULL UNIQUE,
+    strict_mode BOOLEAN DEFAULT FALSE,
+    exact_optional_properties BOOLEAN DEFAULT FALSE,
+    no_unchecked_indexed_access BOOLEAN DEFAULT FALSE,
+    no_implicit_any BOOLEAN DEFAULT FALSE,
+    target TEXT DEFAULT 'ES5',
+    module_system TEXT DEFAULT 'CommonJS',
+    config_hash TEXT NOT NULL, -- Hash of tsconfig.json content for change detection
+    first_scanned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_scanned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_modified_at DATETIME -- File system modification time
+);
+
+-- Index for fast config lookups during watch mode
+CREATE INDEX idx_typescript_configs_path ON typescript_configs(project_path, config_path);
+
 -- Rule scheduling and round-robin state management
 CREATE TABLE rule_schedules (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,6 +106,38 @@ CREATE TABLE performance_metrics (
     recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Rule category mappings - dynamic mapping of rule codes to human-readable categories
+-- This allows the tool to learn and adapt category mappings based on actual usage
+CREATE TABLE rule_category_mappings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    rule_id TEXT NOT NULL,           -- e.g., 'TS2304', 'no-console', '@typescript-eslint/no-explicit-any'
+    engine TEXT NOT NULL,            -- 'typescript', 'eslint'
+    category TEXT NOT NULL,          -- ViolationCategory enum value
+    display_label TEXT NOT NULL,     -- Human-readable label (e.g., 'Type Issues', 'Code Quality')
+    confidence_score REAL DEFAULT 1.0, -- 0-1 score for how confident we are in this mapping
+    source TEXT DEFAULT 'auto',      -- 'auto', 'user', 'builtin'
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'deprecated')),
+    usage_count INTEGER DEFAULT 0,   -- How many times this mapping has been used
+    last_used_at DATETIME,
+    deprecated_at DATETIME,          -- When this mapping was marked as deprecated
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(rule_id, engine)
+);
+
+-- Rule pattern definitions - for dynamic detection of new rules
+CREATE TABLE rule_patterns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    engine TEXT NOT NULL,
+    pattern TEXT NOT NULL,           -- Regex pattern to match rule IDs
+    category TEXT NOT NULL,          -- Default category for matching rules
+    display_label TEXT NOT NULL,    -- Default display label
+    priority INTEGER DEFAULT 1,     -- Priority when multiple patterns match
+    description TEXT,               -- Description of what this pattern matches
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(engine, pattern)
+);
+
 -- ============================================================================
 -- INDEXES for performance optimization
 -- ============================================================================
@@ -121,6 +174,17 @@ CREATE INDEX idx_rule_schedules_priority ON rule_schedules(priority, next_run_at
 -- Session tracking indexes
 CREATE INDEX idx_watch_sessions_start ON watch_sessions(session_start);
 CREATE INDEX idx_performance_metrics_type ON performance_metrics(metric_type, recorded_at);
+
+-- Rule category mapping indexes
+CREATE INDEX idx_rule_category_mappings_rule ON rule_category_mappings(rule_id, engine);
+CREATE INDEX idx_rule_category_mappings_category ON rule_category_mappings(category);
+CREATE INDEX idx_rule_category_mappings_usage ON rule_category_mappings(usage_count DESC);
+CREATE INDEX idx_rule_category_mappings_status ON rule_category_mappings(status);
+CREATE INDEX idx_rule_category_mappings_cleanup ON rule_category_mappings(status, last_used_at) WHERE status = 'active';
+
+-- Rule pattern indexes
+CREATE INDEX idx_rule_patterns_engine ON rule_patterns(engine, priority);
+CREATE INDEX idx_rule_patterns_category ON rule_patterns(category);
 
 -- ============================================================================
 -- TRIGGERS for automatic maintenance
@@ -180,6 +244,25 @@ BEGIN
     WHERE id = NEW.id;
 END;
 
+-- Update rule mapping usage when it's accessed
+CREATE TRIGGER update_rule_mapping_usage
+    AFTER INSERT ON violations
+    FOR EACH ROW
+BEGIN
+    UPDATE rule_category_mappings 
+    SET 
+        usage_count = usage_count + 1,
+        last_used_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE rule_id = NEW.rule_id AND engine = NEW.source;
+END;
+
+-- Manual cleanup function for unused rule mappings (90+ days unused)
+-- Call this periodically from application code
+-- UPDATE rule_category_mappings 
+-- SET status = 'inactive', deprecated_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+-- WHERE status = 'active' AND (last_used_at IS NULL OR last_used_at < datetime('now', '-90 days'));
+
 -- ============================================================================
 -- VIEWS for common queries
 -- ============================================================================
@@ -230,3 +313,35 @@ FROM watch_sessions
 WHERE session_end IS NOT NULL
 GROUP BY DATE(session_start)
 ORDER BY session_date DESC;
+
+-- Comprehensive rule mappings with fallbacks
+CREATE VIEW rule_mappings_with_fallbacks AS
+SELECT 
+    rcm.rule_id,
+    rcm.engine,
+    rcm.category,
+    rcm.display_label,
+    rcm.confidence_score,
+    rcm.source,
+    rcm.usage_count,
+    rcm.last_used_at
+FROM rule_category_mappings rcm
+WHERE rcm.status = 'active'
+UNION ALL
+-- Fallback to pattern-based mappings for unmapped rules
+SELECT DISTINCT
+    v.rule_id,
+    v.source as engine,
+    rp.category,
+    rp.display_label,
+    0.5 as confidence_score,  -- Lower confidence for pattern matches
+    'pattern' as source,
+    0 as usage_count,
+    NULL as last_used_at
+FROM violations v
+LEFT JOIN rule_category_mappings rcm ON v.rule_id = rcm.rule_id AND v.source = rcm.engine
+CROSS JOIN rule_patterns rp
+WHERE rcm.id IS NULL 
+AND v.source = rp.engine 
+AND v.rule_id LIKE rp.pattern
+ORDER BY confidence_score DESC, usage_count DESC;

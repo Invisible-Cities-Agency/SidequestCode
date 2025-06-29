@@ -1,6 +1,6 @@
 /**
  * @fileoverview Common types and interfaces for the Code Quality Orchestrator
- * 
+ *
  * Defines the core data structures used across all audit engines and components
  * for consistent violation reporting and categorization.
  */
@@ -34,16 +34,22 @@ export interface Violation {
 /**
  * Violation categories for semantic grouping
  */
-export type ViolationCategory = 
+export type ViolationCategory =
   // TypeScript-related categories (tsc responsibility)
   | 'type-alias'
-  | 'annotation' 
+  | 'annotation'
   | 'cast'
   | 'record-type'
   | 'generic-unknown'
   | 'unknown-reference'
   | 'branded-type'
   | 'generic-constraint'
+  | 'module-resolution'  // Import/export issues
+  | 'unused-code'        // Unused variables/imports
+  | 'null-safety'        // Undefined/null safety issues
+  | 'inheritance'        // Override/inheritance issues
+  | 'index-access'       // Index signature access issues
+  | 'strict-config'      // exactOptionalPropertyTypes issues
   // ESLint code quality categories (separation of concerns)
   | 'code-quality'      // console.log, debugger statements
   | 'style'             // prefer-const, no-var
@@ -102,9 +108,9 @@ export type ViolationSeverity = 'error' | 'warn' | 'info';
 /**
  * Source engines that can detect violations
  */
-export type ViolationSource = 
+export type ViolationSource =
   | 'typescript'
-  | 'eslint' 
+  | 'eslint'
   | 'parser'
   | 'complexity'
   | 'security'
@@ -180,7 +186,7 @@ export interface ViolationSummary {
 /**
  * Watch mode event types
  */
-export type WatchEvent = 
+export type WatchEvent =
   | 'file-changed'
   | 'analysis-started'
   | 'analysis-completed'
@@ -199,4 +205,61 @@ export interface WatchEventData {
   timestamp: string;
   /** Event-specific payload */
   payload: unknown;
+}
+
+/**
+ * Get human-readable label for violation category
+ */
+export function getCategoryLabel(category: ViolationCategory): string {
+  switch (category) {
+  // TypeScript categories
+  case 'type-alias': { return 'Type Issues';
+  }
+  case 'annotation': { return 'Missing Types';
+  }
+  case 'cast': { return 'Type Casting';
+  }
+  case 'module-resolution': { return 'Import/Export';
+  }
+  case 'unused-code': { return 'Unused Code';
+  }
+  case 'null-safety': { return 'Null Safety';
+  }
+  case 'inheritance': { return 'Class/Override';
+  }
+  case 'index-access': { return 'Index Access';
+  }
+  case 'strict-config': { return 'Strict Config';
+  }
+  case 'syntax-error': { return 'Syntax Error';
+  }
+
+  // ESLint categories
+  case 'code-quality': { return 'Code Quality';
+  }
+  case 'style': { return 'Code Style';
+  }
+  case 'architecture': { return 'Architecture';
+  }
+  case 'modernization': { return 'Modernization';
+  }
+  case 'unused-vars': { return 'Unused Variables';
+  }
+
+  // Other categories
+  case 'complexity': { return 'Complexity';
+  }
+  case 'maintainability': { return 'Maintainability';
+  }
+  case 'security': { return 'Security';
+  }
+  case 'parse-error': { return 'Parse Error';
+  }
+  case 'import-error': { return 'Import Error';
+  }
+
+  // Legacy/fallback
+  default: { return category.replaceAll('-', ' ').replaceAll(/\b\w/g, l => l.toUpperCase());
+  }
+  }
 }

@@ -9,21 +9,21 @@
 
 export const VIOLATION_CATEGORIES = {
   ESLINT: [
-    'code-quality', 
-    'style', 
-    'architecture', 
-    'modernization', 
+    'code-quality',
+    'style',
+    'architecture',
+    'modernization',
     'unused-vars',
-    'legacy-type-rule', 
-    'return-type', 
-    'no-explicit-any', 
+    'legacy-type-rule',
+    'return-type',
+    'no-explicit-any',
     'other-eslint'
   ] as const,
-  
+
   TYPESCRIPT: [
     'type-alias',
-    'annotation', 
-    'cast', 
+    'annotation',
+    'cast',
     'record-type',
     'generic-unknown',
     'unknown-reference',
@@ -37,32 +37,32 @@ export const VIOLATION_CATEGORIES = {
 // ============================================================================
 
 export const ANSI_CODES = {
-  RESET: '\x1b[0m',
-  BOLD: '\x1b[1m',
-  DIM: '\x1b[2m',
-  
+  RESET: '\u001B[0m',
+  BOLD: '\u001B[1m',
+  DIM: '\u001B[2m',
+
   // Dark mode colors (Terminal Pro theme)
   DARK: {
-    PRIMARY: '\x1b[97m',      // Bright white
-    SECONDARY: '\x1b[37m',    // Light gray  
-    SUCCESS: '\x1b[92m',      // Bright green
-    WARNING: '\x1b[93m',      // Bright yellow
-    ERROR: '\x1b[91m',        // Bright red
-    INFO: '\x1b[94m',         // Bright blue
-    MUTED: '\x1b[90m',        // Dark gray
-    ACCENT: '\x1b[96m'        // Bright cyan
+    PRIMARY: '\u001B[97m',      // Bright white
+    SECONDARY: '\u001B[37m',    // Light gray
+    SUCCESS: '\u001B[92m',      // Bright green
+    WARNING: '\u001B[93m',      // Bright yellow
+    ERROR: '\u001B[91m',        // Bright red
+    INFO: '\u001B[94m',         // Bright blue
+    MUTED: '\u001B[90m',        // Dark gray
+    ACCENT: '\u001B[96m'        // Bright cyan
   },
-  
-  // Light mode colors (Terminal Man Page theme)
+
+  // Light mode colors (optimized for light terminals)
   LIGHT: {
-    PRIMARY: '\x1b[30m',      // Black
-    SECONDARY: '\x1b[90m',    // Dark gray
-    SUCCESS: '\x1b[32m',      // Dark green
-    WARNING: '\x1b[33m',      // Brown/amber
-    ERROR: '\x1b[31m',        // Dark red
-    INFO: '\x1b[34m',         // Dark blue
-    MUTED: '\x1b[37m',        // Light gray
-    ACCENT: '\x1b[35m'        // Purple
+    PRIMARY: '\u001B[30m',      // Black - primary text
+    SECONDARY: '\u001B[30m',    // Black - secondary text (was too light)
+    SUCCESS: '\u001B[32m',      // Dark green - positive changes
+    WARNING: '\u001B[93m\u001B[1m', // Bold bright yellow - warnings (better visibility)
+    ERROR: '\u001B[31m\u001B[1m', // Bold dark red - errors
+    INFO: '\u001B[36m',         // Dark cyan - better than blue on light
+    MUTED: '\u001B[30m',        // Black - totals should be readable (was dark gray)
+    ACCENT: '\u001B[35m'        // Purple/magenta - accent color
   }
 } as const;
 

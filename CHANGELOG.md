@@ -1,9 +1,58 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to the SideQuest Code Quality Orchestrator will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0-alpha.2] - 2024-01-15
+
+### Added
+- **PRD Generation**: New `--prd` flag generates comprehensive Product Requirements Documents for Claude Task Master integration
+- **SideQuest Binary**: Added `sidequest` as primary binary alias for easier usage (`npx sidequest`)
+- **Flexible Data Directory**: `--data-dir` flag allows custom database locations (project vs global storage)
+- **Verbose Output**: Replaced `--json` with `--verbose` for clearer semantics and detailed JSON output
+- **Better CI Support**: Replaced sqlite3 with better-sqlite3 for pre-built binaries
+- **Code Formatting**: Added Prettier configuration and formatting scripts
+
+### Changed
+- **Primary Command**: `sidequest` is now the recommended command (shorter than `code-quality-orchestrator`)
+- **CLI Help**: Updated all examples to use `sidequest` command consistently
+- **Documentation**: Comprehensive updates to README with installation modes and PRD generation
+- **Dependencies**: Moved better-sqlite3 to main dependencies for better CI compatibility
+
+### Enhanced
+- **Configuration System**: Enhanced `createOrchestratorService` to accept custom configurations
+- **Installation Behavior**: Clear documentation of data directory creation patterns
+- **Task Master Integration**: Full workflow integration with automatic PRD generation
+- **Help Text**: Enhanced CLI help with data directory explanation and PRD examples
+
+### Technical Details
+- PRD files are generated as `CODE_QUALITY_PRD.md` in the target directory
+- Support for both project-scoped (`./data/`) and global (`~/.cqo-data/`) storage
+- Environment variable `CQO_DB_PATH` for global database path configuration
+- Comprehensive PRD content including metrics, priorities, timelines, and resource estimates
+
+### Usage Examples
+```bash
+# Primary usage patterns
+sidequest --watch                    # Watch mode
+sidequest --prd                      # Generate PRD
+sidequest --data-dir ~/.cqo-data     # Global storage
+sidequest --verbose                  # Detailed output
+
+# Package scripts
+npm run prd                          # Generate PRD
+npm run format                       # Format code
+```
+
+### Migration Guide
+- `--json` flag deprecated, use `--verbose` instead (old flag still works)
+- Consider migrating to `sidequest` command for shorter typing
+- Review data directory behavior if you relied on undocumented assumptions
+
+### Breaking Changes
+- None (fully backward compatible)
 
 ## [0.1.0-alpha.1] - 2024-12-29
 

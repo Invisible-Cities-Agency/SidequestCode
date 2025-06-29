@@ -1,0 +1,56 @@
+{
+  "$schema": "./user-preferences.schema.json",
+  "schemaVersion": "1.0.0",
+  "preferences": {
+    "analysis": {
+      "defaultMode": "errors-only",
+      "strictMode": false,
+      "includePatternChecking": false,
+      "defaultPath": "app",
+      "maxViolationsToShow": 100,
+      "groupSimilarViolations": true
+    },
+    "warnings": {
+      "showTscEslintSeparationWarning": true,
+      "showPerformanceWarnings": true,
+      "showConfigurationHints": true,
+      "showFirstTimeHelp": true,
+      "warnOnLargeFilesets": true
+    },
+    "display": {
+      "colorScheme": "auto",
+      "verboseOutput": false,
+      "showProgressIndicators": true,
+      "showFileCount": true,
+      "showExecutionTime": true,
+      "compactOutput": false
+    },
+    "watch": {
+      "autoDetectConfigChanges": true,
+      "debounceMs": 500,
+      "intervalMs": 3000,
+      "clearScreenOnUpdate": false,
+      "showTimestamp": true,
+      "pauseOnError": false
+    },
+    "performance": {
+      "maxConcurrentChecks": 3,
+      "timeoutMs": 30000,
+      "enableCaching": true,
+      "cacheValidityHours": 24
+    },
+    "integrations": {
+      "openEditorOnError": false,
+      "preferredEditor": "auto",
+      "generatePRDByDefault": false,
+      "autoCommitDatabase": true
+    }
+  },
+  "userChoices": {
+    "hasSeenTscEslintWarning": false,
+    "hasConfiguredSeparationOfConcerns": false,
+    "hasCompletedFirstRun": false,
+    "preferredEngine": "typescript-only",
+    "lastConfigUpdate": null
+  }
+}

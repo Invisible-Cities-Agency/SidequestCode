@@ -1,36 +1,95 @@
-# Code Quality Orchestrator
+# SideQuest Code Quality Orchestrator
 
-A sophisticated TypeScript/ESLint monitoring system with real-time watch mode, intelligent terminal color detection, and comprehensive violation tracking.
+Configuration-agnostic TypeScript and ESLint orchestrator that respects your project setup with real-time watch mode, interactive first-run setup, and intelligent separation of concerns guidance.
+
+## 🚀 Common Commands
+
+### 🤖 For LLMs/AI Assistants (Machine-Readable JSON Output)
+
+```bash
+# RECOMMENDED FOR LLMS: Clean JSON output, no interactive prompts
+npm run sidequest:report             # TypeScript violations (JSON)
+npm run sidequest:report:eslint      # Include ESLint violations (JSON)
+npm run sidequest:report:strict      # Strict mode analysis (JSON)
+```
+
+> **Note for LLMs**: Use `sidequest:report*` commands - they provide clean JSON output without interactive prompts or watch modes that LLMs cannot handle.
+
+### 👨‍💻 For Human Developers (Interactive & Visual)
+
+```bash
+# Real-time monitoring (most common for humans)
+npm run sidequest:start              # Auto-detected colors
+npm run sidequest:watch:dark         # Force dark theme  
+npm run sidequest:watch:light        # Force light theme
+npm run sidequest:watch:eslint       # Include ESLint analysis
+
+# One-time analysis (human-friendly output)
+npm run sidequest:analyze            # TypeScript only (formatted)
+npm run sidequest:analyze:eslint     # Include ESLint (formatted)
+npm run sidequest:analyze:strict     # Strict mode (formatted)
+
+# Configuration management
+npm run sidequest:config             # Show current settings
+npm run sidequest:config:edit        # Edit preferences
+npm run sidequest:config:reset       # Reset to defaults
+
+# Project insights
+npm run sidequest:burndown           # Historical trends
+npm run sidequest:prd                # Generate PRD for task management
+
+# Debugging & troubleshooting
+npm run sidequest:debug:terminal     # Fix color issues
+npm run sidequest:session:reset      # Fresh start
+```
 
 ## ✨ Features
 
-- **Real-time Monitoring** - Live watch mode with smooth, non-scrolling updates
-- **Intelligent Terminal Detection** - Automatic light/dark mode detection using OSC escape sequences
-- **Advanced Violation Tracking** - SQLite persistence with historical analysis
-- **Developer-Focused Display** - Clean metrics showing session progress and daily trends
-- **Comprehensive CLI** - Extensive command-line interface with multiple analysis modes
-- **Performance Optimized** - Sub-second response times with smart caching
+- **🎯 Configuration-Agnostic** - Uses your exact `tsconfig.json` and `.eslintrc` without imposing opinions
+- **🚀 Interactive First-Run Setup** - Friendly onboarding that teaches best practices
+- **🔧 Separation of Concerns Guidance** - Helps avoid TypeScript/ESLint rule overlap
+- **👁️ Real-time Monitoring** - Live watch mode with smooth, non-scrolling updates
+- **🎨 Intelligent Terminal Detection** - Automatic light/dark mode detection using OSC escape sequences
+- **📊 Advanced Violation Tracking** - SQLite persistence with historical analysis and configuration caching
+- **⚙️ User Preferences System** - Customizable defaults and behavior with `--config` management
+- **📋 PRD Generation** - Creates task-master compatible PRD files for automated project planning
+- **⚡ Performance Optimized** - Sub-second response times with smart caching and database optimization
+- **📂 Flexible Data Storage** - Project-scoped or global data directory options
 
 ## 🚀 Quick Start
 
 ```bash
-# Install dependencies
-npm install
+# Install globally
+npm install -g @sidequest/code-quality-orchestrator
 
-# Start watching with auto-detected colors
-npm run :watch
+# Or run directly with npx
+npx @sidequest/code-quality-orchestrator --help
 
-# Force dark mode for black terminals
-npm run watch:dark
+# First run triggers interactive setup
+sidequest --watch
 
-# Force light mode for white terminals  
-npm run watch:light
+# Skip setup for quick runs
+sidequest --watch --skip-setup
 
-# Include ESLint analysis
-npm run watch:enhanced
+# Configuration management
+sidequest --config              # Show current preferences
+sidequest --config edit         # Edit preferences file
+sidequest --config reset        # Reset to defaults
 
-# One-time analysis
-npx tsx cli.ts --include-eslint
+# Analysis modes
+sidequest --watch               # TypeScript compilation checking (default)
+sidequest --watch --include-eslint  # Add ESLint analysis (optional)
+sidequest --include-any         # Include 'any' pattern checking (optional)
+
+# Terminal themes
+sidequest --watch --color-scheme auto   # Auto-detect (default)
+sidequest --watch --color-scheme dark   # Force dark theme
+sidequest --watch --color-scheme light  # Force light theme
+
+# Output formats
+sidequest --verbose             # Detailed JSON output
+sidequest --prd                 # Generate PRD for task management
+sidequest --burndown            # Show historical trends
 ```
 
 ## 📊 Watch Mode Display
@@ -66,6 +125,61 @@ Today's Progress:
 Press Ctrl+C to stop monitoring...
 ```
 
+## ⚙️ Configuration System
+
+### Interactive First-Run Setup
+
+On first use, the tool guides you through configuration:
+
+1. **Analysis Scope**: Choose errors-only, warnings-and-errors, or complete analysis
+2. **Tool Separation**: Learn about TypeScript vs ESLint separation of concerns  
+3. **Terminal Colors**: Auto-detect or manual light/dark theme selection
+4. **Output Detail**: Concise summaries vs verbose JSON output
+5. **Helpful Hints**: Enable/disable educational warnings and tips
+
+### Preferences Management
+
+```bash
+# View current configuration
+sidequest --config
+
+# Edit preferences file
+sidequest --config edit
+
+# Reset to defaults
+sidequest --config reset
+
+# Skip first-run setup
+sidequest --watch --skip-setup
+```
+
+### Configuration File
+
+Stored at `~/.sidequest-cqo/user-preferences.json`:
+
+```json
+{
+  "preferences": {
+    "analysis": {
+      "defaultMode": "errors-only",
+      "strictMode": false,
+      "includePatternChecking": false,
+      "defaultPath": "app"
+    },
+    "warnings": {
+      "showTscEslintSeparationWarning": true,
+      "showPerformanceWarnings": true,
+      "showConfigurationHints": true
+    },
+    "display": {
+      "colorScheme": "auto",
+      "verboseOutput": false,
+      "showProgressIndicators": true
+    }
+  }
+}
+```
+
 ## 🎨 Terminal Color Support
 
 Automatic detection and fallback support:
@@ -94,42 +208,122 @@ code-quality-orchestrator/
 
 ## 🛠 CLI Commands
 
-### Watch Mode
+### Core Analysis
 ```bash
-npm run :watch           # Auto-detected colors
-npm run watch:light      # Light terminals (Novel/Man Page)
-npm run watch:dark       # Dark terminals (Pro theme)
-npm run watch:enhanced   # Include ESLint analysis
+sidequest --watch                   # TypeScript compilation checking (default)
+sidequest --watch --include-eslint  # Add ESLint analysis (optional)
+sidequest --include-any             # Include 'any' pattern checking (optional)
+sidequest --path <dir>              # Target directory (default: app)
 ```
 
-### Analysis Options
+### Configuration Management  
 ```bash
---include-eslint         # Include ESLint violations
---include-any            # Include TypeScript 'any' violations  
---path <dir>             # Target directory (default: app)
---color-scheme <mode>    # Color mode: auto, light, dark
+sidequest --config                  # Show current preferences
+sidequest --config edit             # Edit preferences file
+sidequest --config reset            # Reset to defaults
+sidequest --skip-setup              # Skip first-run interactive setup
 ```
 
-### Output Options
+### Terminal & Display
 ```bash
---json                   # JSON output format
---burndown               # Show burndown analysis
+sidequest --color-scheme auto        # Auto-detect (default)
+sidequest --color-scheme light       # Light terminals (Novel/Man Page)
+sidequest --color-scheme dark        # Dark terminals (Pro theme)
+sidequest --verbose                  # Detailed JSON output format
+```
+
+### Advanced Features
+```bash
+sidequest --burndown                 # Show historical violation trends
+sidequest --prd                      # Generate PRD file for task master
+sidequest --data-dir <dir>           # Custom database directory
+sidequest --debug-terminal           # Debug color detection
+sidequest --reset-session            # Reset session baseline
 ```
 
 ### Examples
 ```bash
-# Watch with auto-detected colors
-npm run :watch
+# First run with interactive setup
+sidequest --watch
 
-# One-time analysis with ESLint
-npx tsx cli.ts --include-eslint --path src
+# TypeScript-only analysis (recommended)
+sidequest --watch --color-scheme auto
+
+# Full analysis with ESLint (optional)
+sidequest --watch --include-eslint --include-any
+
+# One-time analysis with custom path
+sidequest --include-eslint --path src
+
+# Generate PRD for Claude Task Master
+sidequest --prd --path ./src
+
+# Project-scoped data directory
+sidequest --data-dir ./project-quality --watch
+
+# Debug color issues
+sidequest --debug-terminal
+sidequest --data-dir ~/.cqo-data --verbose
 
 # Debug terminal color detection
-npx tsx cli.ts --debug-terminal
+sidequest --debug-terminal
 
 # Show historical trends
-npm run burndown
+sidequest --burndown
 ```
+
+## 📋 PRD Generation for Task Management
+
+SideQuest can generate comprehensive Product Requirements Documents (PRDs) for automatic task breakdown and project planning.
+
+### Claude Task Master Integration
+
+Generate PRD files optimized for [Claude Task Master](https://github.com/eyaltoledano/claude-task-master):
+
+```bash
+# Generate PRD in project root
+sidequest --prd
+
+# Creates: CODE_QUALITY_PRD.md
+```
+
+### PRD Contents
+
+The generated PRD includes:
+
+- **Executive Summary** with violation metrics
+- **Problem Statement** with current state analysis  
+- **Detailed Requirements** prioritized by impact
+- **Technical Approach** with phased implementation
+- **Success Metrics** with specific targets
+- **Resource Requirements** and timeline estimates
+
+### Example PRD Structure
+
+```markdown
+# Code Quality Improvement PRD
+Generated: 2024-01-15
+Target: ./src
+
+## Executive Summary
+This codebase requires systematic improvements to address 127 violations across 23 files...
+
+## Priority 1: Critical Errors (5 items)
+- **type-annotation**: Missing return type (src/utils.ts:45)
+- **no-explicit-any**: Unsafe any usage (src/types.ts:12)
+
+## Priority 2: High-Impact Categories  
+- **type-annotation**: 45 violations (35.4% of total)
+- **eslint-style**: 32 violations (25.2% of total)
+```
+
+### Integration Workflow
+
+1. **Analysis**: `sidequest --watch` to identify all code quality issues
+2. **PRD Generation**: `sidequest --prd` to create structured requirements document  
+3. **Task Master**: Import `CODE_QUALITY_PRD.md` for automatic task breakdown
+4. **Implementation**: Follow generated project plan with priorities
+5. **Validation**: `sidequest --verbose` to verify improvements
 
 ## 🏗 Development
 
@@ -205,26 +399,63 @@ CQO_MAX_HISTORY_DAYS=30
 
 ## 🐛 Troubleshooting
 
-### Color Issues
-If colors appear wrong:
+### Common Command Issues
 ```bash
-# Force dark mode
-npm run watch:dark
+# ❌ Don't use (will fail)
+npm sidequest:start
+npm run sidequest --watch
 
-# Force light mode  
-npm run watch:light
+# ✅ Use these instead  
+npm run sidequest:start
+npm run sidequest:report
+```
 
-# Debug detection
-npx tsx cli.ts --debug-terminal
+### Setup Issues
+**Setup running every time?**
+```bash
+# Check if preferences exist
+ls ~/.sidequest-cqo/user-preferences.json
+
+# Reset if corrupted
+npm run sidequest:config:reset
+
+# Skip setup entirely (for automation)
+npm run sidequest:report
+```
+
+### Color Issues
+**Colors look wrong or unreadable?**
+```bash
+# Force dark mode (for black terminals)
+npm run sidequest:watch:dark
+
+# Force light mode (for white terminals) 
+npm run sidequest:watch:light
+
+# Debug automatic detection
+npm run sidequest:debug:terminal
 ```
 
 ### Performance Issues
+**Analysis taking too long?**
 ```bash
-# Check watch cycle performance
-npm run :watch --debug
+# Check performance with debug info
+npm run sidequest:debug:verbose
 
-# Reduce target scope
-npx tsx cli.ts --path specific/folder
+# Reduce scope to specific folder
+npm run sidequest:analyze -- --path src/specific-folder
+
+# Use TypeScript-only mode (faster)
+npm run sidequest:analyze
+```
+
+### For LLMs/Automation
+**Need clean JSON output?**
+```bash
+# Use report commands - no interactive prompts
+npm run sidequest:report             # TypeScript only
+npm run sidequest:report:eslint      # Include ESLint  
+npm run sidequest:report:strict      # Strict mode
 ```
 
 ## 🤝 Contributing

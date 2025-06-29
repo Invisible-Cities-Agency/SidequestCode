@@ -3,18 +3,18 @@
  * Handles database initialization, service configuration, and environment setup
  */
 
-import * as path from 'path';
-import * as fs from 'fs/promises';
-import { fileURLToPath } from 'url';
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { initializeDatabase, closeDatabase } from '../database/connection.js';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import { getStorageService, resetStorageService } from './storage-service.js';
-import type { 
-  DatabaseConfig, 
-  StorageServiceConfig 
+import type {
+  DatabaseConfig,
+  StorageServiceConfig
 } from '../database/types.js';
 import type { Kysely } from 'kysely';
 
@@ -30,21 +30,21 @@ export interface OrchestratorServiceConfig {
     enableMetrics?: boolean;
     maxHistoryDays?: number;
   };
-  
+
   // Performance settings
   performance: {
     batchSize?: number;
     maxMemoryMB?: number;
     enableCaching?: boolean;
   };
-  
+
   // Rule scheduling
   scheduling: {
     defaultFrequencyMs?: number;
     adaptivePolling?: boolean;
     maxConcurrentChecks?: number;
   };
-  
+
   // Watch mode settings
   watch: {
     enabled?: boolean;
@@ -52,7 +52,7 @@ export interface OrchestratorServiceConfig {
     debounceMs?: number;
     autoCleanup?: boolean;
   };
-  
+
   // Logging and monitoring
   monitoring: {
     enablePerformanceMetrics?: boolean;
@@ -67,7 +67,7 @@ export interface OrchestratorServiceConfig {
 
 export const DEFAULT_CONFIG: OrchestratorServiceConfig = {
   database: {
-    path: './data/code-quality.db',
+    path: process.env['CQO_DB_PATH'] || './data/code-quality.db',
     enableWAL: true,
     enableMetrics: true,
     maxHistoryDays: 30
@@ -78,7 +78,7 @@ export const DEFAULT_CONFIG: OrchestratorServiceConfig = {
     enableCaching: true
   },
   scheduling: {
-    defaultFrequencyMs: 30000, // 30 seconds
+    defaultFrequencyMs: 30_000, // 30 seconds
     adaptivePolling: true,
     maxConcurrentChecks: 3
   },
@@ -112,11 +112,11 @@ export class ConfigManager {
    * Deep merge configuration objects
    */
   private mergeConfigs(
-    defaultConfig: OrchestratorServiceConfig, 
+    defaultConfig: OrchestratorServiceConfig,
     userConfig: Partial<OrchestratorServiceConfig>
   ): OrchestratorServiceConfig {
     const merged = { ...defaultConfig };
-    
+
     for (const [key, value] of Object.entries(userConfig)) {
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         merged[key as keyof OrchestratorServiceConfig] = {
@@ -127,7 +127,7 @@ export class ConfigManager {
         (merged as any)[key] = value;
       }
     }
-    
+
     return merged;
   }
 
@@ -143,7 +143,7 @@ export class ConfigManager {
    */
   updateConfig(updates: Partial<OrchestratorServiceConfig>): void {
     this.config = this.mergeConfigs(this.config, updates);
-    
+
     // Mark as needing reinitialization
     this.databaseInitialized = false;
     this.servicesInitialized = false;
@@ -158,16 +158,16 @@ export class ConfigManager {
     }
 
     // Ensure data directory exists
-    const dbPath = this.config.database.path;
-    const dbDir = path.dirname(dbPath);
+    const databasePath = this.config.database.path;
+    const dbDir = path.dirname(databasePath);
     await fs.mkdir(dbDir, { recursive: true });
 
     // Create database configuration
     const databaseConfig: DatabaseConfig = {
-      path: dbPath,
-      enableWAL: this.config.database.enableWAL,
+      path: databasePath,
+      enableWAL: this.config.database.enableWAL ?? true,
       pragmas: {
-        journal_mode: this.config.database.enableWAL ? 'WAL' : 'DELETE',
+        journal_mode: (this.config.database.enableWAL ?? true) ? 'WAL' : 'DELETE',
         synchronous: 'NORMAL',
         cache_size: Math.floor((this.config.performance.maxMemoryMB! * 1024 * 1024) / 1024), // Convert MB to KB
         foreign_keys: 'ON',
@@ -180,13 +180,13 @@ export class ConfigManager {
       }
     };
 
-    console.log(`[ConfigManager] Initializing database at: ${dbPath}`);
-    const db = await initializeDatabase(databaseConfig);
-    
+    console.log(`[ConfigManager] Initializing database at: ${databasePath}`);
+    const database = await initializeDatabase(databaseConfig);
+
     this.databaseInitialized = true;
     console.log('[ConfigManager] Database initialized successfully');
-    
-    return db;
+
+    return database;
   }
 
   /**
@@ -214,13 +214,13 @@ export class ConfigManager {
     const storageConfig: StorageServiceConfig = {
       database: {
         path: this.config.database.path,
-        enableWAL: this.config.database.enableWAL,
+        enableWAL: this.config.database.enableWAL ?? true,
         pragmas: {},
         migrations: { enabled: false, path: '' }
       },
-      batchSize: this.config.performance.batchSize,
-      maxHistoryAge: this.config.database.maxHistoryDays,
-      enablePerformanceMetrics: this.config.monitoring.enablePerformanceMetrics
+      batchSize: this.config.performance.batchSize ?? 1000,
+      maxHistoryAge: this.config.database.maxHistoryDays ?? 30,
+      enablePerformanceMetrics: this.config.monitoring.enablePerformanceMetrics ?? true
     };
 
     // Initialize storage service
@@ -337,9 +337,9 @@ export class ConfigManager {
 
       console.log('[ConfigManager] Maintenance completed successfully');
     } catch (error) {
-      const errorMsg = `Maintenance failed: ${error}`;
-      results.errors.push(errorMsg);
-      console.error('[ConfigManager]', errorMsg);
+      const errorMessage = `Maintenance failed: ${error}`;
+      results.errors.push(errorMessage);
+      console.error('[ConfigManager]', errorMessage);
     }
 
     return results;
@@ -374,7 +374,7 @@ export class ConfigManager {
    */
   static async loadFromFile(configPath: string): Promise<ConfigManager> {
     try {
-      const configData = await fs.readFile(configPath, 'utf-8');
+      const configData = await fs.readFile(configPath, 'utf8');
       const config = JSON.parse(configData) as Partial<OrchestratorServiceConfig>;
       return new ConfigManager(config);
     } catch (error) {
@@ -390,10 +390,10 @@ export class ConfigManager {
     try {
       const configDir = path.dirname(configPath);
       await fs.mkdir(configDir, { recursive: true });
-      
+
       const configData = JSON.stringify(this.config, null, 2);
       await fs.writeFile(configPath, configData, 'utf-8');
-      
+
       console.log(`[ConfigManager] Configuration saved to: ${configPath}`);
     } catch (error) {
       console.error(`[ConfigManager] Failed to save config to ${configPath}:`, error);
@@ -404,68 +404,72 @@ export class ConfigManager {
   /**
    * Create configuration for different environments
    */
-  static createEnvironmentConfig(env: 'development' | 'test' | 'production'): ConfigManager {
+  static createEnvironmentConfig(environment: 'development' | 'test' | 'production'): ConfigManager {
     const baseConfig = { ...DEFAULT_CONFIG };
 
-    switch (env) {
-      case 'development':
-        return new ConfigManager({
-          ...baseConfig,
-          database: {
-            ...baseConfig.database,
-            path: './data/dev-code-quality.db'
-          },
-          monitoring: {
-            ...baseConfig.monitoring,
-            logLevel: 'debug'
-          },
-          watch: {
-            ...baseConfig.watch,
-            intervalMs: 1000 // Faster updates for development
-          }
-        });
+    switch (environment) {
+    case 'development': {
+      return new ConfigManager({
+        ...baseConfig,
+        database: {
+          ...baseConfig.database,
+          path: './data/dev-code-quality.db'
+        },
+        monitoring: {
+          ...baseConfig.monitoring,
+          logLevel: 'debug'
+        },
+        watch: {
+          ...baseConfig.watch,
+          intervalMs: 1000 // Faster updates for development
+        }
+      });
+    }
 
-      case 'test':
-        return new ConfigManager({
-          ...baseConfig,
-          database: {
-            ...baseConfig.database,
-            path: ':memory:', // In-memory database for tests
-            maxHistoryDays: 1
-          },
-          performance: {
-            ...baseConfig.performance,
-            batchSize: 10 // Smaller batches for testing
-          },
-          monitoring: {
-            ...baseConfig.monitoring,
-            enablePerformanceMetrics: false,
-            logLevel: 'warn'
-          }
-        });
+    case 'test': {
+      return new ConfigManager({
+        ...baseConfig,
+        database: {
+          ...baseConfig.database,
+          path: ':memory:', // In-memory database for tests
+          maxHistoryDays: 1
+        },
+        performance: {
+          ...baseConfig.performance,
+          batchSize: 10 // Smaller batches for testing
+        },
+        monitoring: {
+          ...baseConfig.monitoring,
+          enablePerformanceMetrics: false,
+          logLevel: 'warn'
+        }
+      });
+    }
 
-      case 'production':
-        return new ConfigManager({
-          ...baseConfig,
-          database: {
-            ...baseConfig.database,
-            path: './data/prod-code-quality.db',
-            maxHistoryDays: 90 // Longer retention in production
-          },
-          performance: {
-            ...baseConfig.performance,
-            batchSize: 200, // Larger batches for efficiency
-            maxMemoryMB: 512
-          },
-          monitoring: {
-            ...baseConfig.monitoring,
-            logLevel: 'info',
-            metricsRetentionDays: 30
-          }
-        });
+    case 'production': {
+      return new ConfigManager({
+        ...baseConfig,
+        database: {
+          ...baseConfig.database,
+          path: './data/prod-code-quality.db',
+          maxHistoryDays: 90 // Longer retention in production
+        },
+        performance: {
+          ...baseConfig.performance,
+          batchSize: 200, // Larger batches for efficiency
+          maxMemoryMB: 512
+        },
+        monitoring: {
+          ...baseConfig.monitoring,
+          logLevel: 'info',
+          metricsRetentionDays: 30
+        }
+      });
+    }
 
-      default:
-        return new ConfigManager(baseConfig);
+    default: {
+      return new ConfigManager(baseConfig);
+    }
     }
   }
 }
@@ -482,8 +486,8 @@ export function validateConfig(config: Partial<OrchestratorServiceConfig>): stri
 
   // Validate database path
   if (config.database?.path && config.database.path !== ':memory:') {
-    const dbPath = config.database.path;
-    if (!path.isAbsolute(dbPath) && !dbPath.startsWith('./')) {
+    const databasePath = config.database.path;
+    if (!path.isAbsolute(databasePath) && !databasePath.startsWith('./')) {
       errors.push('Database path must be absolute or relative (starting with ./)');
     }
   }
@@ -514,6 +518,6 @@ export function validateConfig(config: Partial<OrchestratorServiceConfig>): stri
  * Get configuration based on environment
  */
 export function getEnvironmentConfig(): ConfigManager {
-  const env = process.env.NODE_ENV as 'development' | 'test' | 'production' || 'development';
-  return ConfigManager.createEnvironmentConfig(env);
+  const environment = process.env['NODE_ENV'] as 'development' | 'test' | 'production' || 'development';
+  return ConfigManager.createEnvironmentConfig(environment);
 }

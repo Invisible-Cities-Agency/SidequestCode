@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "preferences": {
+    "analysis": {
+      "defaultMode": "errors-only",
+      "strictMode": false,
+      "includePatternChecking": false
+    },
+    "warnings": {
+      "showTscEslintSeparationWarning": false,
+      "showPerformanceWarnings": true,
+      "showConfigurationHints": true,
+      "showFirstTimeHelp": true
+    },
+    "display": {
+      "colorScheme": "auto",
+      "verboseOutput": false,
+      "showProgressIndicators": true
+    },
+    "watch": {
+      "autoDetectConfigChanges": true,
+      "debounceMs": 500,
+      "intervalMs": 3000
+    }
+  },
+  "userChoices": {
+    "hasSeenTscEslintWarning": false,
+    "hasConfiguredSeparationOfConcerns": true,
+    "hasCompletedFirstRun": true,
+    "preferredEngine": "both-separate",
+    "lastConfigUpdate": "2025-06-29T08:04:13.967Z"
+  }
+}

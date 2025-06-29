@@ -5,30 +5,26 @@
 
 import { getDatabase } from '../database/connection.js';
 import { sql } from 'kysely';
-import { 
-  violationsToDbFormat, 
-  computeViolationDeltas, 
+import {
+  violationsToDbFormat as violationsToDatabaseFormat,
+  computeViolationDeltas,
   prepareDeltasForInsertion,
   chunk,
-  formatDateTimeForDb,
+  formatDateTimeForDb as formatDateTimeForDatabase,
   createPerformanceMetric,
   validateViolation,
   sanitizeViolation
 } from '../database/utils.js';
-import type { 
-  DatabaseSchema,
+import type {
   NewViolation,
   Violation,
-  RuleCheck,
-  NewRuleCheck,
   ViolationHistory,
   RuleSchedule,
   NewRuleSchedule,
-  RuleScheduleUpdate,
   ViolationSummaryItem,
   RulePerformanceItem,
-  ViolationQueryParams,
-  HistoryQueryParams,
+  ViolationQueryParameters,
+  HistoryQueryParameters,
   DashboardData,
   StorageServiceConfig
 } from '../database/types.js';
@@ -51,7 +47,7 @@ export class StorageService {
       maxHistoryAge: config.maxHistoryAge || 30,
       enablePerformanceMetrics: config.enablePerformanceMetrics || true
     };
-    
+
     this.batchSize = this.config.batchSize!;
     this.maxHistoryAge = this.config.maxHistoryAge!;
     this.enableMetrics = this.config.enablePerformanceMetrics!;
@@ -70,16 +66,16 @@ export class StorageService {
     errors: string[];
   }> {
     const startTime = performance.now();
-    const db = getDatabase();
-    
+    const database = getDatabase();
+
     // Convert to database format
-    const dbViolations = violationsToDbFormat(violations);
-    
+    const databaseViolations = violationsToDatabaseFormat(violations);
+
     // Validate all violations
     const errors: string[] = [];
     const validViolations: NewViolation[] = [];
-    
-    for (const violation of dbViolations) {
+
+    for (const violation of databaseViolations) {
       const validationErrors = validateViolation(violation);
       if (validationErrors.length > 0) {
         errors.push(`Violation ${violation.hash}: ${validationErrors.join(', ')}`);
@@ -94,12 +90,12 @@ export class StorageService {
     if (validViolations.length > 0) {
       // Process in batches for performance
       const batches = chunk(validViolations, this.batchSize);
-      
+
       for (const batch of batches) {
-        const result = await db.transaction().execute(async (trx) => {
+        const result = await database.transaction().execute(async(trx) => {
           let batchInserted = 0;
           let batchUpdated = 0;
-          
+
           for (const violation of batch) {
             try {
               // Try to insert, handle conflicts by updating last_seen_at
@@ -109,13 +105,13 @@ export class StorageService {
                 .onConflict(oc => oc
                   .column('hash')
                   .doUpdateSet({
-                    last_seen_at: formatDateTimeForDb(),
+                    last_seen_at: formatDateTimeForDatabase(),
                     status: 'active' // Reactivate if previously resolved
                   })
                 )
                 .returning(['id'])
                 .executeTakeFirst();
-              
+
               if (insertResult) {
                 // Check if this was an insert or update by querying the violation
                 const existingViolation = await trx
@@ -123,7 +119,7 @@ export class StorageService {
                   .select(['first_seen_at', 'last_seen_at'])
                   .where('hash', '=', violation.hash)
                   .executeTakeFirst();
-                
+
                 if (existingViolation?.first_seen_at === existingViolation?.last_seen_at) {
                   batchInserted++;
                 } else {
@@ -134,17 +130,17 @@ export class StorageService {
               errors.push(`Failed to store violation ${violation.hash}: ${error}`);
             }
           }
-          
+
           return { batchInserted, batchUpdated };
         });
-        
+
         inserted += result.batchInserted;
         updated += result.batchUpdated;
       }
     }
 
     const executionTime = performance.now() - startTime;
-    
+
     // Record performance metric
     if (this.enableMetrics) {
       await this.recordPerformanceMetric(
@@ -161,42 +157,42 @@ export class StorageService {
   /**
    * Get violations with flexible filtering
    */
-  async getViolations(params: ViolationQueryParams = {}): Promise<Violation[]> {
-    const db = getDatabase();
-    let query = db.selectFrom('violations').selectAll();
+  async getViolations(parameters: ViolationQueryParameters = {}): Promise<Violation[]> {
+    const database = getDatabase();
+    let query = database.selectFrom('violations').selectAll();
 
     // Apply filters
-    if (params.status) {
-      query = query.where('status', '=', params.status);
+    if (parameters.status) {
+      query = query.where('status', '=', parameters.status);
     }
-    
-    if (params.categories && params.categories.length > 0) {
-      query = query.where('category', 'in', params.categories);
+
+    if (parameters.categories && parameters.categories.length > 0) {
+      query = query.where('category', 'in', parameters.categories);
     }
-    
-    if (params.sources && params.sources.length > 0) {
-      query = query.where('source', 'in', params.sources);
+
+    if (parameters.sources && parameters.sources.length > 0) {
+      query = query.where('source', 'in', parameters.sources);
     }
-    
-    if (params.severities && params.severities.length > 0) {
-      query = query.where('severity', 'in', params.severities);
+
+    if (parameters.severities && parameters.severities.length > 0) {
+      query = query.where('severity', 'in', parameters.severities);
     }
-    
-    if (params.file_paths && params.file_paths.length > 0) {
-      query = query.where('file_path', 'in', params.file_paths);
+
+    if (parameters.file_paths && parameters.file_paths.length > 0) {
+      query = query.where('file_path', 'in', parameters.file_paths);
     }
-    
-    if (params.since) {
-      query = query.where('last_seen_at', '>=', params.since);
+
+    if (parameters.since) {
+      query = query.where('last_seen_at', '>=', parameters.since);
     }
 
     // Apply pagination
-    if (params.limit) {
-      query = query.limit(Math.min(params.limit, 1000)); // Cap at 1000
+    if (parameters.limit) {
+      query = query.limit(Math.min(parameters.limit, 1000)); // Cap at 1000
     }
-    
-    if (params.offset) {
-      query = query.offset(params.offset);
+
+    if (parameters.offset) {
+      query = query.offset(parameters.offset);
     }
 
     // Order by most recent first
@@ -209,31 +205,43 @@ export class StorageService {
    * Get violation summary for dashboard
    */
   async getViolationSummary(): Promise<ViolationSummaryItem[]> {
-    const db = getDatabase();
-    
-    return await db
-      .selectFrom('violation_summary')
-      .selectAll()
-      .execute();
+    const database = getDatabase();
+
+    // Create summary from violations table
+    return await database
+      .selectFrom('violations')
+      .select([
+        'rule_id',
+        'category',
+        'severity',
+        'source',
+        sql<number>`COUNT(*)`.as('count'),
+        sql<number>`COUNT(DISTINCT file_path)`.as('affected_files'),
+        sql<string>`MIN(first_seen_at)`.as('first_occurrence'),
+        sql<string>`MAX(last_seen_at)`.as('last_occurrence')
+      ])
+      .where('status', '=', 'active')
+      .groupBy(['rule_id', 'category', 'severity', 'source'])
+      .execute() as ViolationSummaryItem[];
   }
 
   /**
    * Mark violations as resolved
    */
   async resolveViolations(hashes: string[]): Promise<number> {
-    const db = getDatabase();
-    
-    const result = await db
+    const database = getDatabase();
+
+    const result = await database
       .updateTable('violations')
-      .set({ 
+      .set({
         status: 'resolved',
-        last_seen_at: formatDateTimeForDb()
+        last_seen_at: formatDateTimeForDatabase()
       })
       .where('hash', 'in', hashes)
       .where('status', '=', 'active')
       .execute();
-    
-    return Number(result.numUpdatedRows || 0);
+
+    return result.reduce((sum, res) => sum + Number(res.numUpdatedRows || 0), 0);
   }
 
   // ========================================================================
@@ -243,20 +251,20 @@ export class StorageService {
   /**
    * Start a new rule check
    */
-  async startRuleCheck(ruleId: string, engine: 'typescript' | 'eslint'): Promise<number> {
-    const db = getDatabase();
-    
-    const result = await db
+  async startRuleCheck(rule: string, engine: 'typescript' | 'eslint'): Promise<number> {
+    const database = getDatabase();
+
+    const result = await database
       .insertInto('rule_checks')
       .values({
-        rule_id: ruleId,
+        rule_id: rule,
         engine,
         status: 'running',
-        started_at: formatDateTimeForDb()
+        started_at: formatDateTimeForDatabase()
       })
       .returning('id')
       .executeTakeFirst();
-    
+
     return result?.id || 0;
   }
 
@@ -264,19 +272,19 @@ export class StorageService {
    * Complete a rule check with results
    */
   async completeRuleCheck(
-    checkId: number, 
-    violationsFound: number, 
+    checkId: number,
+    violationsFound: number,
     executionTimeMs: number,
     filesChecked: number = 0,
     filesWithViolations: number = 0
   ): Promise<void> {
-    const db = getDatabase();
-    
-    await db
+    const database = getDatabase();
+
+    await database
       .updateTable('rule_checks')
       .set({
         status: 'completed',
-        completed_at: formatDateTimeForDb(),
+        completed_at: formatDateTimeForDatabase(),
         violations_found: violationsFound,
         execution_time_ms: executionTimeMs,
         files_checked: filesChecked,
@@ -290,13 +298,13 @@ export class StorageService {
    * Mark rule check as failed
    */
   async failRuleCheck(checkId: number, errorMessage: string): Promise<void> {
-    const db = getDatabase();
-    
-    await db
+    const database = getDatabase();
+
+    await database
       .updateTable('rule_checks')
       .set({
         status: 'failed',
-        completed_at: formatDateTimeForDb(),
+        completed_at: formatDateTimeForDatabase(),
         error_message: errorMessage
       })
       .where('id', '=', checkId)
@@ -311,88 +319,88 @@ export class StorageService {
    * Record violation deltas for historical tracking
    */
   async recordViolationDeltas(
-    checkId: number, 
+    checkId: number,
     currentViolationHashes: string[]
   ): Promise<{
     added: number;
     removed: number;
     unchanged: number;
   }> {
-    const db = getDatabase();
-    
+    const database = getDatabase();
+
     // Get previous active violation hashes
-    const previousViolations = await db
+    const previousViolations = await database
       .selectFrom('violations')
       .select('hash')
       .where('status', '=', 'active')
       .execute();
-    
+
     const previousHashes = previousViolations.map(v => v.hash);
-    
+
     // Compute deltas
     const deltas = computeViolationDeltas(previousHashes, currentViolationHashes);
-    
+
     // Prepare for insertion
     const deltaRecords = prepareDeltasForInsertion(checkId, deltas);
-    
+
     // Insert in batches
     if (deltaRecords.length > 0) {
       const batches = chunk(deltaRecords, this.batchSize);
-      
+
       for (const batch of batches) {
-        await db
+        await database
           .insertInto('violation_history')
           .values(batch)
           .execute();
       }
     }
-    
+
     // Count by action type
     const counts = {
       added: deltas.filter(d => d.action === 'added').length,
       removed: deltas.filter(d => d.action === 'removed').length,
       unchanged: deltas.filter(d => d.action === 'unchanged').length
     };
-    
+
     return counts;
   }
 
   /**
    * Get violation history for analysis
    */
-  async getViolationHistory(params: HistoryQueryParams = {}): Promise<ViolationHistory[]> {
-    const db = getDatabase();
-    let query = db
+  async getViolationHistory(parameters: HistoryQueryParameters = {}): Promise<ViolationHistory[]> {
+    const database = getDatabase();
+    let query = database
       .selectFrom('violation_history')
       .selectAll()
       .orderBy('recorded_at', 'desc');
 
     // Apply filters
-    if (params.since) {
-      query = query.where('recorded_at', '>=', params.since);
+    if (parameters.since) {
+      query = query.where('recorded_at', '>=', parameters.since);
     }
-    
-    if (params.until) {
-      query = query.where('recorded_at', '<=', params.until);
+
+    if (parameters.until) {
+      query = query.where('recorded_at', '<=', parameters.until);
     }
-    
-    if (params.actions && params.actions.length > 0) {
-      query = query.where('action', 'in', params.actions);
+
+    if (parameters.actions && parameters.actions.length > 0) {
+      query = query.where('action', 'in', parameters.actions);
     }
-    
-    if (params.rule_ids && params.rule_ids.length > 0) {
+
+    if (parameters.rule_ids && parameters.rule_ids.length > 0) {
       query = query
         .innerJoin('rule_checks', 'violation_history.check_id', 'rule_checks.id')
-        .where('rule_checks.rule_id', 'in', params.rule_ids);
+        .where('rule_checks.rule_id', 'in', parameters.rule_ids);
     }
 
     // Apply pagination
-    if (params.limit) {
-      query = query.limit(Math.min(params.limit, 1000));
+    if (parameters.limit) {
+      query = query.limit(Math.min(parameters.limit, 1000));
     }
-    
-    if (params.offset) {
-      query = query.offset(params.offset);
+
+    if (parameters.offset) {
+      query = query.offset(parameters.offset);
     }
 
     return await query.execute();
@@ -406,27 +414,33 @@ export class StorageService {
    * Initialize or update rule schedule
    */
   async upsertRuleSchedule(schedule: NewRuleSchedule): Promise<number> {
-    const db = getDatabase();
-    
-    const result = await db
+    const database = getDatabase();
+
+    // Convert boolean to number for SQLite compatibility
+    const sqliteSchedule = {
+      ...schedule,
+      enabled: (schedule.enabled ? 1 : 0) as any
+    };
+
+    const result = await database
       .insertInto('rule_schedules')
       .values({
-        ...schedule,
-        created_at: formatDateTimeForDb(),
-        updated_at: formatDateTimeForDb()
+        ...sqliteSchedule,
+        created_at: formatDateTimeForDatabase(),
+        updated_at: formatDateTimeForDatabase()
       })
       .onConflict(oc => oc
         .columns(['rule_id', 'engine'])
         .doUpdateSet({
-          enabled: schedule.enabled,
+          enabled: sqliteSchedule.enabled as any,
           priority: schedule.priority,
           check_frequency_ms: schedule.check_frequency_ms,
-          updated_at: formatDateTimeForDb()
+          updated_at: formatDateTimeForDatabase()
         })
       )
       .returning('id')
       .executeTakeFirst();
-    
+
     return result?.id || 0;
   }
 
@@ -434,14 +448,14 @@ export class StorageService {
    * Get next rules to check based on schedule
    */
   async getNextRulesToCheck(limit: number = 5): Promise<RuleSchedule[]> {
-    const db = getDatabase();
-    
-    const now = formatDateTimeForDb();
-    
-    return await db
+    const database = getDatabase();
+
+    const now = formatDateTimeForDatabase();
+
+    return await database
       .selectFrom('rule_schedules')
       .selectAll()
-      .where('enabled', '=', 1) // SQLite uses 1 for true
+      .where('enabled', '=', 1)
       .where(eb => eb.or([
         eb('next_run_at', 'is', null),
         eb('next_run_at', '<=', now)
@@ -456,12 +470,23 @@ export class StorageService {
    * Get rule performance data
    */
   async getRulePerformance(): Promise<RulePerformanceItem[]> {
-    const db = getDatabase();
-    
-    return await db
-      .selectFrom('rule_performance')
-      .selectAll()
-      .execute();
+    const database = getDatabase();
+
+    // Create performance stats from rule_checks table
+    return await database
+      .selectFrom('rule_checks')
+      .select([
+        'rule_id',
+        'engine',
+        sql<number>`COUNT(*)`.as('total_runs'),
+        sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`.as('successful_runs'),
+        sql<number>`SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END)`.as('failed_runs'),
+        sql<number>`AVG(execution_time_ms)`.as('avg_execution_time'),
+        sql<number>`AVG(violations_found)`.as('avg_violations_found'),
+        sql<string>`MAX(started_at)`.as('last_run')
+      ])
+      .groupBy(['rule_id', 'engine'])
+      .execute() as any[];
   }
 
   // ========================================================================
@@ -472,8 +497,8 @@ export class StorageService {
    * Get comprehensive dashboard data
    */
   async getDashboardData(): Promise<DashboardData> {
-    const db = getDatabase();
-    
+    const database = getDatabase();
+
     const [
       summary,
       rulePerformance,
@@ -486,10 +511,10 @@ export class StorageService {
       this.getViolationSummary(),
       this.getRulePerformance(),
       this.getViolationHistory({ limit: 20 }),
-      db.selectFrom('violations').select(eb => eb.fn.count('id').as('count')).where('status', '=', 'active').executeTakeFirst(),
-      db.selectFrom('violations').select(sql`COUNT(DISTINCT file_path) as count`).where('status', '=', 'active').executeTakeFirst(),
-      db.selectFrom('rule_checks').select('completed_at').where('status', '=', 'completed').orderBy('completed_at', 'desc').limit(1).executeTakeFirst(),
-      db.selectFrom('rule_schedules').select('next_run_at').where('enabled', '=', 1).where('next_run_at', 'is not', null).orderBy('next_run_at', 'asc').limit(1).executeTakeFirst()
+      database.selectFrom('violations').select(eb => eb.fn.count('id').as('count')).where('status', '=', 'active').executeTakeFirst(),
+      database.selectFrom('violations').select(sql<number>`COUNT(DISTINCT file_path)`.as('count')).where('status', '=', 'active').executeTakeFirst(),
+      database.selectFrom('rule_checks').select('completed_at').where('status', '=', 'completed').orderBy('completed_at', 'desc').limit(1).executeTakeFirst(),
+      database.selectFrom('rule_schedules').select('next_run_at').where('enabled', '=', 1).where('next_run_at', 'is not', null).orderBy('next_run_at', 'asc').limit(1).executeTakeFirst()
     ]);
 
     return {
@@ -511,17 +536,17 @@ export class StorageService {
    * Record performance metric
    */
   async recordPerformanceMetric(
-    type: string, 
-    value: number, 
-    unit: string, 
+    type: string,
+    value: number,
+    unit: string,
     context?: string
   ): Promise<void> {
-    if (!this.enableMetrics) return;
-    
-    const db = getDatabase();
+    if (!this.enableMetrics) {return;}
+
+    const database = getDatabase();
     const metric = createPerformanceMetric(type, value, unit, context);
-    
-    await db
+
+    await database
       .insertInto('performance_metrics')
       .values(metric)
       .execute();
@@ -535,33 +560,33 @@ export class StorageService {
     performanceMetricsDeleted: number;
     resolvedViolationsDeleted: number;
   }> {
-    const db = getDatabase();
+    const database = getDatabase();
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - this.maxHistoryAge);
-    const cutoffDateString = formatDateTimeForDb(cutoffDate);
-    
+    const cutoffDateString = formatDateTimeForDatabase(cutoffDate);
+
     const [historyResult, metricsResult, violationsResult] = await Promise.all([
       // Clean old violation history
-      db.deleteFrom('violation_history')
+      database.deleteFrom('violation_history')
         .where('recorded_at', '<', cutoffDateString)
         .execute(),
-      
+
       // Clean old performance metrics
-      db.deleteFrom('performance_metrics')
+      database.deleteFrom('performance_metrics')
         .where('recorded_at', '<', cutoffDateString)
         .execute(),
-      
+
       // Clean old resolved violations
-      db.deleteFrom('violations')
+      database.deleteFrom('violations')
         .where('status', '=', 'resolved')
         .where('last_seen_at', '<', cutoffDateString)
         .execute()
     ]);
 
     return {
-      violationHistoryDeleted: Number(historyResult.numDeletedRows || 0),
-      performanceMetricsDeleted: Number(metricsResult.numDeletedRows || 0),
-      resolvedViolationsDeleted: Number(violationsResult.numDeletedRows || 0)
+      violationHistoryDeleted: historyResult.reduce((sum, res) => sum + Number(res.numDeletedRows || 0), 0),
+      performanceMetricsDeleted: metricsResult.reduce((sum, res) => sum + Number(res.numDeletedRows || 0), 0),
+      resolvedViolationsDeleted: violationsResult.reduce((sum, res) => sum + Number(res.numDeletedRows || 0), 0)
     };
   }
 
@@ -576,8 +601,8 @@ export class StorageService {
     oldestViolation: string | null;
     newestViolation: string | null;
   }> {
-    const db = getDatabase();
-    
+    const database = getDatabase();
+
     const [
       totalViolationsResult,
       activeViolationsResult,
@@ -586,12 +611,12 @@ export class StorageService {
       oldestResult,
       newestResult
     ] = await Promise.all([
-      db.selectFrom('violations').select(eb => eb.fn.count('id').as('count')).executeTakeFirst(),
-      db.selectFrom('violations').select(eb => eb.fn.count('id').as('count')).where('status', '=', 'active').executeTakeFirst(),
-      db.selectFrom('rule_checks').select(eb => eb.fn.count('id').as('count')).executeTakeFirst(),
-      db.selectFrom('violation_history').select(eb => eb.fn.count('id').as('count')).executeTakeFirst(),
-      db.selectFrom('violations').select('first_seen_at').orderBy('first_seen_at', 'asc').limit(1).executeTakeFirst(),
-      db.selectFrom('violations').select('last_seen_at').orderBy('last_seen_at', 'desc').limit(1).executeTakeFirst()
+      database.selectFrom('violations').select(eb => eb.fn.count('id').as('count')).executeTakeFirst(),
+      database.selectFrom('violations').select(eb => eb.fn.count('id').as('count')).where('status', '=', 'active').executeTakeFirst(),
+      database.selectFrom('rule_checks').select(eb => eb.fn.count('id').as('count')).executeTakeFirst(),
+      database.selectFrom('violation_history').select(eb => eb.fn.count('id').as('count')).executeTakeFirst(),
+      database.selectFrom('violations').select('first_seen_at').orderBy('first_seen_at', 'asc').limit(1).executeTakeFirst(),
+      database.selectFrom('violations').select('last_seen_at').orderBy('last_seen_at', 'desc').limit(1).executeTakeFirst()
     ]);
 
     return {

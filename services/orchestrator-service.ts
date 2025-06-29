@@ -3,8 +3,8 @@
  * Coordinates all services and provides unified interface
  */
 
-import { EventEmitter } from 'events';
-import type { 
+import { EventEmitter } from 'node:events';
+import type {
   IOrchestratorService,
   IStorageService,
   IPollingService,
@@ -16,9 +16,8 @@ import type {
   SystemStats
 } from './interfaces.js';
 
-import type { RuleCheckResult } from '../utils/violation-types.js';
+import type { RuleCheckResult } from './interfaces.js';
 import { ConfigManager } from './config-manager.js';
-import { getStorageService } from './storage-service.js';
 import { getPollingService } from './polling-service.js';
 import { getAnalysisService } from './analysis-service.js';
 import { getViolationTracker } from './violation-tracker.js';
@@ -33,7 +32,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
   private pollingService: IPollingService | null = null;
   private analysisService: IAnalysisService | null = null;
   private violationTracker: IViolationTracker | null = null;
-  
+
   private initialized = false;
   private watchModeActive = false;
   private watchModeInterval: NodeJS.Timeout | null = null;
@@ -55,30 +54,30 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
     }
 
     console.log('[OrchestratorService] Initializing services...');
-    
+
     try {
       // Initialize all services through config manager
       const { storageService } = await this.configManager.initializeServices();
       this.storageService = storageService;
-      
+
       // Initialize other services with storage service dependency
       this.pollingService = getPollingService(this.storageService);
       this.analysisService = getAnalysisService(this.storageService);
       this.violationTracker = getViolationTracker(this.storageService);
-      
+
       // Set up event forwarding from polling service
       this.pollingService.on('ruleStarted', (ruleId, engine) => {
         this.emit('ruleStarted', ruleId, engine);
       });
-      
+
       this.pollingService.on('ruleCompleted', (result) => {
         this.emit('ruleCompleted', result);
       });
-      
+
       this.pollingService.on('ruleFailed', (ruleId, engine, error) => {
         this.emit('ruleFailed', ruleId, engine, error);
       });
-      
+
       this.pollingService.on('cycleCompleted', (results) => {
         this.emit('cycleCompleted', results);
       });
@@ -86,7 +85,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
       this.initialized = true;
       console.log('[OrchestratorService] Initialization completed successfully');
       this.emit('initialized');
-      
+
     } catch (error) {
       console.error('[OrchestratorService] Initialization failed:', error);
       this.emit('initializationFailed', error);
@@ -101,25 +100,25 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
     }
 
     console.log('[OrchestratorService] Shutting down...');
-    
+
     try {
       // Stop watch mode if active
       if (this.watchModeActive) {
         await this.stopWatchMode();
       }
-      
+
       // Stop polling service if running
       if (this.pollingService?.isRunning()) {
         await this.pollingService.stop();
       }
-      
+
       // Shutdown config manager (closes database connections)
       await this.configManager.shutdown();
-      
+
       this.initialized = false;
       console.log('[OrchestratorService] Shutdown completed');
       this.emit('shutdown');
-      
+
     } catch (error) {
       console.error('[OrchestratorService] Shutdown error:', error);
       this.emit('shutdownError', error);
@@ -164,27 +163,42 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
 
   async startWatchMode(options: WatchModeOptions = {}): Promise<void> {
     this.ensureInitialized();
-    
+
     if (this.watchModeActive) {
       console.log('[OrchestratorService] Watch mode already active');
       return;
     }
 
     const config = this.configManager.getConfig();
-    const watchOptions = {
-      intervalMs: options.intervalMs || config.watch.intervalMs,
-      debounceMs: options.debounceMs || config.watch.debounceMs,
-      autoCleanup: options.autoCleanup !== undefined ? options.autoCleanup : config.watch.autoCleanup,
-      maxConcurrentChecks: options.maxConcurrentChecks || config.scheduling.maxConcurrentChecks
-    };
+    const watchOptions: WatchModeOptions = {};
+    if (options.intervalMs !== undefined) {
+      watchOptions.intervalMs = options.intervalMs;
+    } else if (config.watch.intervalMs !== undefined) {
+      watchOptions.intervalMs = config.watch.intervalMs;
+    }
+    if (options.debounceMs !== undefined) {
+      watchOptions.debounceMs = options.debounceMs;
+    } else if (config.watch.debounceMs !== undefined) {
+      watchOptions.debounceMs = config.watch.debounceMs;
+    }
+    if (options.autoCleanup !== undefined) {
+      watchOptions.autoCleanup = options.autoCleanup;
+    } else if (config.watch.autoCleanup !== undefined) {
+      watchOptions.autoCleanup = config.watch.autoCleanup;
+    }
+    if (options.maxConcurrentChecks !== undefined) {
+      watchOptions.maxConcurrentChecks = options.maxConcurrentChecks;
+    } else if (config.scheduling.maxConcurrentChecks !== undefined) {
+      watchOptions.maxConcurrentChecks = config.scheduling.maxConcurrentChecks;
+    }
 
     console.log('[OrchestratorService] Starting watch mode with options:', watchOptions);
-    
+
     // Start polling service
     await this.pollingService!.start();
-    
+
     // Set up watch mode interval
-    this.watchModeInterval = setInterval(async () => {
+    this.watchModeInterval = setInterval(async() => {
       try {
         await this.executeWatchCycle(watchOptions);
       } catch (error) {
@@ -205,13 +219,13 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
     }
 
     console.log('[OrchestratorService] Stopping watch mode...');
-    
+
     // Stop watch interval
     if (this.watchModeInterval) {
       clearInterval(this.watchModeInterval);
       this.watchModeInterval = null;
     }
-    
+
     // Stop polling service
     if (this.pollingService?.isRunning()) {
       await this.pollingService.stop();
@@ -230,22 +244,22 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
   // Manual Operations
   // ========================================================================
 
-  async runSingleCheck(ruleId: string, engine: 'typescript' | 'eslint'): Promise<RuleCheckResult> {
+  async runSingleCheck(rule: string, engine: 'typescript' | 'eslint'): Promise<RuleCheckResult> {
     this.ensureInitialized();
-    
-    console.log(`[OrchestratorService] Running single check: ${ruleId} (${engine})`);
-    const result = await this.pollingService!.executeRule(ruleId, engine);
-    
+
+    console.log(`[OrchestratorService] Running single check: ${rule} (${engine})`);
+    const result = await this.pollingService!.executeRule(rule, engine);
+
     this.emit('singleCheckCompleted', result);
     return result;
   }
 
   async runAllChecks(): Promise<RuleCheckResult[]> {
     this.ensureInitialized();
-    
+
     console.log('[OrchestratorService] Running all scheduled checks...');
     const results = await this.pollingService!.executeNextRules(100); // Large number to get all
-    
+
     console.log(`[OrchestratorService] Completed ${results.length} checks`);
     this.emit('allChecksCompleted', results);
     return results;
@@ -257,33 +271,33 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
 
   async updateConfiguration(config: Partial<OrchestratorConfig>): Promise<void> {
     console.log('[OrchestratorService] Updating configuration...');
-    
+
     // Update config manager
     this.configManager.updateConfig(config);
-    
+
     // If already initialized, may need to reinitialize services
     if (this.initialized) {
       console.log('[OrchestratorService] Restarting services with new configuration...');
       const wasWatchActive = this.watchModeActive;
-      
+
       if (wasWatchActive) {
         await this.stopWatchMode();
       }
-      
+
       await this.shutdown();
       await this.initialize();
-      
+
       if (wasWatchActive) {
         await this.startWatchMode();
       }
     }
-    
+
     this.emit('configurationUpdated', config);
   }
 
   getConfiguration(): OrchestratorConfig {
     const config = this.configManager.getConfig();
-    
+
     return {
       database: {
         path: config.database.path,
@@ -291,7 +305,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
         maxHistoryDays: config.database.maxHistoryDays || 30
       },
       polling: {
-        defaultFrequencyMs: config.scheduling.defaultFrequencyMs || 30000,
+        defaultFrequencyMs: config.scheduling.defaultFrequencyMs || 30_000,
         maxConcurrentChecks: config.scheduling.maxConcurrentChecks || 3,
         adaptivePolling: config.scheduling.adaptivePolling || true
       },
@@ -327,7 +341,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
       // Check config manager health
       const configHealth = await this.configManager.healthCheck();
       result.services.storage = configHealth.storageService;
-      
+
       if (!configHealth.overall) {
         result.errors.push('Config manager health check failed');
       }
@@ -337,7 +351,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
         result.services.polling = this.pollingService?.isRunning() || false;
         result.services.analysis = this.analysisService !== null;
         result.services.tracker = this.violationTracker !== null;
-        
+
         // Test storage service
         try {
           await this.storageService!.getStorageStats();
@@ -351,7 +365,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
       }
 
       // Overall health
-      result.overall = Object.values(result.services).every(status => status) && result.errors.length === 0;
+      result.overall = Object.values(result.services).every(Boolean) && result.errors.length === 0;
 
     } catch (error) {
       result.errors.push(`Health check error: ${error}`);
@@ -362,7 +376,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
 
   async getSystemStats(): Promise<SystemStats> {
     const configStats = await this.configManager.getSystemStats();
-    
+
     return {
       uptime: configStats.performance.uptime,
       memoryUsage: configStats.performance.memoryUsage,
@@ -385,16 +399,16 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
 
   private async executeWatchCycle(options: WatchModeOptions): Promise<void> {
     const startTime = performance.now();
-    
+
     // Execute next batch of rules
     const results = await this.pollingService!.executeNextRules(options.maxConcurrentChecks);
-    
+
     // Perform cleanup if enabled
     if (options.autoCleanup && Math.random() < 0.1) { // 10% chance each cycle
       try {
         const cleanupResult = await this.storageService!.cleanupOldData();
         if (!this.silent) {
-          console.log(`[OrchestratorService] Auto-cleanup completed:`, cleanupResult);
+          console.log('[OrchestratorService] Auto-cleanup completed:', cleanupResult);
         }
       } catch (error) {
         if (!this.silent) {
@@ -402,9 +416,9 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
         }
       }
     }
-    
+
     const executionTime = performance.now() - startTime;
-    
+
     // Record watch cycle metrics
     await this.storageService!.recordPerformanceMetric(
       'watch_cycle',
@@ -412,7 +426,7 @@ export class OrchestratorService extends EventEmitter implements IOrchestratorSe
       'ms',
       `rules: ${results.length}`
     );
-    
+
     this.emit('watchCycle', {
       executionTime,
       rulesExecuted: results.length,
@@ -454,12 +468,19 @@ export function resetOrchestratorService(): void {
  * Create a fully configured orchestrator service for a specific environment
  */
 export async function createOrchestratorService(
-  environment: 'development' | 'test' | 'production' = 'development'
+  environment: 'development' | 'test' | 'production' = 'development',
+  customConfig?: Partial<import('./config-manager.js').OrchestratorServiceConfig>
 ): Promise<OrchestratorService> {
   const configManager = ConfigManager.createEnvironmentConfig(environment);
+
+  // Apply custom configuration if provided
+  if (customConfig) {
+    configManager.updateConfig(customConfig);
+  }
+
   const orchestrator = new OrchestratorService(configManager);
-  
+
   await orchestrator.initialize();
-  
+
   return orchestrator;
 }

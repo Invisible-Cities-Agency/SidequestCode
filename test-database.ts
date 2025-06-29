@@ -5,7 +5,7 @@
  */
 
 import { initializeDatabase, closeDatabase } from './database/connection.js';
-import { violationToDbFormat, generateViolationHash } from './database/utils.js';
+import { violationToDbFormat as violationToDatabaseFormat, generateViolationHash } from './database/utils.js';
 import type { Violation as ViolationType } from './utils/violation-types.js';
 
 async function testDatabase() {
@@ -13,27 +13,27 @@ async function testDatabase() {
 
   try {
     // Clean up any existing test database
-    await import('fs/promises').then(fs => fs.unlink('./test-code-quality.db').catch(() => {}));
-    
+    await import('node:fs/promises').then(fs => fs.unlink('./test-code-quality.db').catch(() => {}));
+
     // Initialize database
     console.log('1. Initializing database...');
-    const db = await initializeDatabase({
+    const database = await initializeDatabase({
       path: './test-code-quality.db'
     });
     console.log('✅ Database initialized successfully\n');
 
     // Test schema creation
     console.log('2. Testing schema...');
-    const tables = await db.introspection.getTables();
+    const tables = await database.introspection.getTables();
     const expectedTables = [
-      'violations', 
-      'rule_checks', 
-      'violation_history', 
-      'rule_schedules', 
-      'watch_sessions', 
+      'violations',
+      'rule_checks',
+      'violation_history',
+      'rule_schedules',
+      'watch_sessions',
       'performance_metrics'
     ];
-    
+
     for (const expectedTable of expectedTables) {
       const table = tables.find(t => t.name === expectedTable);
       if (table) {
@@ -54,16 +54,16 @@ async function testDatabase() {
       category: 'record-type',
       severity: 'info',
       source: 'typescript',
-      ruleId: 'record-type-check',
+      rule: 'record-type-check',
       code: 'Record<string, unknown>'
     };
 
-    const dbViolation = violationToDbFormat(testViolation);
-    console.log(`Generated hash: ${dbViolation.hash}`);
+    const databaseViolation = violationToDatabaseFormat(testViolation);
+    console.log(`Generated hash: ${databaseViolation.hash}`);
 
-    const insertResult = await db
+    const insertResult = await database
       .insertInto('violations')
-      .values(dbViolation)
+      .values(databaseViolation)
       .returning('id')
       .executeTakeFirst();
 
@@ -71,7 +71,7 @@ async function testDatabase() {
 
     // Test violation query
     console.log('4. Testing violation queries...');
-    const violations = await db
+    const violations = await database
       .selectFrom('violations')
       .selectAll()
       .execute();
@@ -89,14 +89,14 @@ async function testDatabase() {
 
     // Test rule schedule
     console.log('5. Testing rule schedule insertion...');
-    const scheduleResult = await db
+    const scheduleResult = await database
       .insertInto('rule_schedules')
       .values({
         rule_id: 'record-type-check',
         engine: 'typescript',
         enabled: 1, // SQLite uses 1/0 for boolean
         priority: 1,
-        check_frequency_ms: 30000
+        check_frequency_ms: 30_000
       })
       .returning('id')
       .executeTakeFirst();
@@ -106,13 +106,13 @@ async function testDatabase() {
     // Test views
     console.log('6. Testing views...');
     try {
-      const summary = await db
+      const summary = await database
         .selectFrom('violation_summary')
         .selectAll()
         .execute();
       console.log(`✅ Violation summary view: ${summary.length} categories`);
 
-      const performance = await db
+      const performance = await database
         .selectFrom('rule_performance')
         .selectAll()
         .execute();
@@ -125,12 +125,12 @@ async function testDatabase() {
     // Test duplicate handling
     console.log('7. Testing duplicate violation handling...');
     try {
-      await db
+      await database
         .insertInto('violations')
-        .values(dbViolation)
+        .values(databaseViolation)
         .execute();
       console.log('❌ Duplicate violation was inserted (should have been prevented)');
-    } catch (error) {
+    } catch {
       console.log('✅ Duplicate violation correctly rejected by unique constraint');
     }
     console.log('');
@@ -162,10 +162,10 @@ async function testDatabase() {
       console.log('❌ Hash consistency failed: identical violations produced different hashes');
     }
 
-    if (hash1 !== hash3) {
-      console.log('✅ Hash uniqueness: different violations produce different hashes');
-    } else {
+    if (hash1 === hash3) {
       console.log('❌ Hash uniqueness failed: different violations produced same hash');
+    } else {
+      console.log('✅ Hash uniqueness: different violations produce different hashes');
     }
     console.log('');
 
@@ -173,9 +173,9 @@ async function testDatabase() {
 
     // Clean up
     await closeDatabase();
-    
+
     // Remove test database
-    await import('fs/promises').then(fs => fs.unlink('./test-code-quality.db').catch(() => {}));
+    await import('node:fs/promises').then(fs => fs.unlink('./test-code-quality.db').catch(() => {}));
     console.log('🧹 Cleaned up test database');
 
   } catch (error) {

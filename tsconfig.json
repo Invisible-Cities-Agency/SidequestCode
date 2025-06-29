@@ -24,6 +24,8 @@
     "noUncheckedIndexedAccess": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,

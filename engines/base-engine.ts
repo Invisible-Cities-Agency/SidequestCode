@@ -1,22 +1,22 @@
 /**
  * @fileoverview Base audit engine abstract class
- * 
+ *
  * Provides the common interface and utilities that all audit engines must implement.
  * Handles error recovery, timing, and standardized result formatting.
  */
 
-import type { 
-  Violation, 
-  EngineResult, 
+import type {
+  Violation,
+  EngineResult,
   EngineConfig,
   ViolationSource,
   ViolationCategory,
-  ViolationSeverity 
+  ViolationSeverity
 } from '../utils/violation-types.js';
 
 /**
  * Abstract base class for all audit engines
- * 
+ *
  * Each engine is responsible for:
  * - Analyzing code for specific types of violations
  * - Handling errors gracefully without breaking the orchestrator
@@ -27,11 +27,11 @@ export abstract class BaseAuditEngine {
   protected readonly engineName: string;
   protected readonly source: ViolationSource;
   protected config: EngineConfig;
-  protected abortController?: AbortController;
+  protected abortController: AbortController | undefined;
 
   constructor(
-    engineName: string, 
-    source: ViolationSource, 
+    engineName: string,
+    source: ViolationSource,
     config: EngineConfig
   ) {
     this.engineName = engineName;
@@ -41,13 +41,13 @@ export abstract class BaseAuditEngine {
 
   /**
    * Execute the audit engine analysis
-   * 
+   *
    * @param targetPath - Directory or file to analyze
    * @param options - Engine-specific options
    * @returns Promise resolving to engine results
    */
   async execute(
-    targetPath: string, 
+    targetPath: string,
     options: Record<string, unknown> = {}
   ): Promise<EngineResult> {
     const startTime = Date.now();
@@ -128,13 +128,13 @@ export abstract class BaseAuditEngine {
   /**
    * Abstract method that each engine must implement
    * Contains the actual analysis logic
-   * 
+   *
    * @param targetPath - Path to analyze
    * @param options - Engine-specific options
    * @returns Array of violations found
    */
   protected abstract analyze(
-    targetPath: string, 
+    targetPath: string,
     options: Record<string, unknown>
   ): Promise<Violation[]>;
 
@@ -151,18 +151,31 @@ export abstract class BaseAuditEngine {
     message?: string,
     column?: number
   ): Violation {
-    return {
+    const violation: Violation = {
       file,
       line,
-      column,
       code: code.trim(),
       category,
       severity,
-      source: this.source,
-      rule,
-      message,
-      fixSuggestion: this.generateFixSuggestion?.(category, rule, code)
+      source: this.source
     };
+
+    if (column !== undefined) {
+      violation.column = column;
+    }
+    if (rule !== undefined) {
+      violation.rule = rule;
+    }
+    if (message !== undefined) {
+      violation.message = message;
+    }
+
+    const fixSuggestion = this.generateFixSuggestion?.(category, rule, code);
+    if (fixSuggestion !== undefined) {
+      violation.fixSuggestion = fixSuggestion;
+    }
+
+    return violation;
   }
 
   /**

@@ -1,18 +1,18 @@
 /**
  * @fileoverview Code Quality Orchestrator
- * 
+ *
  * Main coordinator that manages multiple audit engines, handles their execution,
  * merges results, and provides unified reporting and watch mode functionality.
  */
 
-import * as path from "path";
+// import * as path from "path";
 import { BaseAuditEngine } from './engines/base-engine.js';
 import { TypeScriptAuditEngine } from './engines/typescript-engine.js';
 import { ESLintAuditEngine } from './engines/eslint-engine.js';
-import type { 
-  Violation, 
-  EngineResult, 
-  OrchestratorResult, 
+import type {
+  Violation,
+  EngineResult,
+  OrchestratorResult,
   ViolationSummary,
   EngineConfig,
   WatchEvent,
@@ -60,7 +60,7 @@ export class CodeQualityOrchestrator {
   private engines: Map<string, BaseAuditEngine> = new Map();
   private config: OrchestratorConfig;
   private watchMode = false;
-  private watchInterval?: NodeJS.Timeout;
+  private watchInterval?: NodeJS.Timeout | undefined;
   private eventListeners: Map<WatchEvent, ((data: WatchEventData) => void)[]> = new Map();
 
   constructor(config: OrchestratorConfig) {
@@ -74,13 +74,13 @@ export class CodeQualityOrchestrator {
   private initializeEngines(): void {
     // Initialize TypeScript engine
     if (this.config.engines.typescript?.enabled !== false) {
-      const tsEngine = new TypeScriptAuditEngine(this.config.engines.typescript);
+      const tsEngine = new TypeScriptAuditEngine(this.config.engines.typescript as any);
       this.engines.set('typescript', tsEngine);
     }
 
     // Initialize ESLint engine
     if (this.config.engines.eslint?.enabled !== false) {
-      const eslintEngine = new ESLintAuditEngine(this.config.engines.eslint);
+      const eslintEngine = new ESLintAuditEngine(this.config.engines.eslint as any);
       this.engines.set('eslint', eslintEngine);
     }
   }
@@ -92,14 +92,14 @@ export class CodeQualityOrchestrator {
     const startTime = Date.now();
     const engineResults: EngineResult[] = [];
 
-    this.emitEvent('analysis-started', { engines: Array.from(this.engines.keys()) });
+    this.emitEvent('analysis-started', { engines: [...this.engines.keys()] });
 
     // Sort engines by priority
-    const sortedEngines = Array.from(this.engines.entries())
+    const sortedEngines = [...this.engines.entries()]
       .sort(([, a], [, b]) => a.getConfig().priority - b.getConfig().priority);
 
     // Execute engines in parallel (or series based on dependencies)
-    const enginePromises = sortedEngines.map(async ([name, engine]) => {
+    const enginePromises = sortedEngines.map(async([name, engine]) => {
       try {
         console.log(`[Orchestrator] Starting ${name} engine...`);
         const result = await engine.execute(this.config.targetPath);
@@ -142,16 +142,16 @@ export class CodeQualityOrchestrator {
     if (this.config.crossover?.enabled !== false) {
       const crossoverDetector = createCrossoverDetector(this.config.crossover);
       const crossoverWarnings = crossoverDetector.analyze(orchestratorResult);
-      
+
       if (crossoverWarnings.length > 0) {
         // Display warnings if console output is enabled
         if (this.config.output?.console !== false) {
           crossoverDetector.displayWarnings();
         }
-        
+
         // Add to orchestrator result for programmatic access
         (orchestratorResult as any).crossoverWarnings = crossoverWarnings;
-        
+
         // Optionally fail on crossover issues
         if (this.config.crossover?.failOnCrossover && crossoverDetector.hasCriticalIssues()) {
           throw new Error('Critical crossover issues detected between ESLint and TypeScript engines');
@@ -159,7 +159,7 @@ export class CodeQualityOrchestrator {
       }
     }
 
-    this.emitEvent('analysis-completed', { 
+    this.emitEvent('analysis-completed', {
       violationCount: deduplicatedViolations.length,
       executionTime: totalExecutionTime
     });
@@ -185,7 +185,7 @@ export class CodeQualityOrchestrator {
     await this.analyze();
 
     // Set up periodic analysis
-    this.watchInterval = setInterval(async () => {
+    this.watchInterval = setInterval(async() => {
       try {
         await this.analyze();
       } catch (error) {
@@ -196,7 +196,7 @@ export class CodeQualityOrchestrator {
     // Handle graceful shutdown
     process.on('SIGINT', () => {
       this.stopWatch();
-      process.stdout.write('\x1b[?25h'); // Show cursor
+      process.stdout.write('\u001B[?25h'); // Show cursor
       console.log('\n\n👋 Code Quality Orchestrator watch stopped.');
       process.exit(0);
     });
@@ -225,7 +225,7 @@ export class CodeQualityOrchestrator {
    */
   private mergeViolations(results: EngineResult[]): Violation[] {
     const allViolations: Violation[] = [];
-    
+
     for (const result of results) {
       if (result.success) {
         allViolations.push(...result.violations);
@@ -238,16 +238,16 @@ export class CodeQualityOrchestrator {
       if (a.source !== b.source) {
         return a.source === 'typescript' ? -1 : 1;
       }
-      
+
       const severityOrder = { error: 0, warn: 1, info: 2 };
       if (severityOrder[a.severity] !== severityOrder[b.severity]) {
         return severityOrder[a.severity] - severityOrder[b.severity];
       }
-      
+
       if (a.file !== b.file) {
         return a.file.localeCompare(b.file);
       }
-      
+
       return a.line - b.line;
     });
   }
@@ -268,17 +268,21 @@ export class CodeQualityOrchestrator {
       let key: string;
 
       switch (strategy) {
-        case 'exact':
-          key = `${violation.file}:${violation.line}:${violation.code}:${violation.source}`;
-          break;
-        case 'location':
-          key = `${violation.file}:${violation.line}`;
-          break;
-        case 'similar':
-          key = `${violation.file}:${violation.category}:${violation.code.substring(0, 50)}`;
-          break;
-        default:
-          key = `${violation.file}:${violation.line}:${violation.code}`;
+      case 'exact': {
+        key = `${violation.file}:${violation.line}:${violation.code}:${violation.source}`;
+        break;
+      }
+      case 'location': {
+        key = `${violation.file}:${violation.line}`;
+        break;
+      }
+      case 'similar': {
+        key = `${violation.file}:${violation.category}:${violation.code.slice(0, 50)}`;
+        break;
+      }
+      default: {
+        key = `${violation.file}:${violation.line}:${violation.code}`;
+      }
       }
 
       if (!seen.has(key)) {
@@ -297,14 +301,14 @@ export class CodeQualityOrchestrator {
     const summary: ViolationSummary = {
       total: violations.length,
       bySeverity: { error: 0, warn: 0, info: 0 },
-      bySource: { 
-        typescript: 0, 
-        eslint: 0, 
-        parser: 0, 
-        complexity: 0, 
-        security: 0, 
-        performance: 0, 
-        custom: 0 
+      bySource: {
+        typescript: 0,
+        eslint: 0,
+        parser: 0,
+        complexity: 0,
+        security: 0,
+        performance: 0,
+        custom: 0
       },
       byCategory: {} as Record<string, number>,
       topFiles: []
@@ -315,22 +319,22 @@ export class CodeQualityOrchestrator {
     for (const violation of violations) {
       // Count by severity
       summary.bySeverity[violation.severity]++;
-      
+
       // Count by source
       summary.bySource[violation.source]++;
-      
+
       // Count by category
       summary.byCategory[violation.category] = (summary.byCategory[violation.category] || 0) + 1;
-      
+
       // Count by file
       fileViolationCount.set(
-        violation.file, 
+        violation.file,
         (fileViolationCount.get(violation.file) || 0) + 1
       );
     }
 
     // Get top violated files
-    summary.topFiles = Array.from(fileViolationCount.entries())
+    summary.topFiles = [...fileViolationCount.entries()]
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
       .map(([file, count]) => ({ file, count }));
@@ -391,7 +395,7 @@ export class CodeQualityOrchestrator {
    */
   updateConfig(newConfig: Partial<OrchestratorConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    
+
     // Reinitialize engines if engine config changed
     if (newConfig.engines) {
       this.engines.clear();

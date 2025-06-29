@@ -133,12 +133,12 @@ export interface WatchDisplayEvents {
   'shutdown': [];
 }
 
-export type EventListener<T extends readonly unknown[]> = (...args: T) => void;
+export type EventListener<T extends readonly unknown[]> = (...arguments_: T) => void;
 
 export interface TypedEventEmitter<TEvents extends Record<string, readonly unknown[]>> {
   on<K extends keyof TEvents>(event: K, listener: EventListener<TEvents[K]>): void;
   off<K extends keyof TEvents>(event: K, listener: EventListener<TEvents[K]>): void;
-  emit<K extends keyof TEvents>(event: K, ...args: TEvents[K]): void;
+  emit<K extends keyof TEvents>(event: K, ...arguments_: TEvents[K]): void;
 }
 
 // ============================================================================
@@ -157,15 +157,15 @@ export type RequireField<T, K extends keyof T> = T & Required<Pick<T, K>>;
 // Type Guards
 // ============================================================================
 
-export function isColorScheme(obj: unknown): obj is ColorScheme {
-  if (typeof obj !== 'object' || obj === null) return false;
-  
-  const scheme = obj as Record<string, unknown>;
+export function isColorScheme(object: unknown): object is ColorScheme {
+  if (typeof object !== 'object' || object === null) {return false;}
+
+  const scheme = object as Record<string, unknown>;
   const requiredKeys: (keyof ColorScheme)[] = [
-    'reset', 'bold', 'dim', 'primary', 'secondary', 
+    'reset', 'bold', 'dim', 'primary', 'secondary',
     'success', 'warning', 'error', 'info', 'muted', 'accent'
   ];
-  
+
   return requiredKeys.every(key => typeof scheme[key] === 'string');
 }
 
@@ -173,15 +173,15 @@ export function isTerminalMode(value: string): value is TerminalMode {
   return value === 'light' || value === 'dark';
 }
 
-export function isViolationSummary(obj: unknown): obj is ViolationSummary {
-  if (typeof obj !== 'object' || obj === null) return false;
-  
-  const summary = obj as Record<string, unknown>;
+export function isViolationSummary(object: unknown): object is ViolationSummary {
+  if (typeof object !== 'object' || object === null) {return false;}
+
+  const summary = object as Record<string, unknown>;
   return (
-    typeof summary.total === 'number' &&
-    typeof summary.bySource === 'object' &&
-    typeof summary.byCategory === 'object' &&
-    summary.bySource !== null &&
-    summary.byCategory !== null
+    typeof summary['total'] === 'number' &&
+    typeof summary['bySource'] === 'object' &&
+    typeof summary['byCategory'] === 'object' &&
+    summary['bySource'] !== null &&
+    summary['byCategory'] !== null
   );
 }
