@@ -1,0 +1,71 @@
+# Development and testing files
+__tests__/
+.vitest/
+test-*.ts
+test-*.js
+test-*.mjs
+vitest.config.ts
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Database files (development only)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite*
+data/
+
+# Documentation and guides
+CONTRIBUTING.md
+ROADMAP.md
+CHANGES_SUMMARY.md
+PUBLICATION_READY.md
+INSTALLATION.md
+ENHANCED-FEATURES.md
+CLAUDE.md
+
+# Development configuration
+.eslintrc.*
+.prettierrc*
+.claude/
+config/
+coordinators/
+reporters/
+
+# Build and development artifacts
+dist/
+coverage/
+.nyc_output
+temp_*.json
+*_report.json
+
+# Development scripts
+setup.sh
+install.sh
+test-changes.mjs
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and local config
+.env*
+.local/
+local-*/
+
+# Cache directories
+.cache/
+.npm/
+.eslintcache
+
+# Deployment
+.vercel/
+.netlify/

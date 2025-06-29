@@ -32,8 +32,12 @@ coverage/
 
 # Database files
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
 
 # Logs
 logs
@@ -63,6 +67,8 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+temp_*.json
+*_report.json
 
 # NPM/Yarn package files
 *.tgz
@@ -96,6 +102,13 @@ Thumbs.db
 # Nuxt.js build / generate output
 .nuxt
 dist
+
+# Vercel
+.vercel
+.vercel/
+
+# Deployment
+.netlify/
 
 # Gatsby files
 .cache/
