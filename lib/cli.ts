@@ -69,7 +69,7 @@ function detectPnpmProject(): boolean {
   try {
     const fs = require("node:fs");
     const path = require("node:path");
-    
+
     // Check for pnpm-lock.yaml in current directory and parent directories
     let currentDirectory = process.cwd();
     while (currentDirectory !== path.dirname(currentDirectory)) {
@@ -78,12 +78,12 @@ function detectPnpmProject(): boolean {
       }
       currentDirectory = path.dirname(currentDirectory);
     }
-    
+
     // Check user agent (if available)
-    if (process.env.npm_config_user_agent?.includes("pnpm")) {
+    if (process.env["npm_config_user_agent"]?.includes("pnpm")) {
       return true;
     }
-    
+
     return false;
   } catch {
     return false;
@@ -1078,12 +1078,14 @@ ${colors.info}Note:${colors.reset} npm doesn't support flags after script names.
       const isPnpm = detectPnpmProject();
       const packageManager = isPnpm ? "pnpm" : "npm";
       const runCommand = isPnpm ? "" : "run ";
-      
+
       console.log(`${colors.error}❌ Script Not Found${colors.reset}
 
 The command "${colors.error}${packageManager} ${runCommand}${scriptName}${colors.reset}" doesn't exist.
 
-${isPnpm ? `${colors.warning}🔧 pnpm Setup Required${colors.reset}
+${
+  isPnpm
+    ? `${colors.warning}🔧 pnpm Setup Required${colors.reset}
 SideQuest shortcuts need to be installed for pnpm projects:
   ${colors.success}npx sidequest-cqo --install-shortcuts${colors.reset}
 
@@ -1092,7 +1094,9 @@ After installation, you can use:
   ${colors.success}pnpm sidequest:watch${colors.reset}                   # Direct commands
   ${colors.success}pnpm sidequest:report${colors.reset}                  # Clean analysis
 
-` : ""}${colors.info}Are you a human?${colors.reset}
+`
+    : ""
+}${colors.info}Are you a human?${colors.reset}
   ${colors.success}${packageManager} ${runCommand}sidequest:help${colors.reset}               # Standard help
   ${colors.success}${packageManager} ${runCommand}sidequest:help:markdown${colors.reset}      # Formatted documentation
 
