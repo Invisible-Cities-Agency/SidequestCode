@@ -49,7 +49,7 @@
     "format:check": "prettier --check .",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run format && npm run build && npm run test && npm run typecheck",
-    "postinstall": "node scripts/postinstall.js",
+    "postinstall": "node scripts/postinstall.cjs",
     "alpha-release": "npm version prerelease --preid=alpha && npm publish --tag alpha",
     "beta-release": "npm version prerelease --preid=beta && npm publish --tag beta"
   },
