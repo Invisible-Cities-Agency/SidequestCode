@@ -1,0 +1,15 @@
+{
+  "name": "NextJS",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "sidequest:report": "sidequest-cqo --verbose",
+    "sidequest:watch": "sidequest-cqo --watch",
+    "sidequest:config": "sidequest-cqo --config",
+    "sidequest:help": "sidequest-cqo --help"
+  },
+  "dependencies": {
+    "next": "latest"
+  },
+  "devDependencies": {}
+}
