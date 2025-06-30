@@ -10,6 +10,7 @@ import {
 import { detectTerminalModeHeuristic } from "./terminal-detector.js";
 import { ANSI_CODES, isESLintCategory } from "../shared/constants.js";
 import { replaceAll } from "../utils/node-compatibility.js";
+import { debugLog } from "../utils/debug-logger.js";
 import type {
   ColorScheme,
   WatchState,
@@ -25,6 +26,7 @@ export class DeveloperWatchDisplay {
   private consoleBackup: ConsoleBackup | undefined = undefined;
 
   constructor() {
+    debugLog("WatchDisplay", "Constructor started");
     this.state = {
       isInitialized: false,
       sessionStart: Date.now(),
@@ -34,9 +36,14 @@ export class DeveloperWatchDisplay {
       viewMode: "dashboard", // 'dashboard' | 'tidy' | 'burndown'
       currentViolations: [],
     };
+    debugLog("WatchDisplay", "State initialized");
     this.colors = this.createColorScheme();
+    debugLog("WatchDisplay", "Color scheme created");
     this.setupKeyboardHandling();
-    this.captureOutput();
+    debugLog("WatchDisplay", "Keyboard handling setup completed");
+    // Note: captureOutput will be called later when watch mode actually starts
+    // to avoid hanging during constructor
+    debugLog("WatchDisplay", "Constructor completed successfully");
   }
 
   private colorModeOverride: TerminalMode | undefined = undefined;
@@ -80,21 +87,39 @@ export class DeveloperWatchDisplay {
   }
 
   private captureOutput(): void {
+    debugLog("WatchDisplay", "captureOutput method started");
     // Store original console methods for restoration
     if (!this.consoleBackup) {
+      debugLog("WatchDisplay", "Creating console backup...");
       this.consoleBackup = {
         log: console.log,
         error: console.error,
         warn: console.warn,
         stderrWrite: process.stderr.write,
       };
+      debugLog("WatchDisplay", "Console backup created");
     }
 
+    debugLog("WatchDisplay", "Overriding console methods...");
     // Override console methods to silence output during watch mode
     console.log = () => {};
+    debugLog("WatchDisplay", "console.log overridden");
     console.error = () => {};
+    debugLog("WatchDisplay", "console.error overridden");
     console.warn = () => {};
-    process.stderr.write = () => true;
+    debugLog("WatchDisplay", "console.warn overridden");
+
+    try {
+      process.stderr.write = () => true;
+      debugLog("WatchDisplay", "process.stderr.write overridden");
+    } catch (error) {
+      debugLog(
+        "WatchDisplay",
+        "Failed to override process.stderr.write",
+        error,
+      );
+    }
+    debugLog("WatchDisplay", "Console methods override completed");
   }
 
   private restoreOutput(): void {
@@ -111,61 +136,78 @@ export class DeveloperWatchDisplay {
    * Set up keyboard input handling for view mode toggle
    */
   private setupKeyboardHandling(): void {
+    debugLog("WatchDisplay", "Setting up keyboard handling...");
+
     // Enable raw mode to capture individual keystrokes
     if (process.stdin.isTTY) {
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
-      process.stdin.setEncoding("utf8");
+      debugLog("WatchDisplay", "TTY detected, setting up raw mode...");
+      try {
+        process.stdin.setRawMode(true);
+        debugLog("WatchDisplay", "Raw mode enabled successfully");
+        process.stdin.resume();
+        debugLog("WatchDisplay", "stdin resumed");
+        process.stdin.setEncoding("utf8");
+        debugLog("WatchDisplay", "stdin encoding set to utf8");
 
-      process.stdin.on("data", (key: string) => {
-        // Handle keyboard shortcuts
-        switch (key) {
-          case "\u0014": {
-            // Ctrl+T - Tidy view
-            this.state.viewMode = "tidy";
-            this.renderCurrentView().catch(console.error);
-            break;
-          }
-          case "\u0002": {
-            // Ctrl+B - Burndown mode
-            this.state.viewMode = "burndown";
-            this.renderCurrentView().catch(console.error);
-            break;
-          }
-          case " ": {
-            // Spacebar - Manual refresh in burndown mode
-            if (this.state.viewMode === "burndown") {
+        // Setup keyboard event listeners only when in TTY mode
+        process.stdin.on("data", (key: string) => {
+          // Handle keyboard shortcuts
+          switch (key) {
+            case "\u0014": {
+              // Ctrl+T - Tidy view
+              this.state.viewMode = "tidy";
               this.renderCurrentView().catch(console.error);
+              break;
             }
-            break;
+            case "\u0002": {
+              // Ctrl+B - Burndown mode
+              this.state.viewMode = "burndown";
+              this.renderCurrentView().catch(console.error);
+              break;
+            }
+            case " ": {
+              // Spacebar - Manual refresh in burndown mode
+              if (this.state.viewMode === "burndown") {
+                this.renderCurrentView().catch(console.error);
+              }
+              break;
+            }
+            case "\u000D": {
+              // Ctrl+M - Monitor mode (back to dashboard)
+              this.state.viewMode = "dashboard";
+              this.renderCurrentView().catch(console.error);
+              break;
+            }
+            case "\u0004": {
+              // Ctrl+D - Toggle dark/light mode
+              this.toggleColorScheme();
+              this.renderCurrentView().catch(console.error);
+              break;
+            }
+            case "\u001B": {
+              // Escape - back to dashboard
+              this.state.viewMode = "dashboard";
+              this.renderCurrentView().catch(console.error);
+              break;
+            }
+            case "\u0003": {
+              // Ctrl+C - Exit
+              process.stdin.setRawMode(false);
+              process.exit(0);
+            }
+            // No default
           }
-          case "\u000D": {
-            // Ctrl+M - Monitor mode (back to dashboard)
-            this.state.viewMode = "dashboard";
-            this.renderCurrentView().catch(console.error);
-            break;
-          }
-          case "\u0004": {
-            // Ctrl+D - Toggle dark/light mode
-            this.toggleColorScheme();
-            this.renderCurrentView().catch(console.error);
-            break;
-          }
-          case "\u001B": {
-            // Escape - back to dashboard
-            this.state.viewMode = "dashboard";
-            this.renderCurrentView().catch(console.error);
-            break;
-          }
-          case "\u0003": {
-            // Ctrl+C - Exit
-            process.stdin.setRawMode(false);
-            process.exit(0);
-          }
-          // No default
-        }
-      });
+        });
+        debugLog("WatchDisplay", "Keyboard event listeners setup complete");
+      } catch (error) {
+        debugLog("WatchDisplay", "Failed to setup raw mode", error);
+        console.warn("⚠️  Could not enable keyboard shortcuts:", error);
+        return;
+      }
+    } else {
+      debugLog("WatchDisplay", "No TTY detected, skipping keyboard setup");
     }
+    debugLog("WatchDisplay", "Keyboard handling setup completed");
   }
 
   /**
@@ -626,6 +668,12 @@ export class DeveloperWatchDisplay {
     checksCount: number,
     orchestrator?: any,
   ): Promise<void> {
+    // Ensure output capture is enabled (safe to call multiple times)
+    if (!this.consoleBackup) {
+      debugLog("WatchDisplay", "Enabling output capture during updateDisplay");
+      this.captureOutput();
+    }
+
     // Store current violations for all view modes
     this.state.currentViolations = violations;
 
