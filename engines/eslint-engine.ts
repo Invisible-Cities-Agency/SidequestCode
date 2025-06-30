@@ -342,7 +342,18 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
       // Handle ESLint exit codes
       if (result.status === 2) {
-        throw new Error(`ESLint configuration error: ${result.stderr}`);
+        // Return warning violation instead of throwing error
+        return [
+          this.createViolation(
+            "eslint-setup",
+            1,
+            `ESLint configuration error: ${result.stderr}`,
+            "setup-issue",
+            "error",
+            "ESLINT-SETUP-001",
+            `ESLint configuration error detected. Check your .eslintrc file and ensure ESLint is properly configured. Error: ${result.stderr}`,
+          ),
+        ];
       }
 
       // Read results from temp file
@@ -614,7 +625,17 @@ export class ESLintAuditEngine extends BaseAuditEngine {
             "[ESLint Engine] Execution error:",
             result.error.message,
           );
-          return [];
+          return [
+            this.createViolation(
+              "eslint-setup",
+              1,
+              `ESLint execution failed: ${result.error.message}`,
+              "setup-issue",
+              "error",
+              "ESLINT-SETUP-002",
+              `ESLint execution failed. This may indicate ESLint is not installed or there's a configuration issue. Error: ${result.error.message}`,
+            ),
+          ];
         }
       }
 
@@ -623,7 +644,17 @@ export class ESLintAuditEngine extends BaseAuditEngine {
           "[ESLint Engine] ESLint configuration error:",
           result.stderr?.slice(0, 500),
         );
-        return [];
+        return [
+          this.createViolation(
+            "eslint-setup",
+            1,
+            `ESLint configuration error: ${result.stderr}`,
+            "setup-issue",
+            "error",
+            "ESLINT-SETUP-003",
+            `ESLint configuration error in buffer mode. Check your .eslintrc file and ensure ESLint is properly configured. Error: ${result.stderr}`,
+          ),
+        ];
       }
 
       if (result.stderr) {
@@ -638,7 +669,17 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       return this.parseESLintOutput(result.stdout, rules);
     } catch (error) {
       console.warn("[ESLint Engine] Buffer-based execution failed:", error);
-      return [];
+      return [
+        this.createViolation(
+          "eslint-setup",
+          1,
+          `ESLint buffer execution failed: ${error}`,
+          "setup-issue",
+          "error",
+          "ESLINT-SETUP-004",
+          `ESLint buffer-based execution failed unexpectedly. This may indicate a system or configuration issue. Error: ${error}`,
+        ),
+      ];
     }
   }
 
@@ -795,6 +836,11 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       rule.includes("error")
     ) {
       return { category: "syntax-error", severity: "error" };
+    }
+
+    // Setup and configuration issues
+    if (rule.startsWith("ESLINT-SETUP-")) {
+      return { category: "setup-issue", severity: "error" };
     }
 
     // Default fallback - let the session discovery handle unknown rules

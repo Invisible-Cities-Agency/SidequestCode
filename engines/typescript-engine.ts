@@ -129,6 +129,18 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
           "[TypeScript Engine] Failed to run tsc:",
           result.error.message,
         );
+        // Add warning violation instead of silently returning empty
+        violations.push(
+          this.createViolation(
+            "typescript-setup",
+            1,
+            `TypeScript compiler failed: ${result.error.message}`,
+            "setup-issue",
+            "error",
+            "TS-SETUP-001",
+            `Failed to run TypeScript compiler. This may indicate TypeScript is not installed or configured properly. Error: ${result.error.message}`,
+          ),
+        );
         return violations;
       }
 
@@ -153,6 +165,18 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       console.warn(
         "[TypeScript Engine] TypeScript compilation check failed:",
         error,
+      );
+      // Add warning violation for unexpected errors
+      violations.push(
+        this.createViolation(
+          "typescript-setup",
+          1,
+          `TypeScript compilation check failed: ${error}`,
+          "setup-issue",
+          "error",
+          "TS-SETUP-002",
+          `TypeScript compilation check encountered an unexpected error. This may indicate a configuration issue. Error: ${error}`,
+        ),
       );
     }
 
@@ -214,6 +238,18 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       }
     } catch (error) {
       console.warn("[TypeScript Engine] Direct tsc compilation failed:", error);
+      // Add warning violation for direct compilation failures
+      violations.push(
+        this.createViolation(
+          "typescript-setup",
+          1,
+          `Direct TypeScript compilation failed: ${error}`,
+          "setup-issue",
+          "error",
+          "TS-SETUP-003",
+          `Direct TypeScript compilation failed when no tsconfig.json was found. This may indicate TypeScript is not installed. Error: ${error}`,
+        ),
+      );
     }
 
     return violations;
@@ -429,6 +465,11 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     // Strict config and exactOptionalPropertyTypes issues
     if (["2375", "2379", "2412", "2783", "2784"].includes(numericCode)) {
       return "strict-config";
+    }
+
+    // Setup and configuration issues
+    if (ruleCode.startsWith("TS-SETUP-")) {
+      return "setup-issue";
     }
 
     // Syntax and parsing errors

@@ -1494,8 +1494,26 @@ async function main(): Promise<void> {
 
         if (flags.verbose) {
           try {
+            // Check for setup issues and add warning for LLMs/automation
+            const setupIssues = result.violations.filter(
+              (v) => v.category === "setup-issue",
+            );
+            const setupWarning =
+              setupIssues.length > 0
+                ? {
+                    setupIssuesDetected: true,
+                    setupIssuesCount: setupIssues.length,
+                    setupIssuesWarning:
+                      "CRITICAL: Analysis tools are misconfigured or failing. Violation counts may be incorrect. Fix setup issues first.",
+                    affectedTools: [
+                      ...new Set(setupIssues.map((v) => v.source)),
+                    ],
+                  }
+                : undefined;
+
             const enhancedResult = {
               ...result,
+              ...(setupWarning && { setupWarning }),
               database: {
                 summary: await orchestrator
                   .getStorageService()
@@ -1507,8 +1525,28 @@ async function main(): Promise<void> {
             };
             console.log(JSON.stringify(enhancedResult, undefined, 2));
           } catch (error) {
-            // Fallback if dashboard data fails - still show violations
-            console.log(JSON.stringify(result, undefined, 2));
+            // Fallback if database fails - still show violations with setup warning
+            const setupIssues = result.violations.filter(
+              (v) => v.category === "setup-issue",
+            );
+            const setupWarning =
+              setupIssues.length > 0
+                ? {
+                    setupIssuesDetected: true,
+                    setupIssuesCount: setupIssues.length,
+                    setupIssuesWarning:
+                      "CRITICAL: Analysis tools are misconfigured or failing. Violation counts may be incorrect. Fix setup issues first.",
+                    affectedTools: [
+                      ...new Set(setupIssues.map((v) => v.source)),
+                    ],
+                  }
+                : undefined;
+
+            const fallbackResult = {
+              ...result,
+              ...(setupWarning && { setupWarning }),
+            };
+            console.log(JSON.stringify(fallbackResult, undefined, 2));
             if (flags.verbose) {
               console.warn(
                 "[Warning] Database dashboard data unavailable:",

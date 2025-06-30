@@ -630,6 +630,9 @@ export class DeveloperWatchDisplay {
     // Store current violations for all view modes
     this.state.currentViolations = violations;
 
+    // Check for setup/configuration issues first (critical)
+    const setupIssues = violations.filter((v) => v.category === "setup-issue");
+
     // Filter violations for actionable display (errors + warnings only)
     const actionableViolations = this.filterActionableViolations(violations);
 
@@ -685,7 +688,7 @@ export class DeveloperWatchDisplay {
     }
 
     // Clear screen and render
-    this.render(checksCount, todayData);
+    this.render(checksCount, todayData, setupIssues);
   }
 
   private processViolations(
@@ -728,6 +731,7 @@ export class DeveloperWatchDisplay {
   private render(
     checksCount: number,
     todayData?: TodayProgressData | null,
+    setupIssues?: OrchestratorViolation[],
   ): void {
     const { colors } = this;
     const { lastUpdate, sessionStart, current, baseline } = this.state;
@@ -748,6 +752,45 @@ export class DeveloperWatchDisplay {
       `${colors.secondary}Showing actionable issues only (errors + warnings)${colors.reset}\n`,
     );
     process.stdout.write(`${colors.muted}${"─".repeat(60)}${colors.reset}\n\n`);
+
+    // ⚠️ CRITICAL: Setup/Configuration Issues (shown prominently)
+    if (setupIssues && setupIssues.length > 0) {
+      process.stdout.write(
+        `${colors.bold}${colors.error}⚠️  SETUP ISSUES DETECTED${colors.reset}\n`,
+      );
+      process.stdout.write(`${colors.error}${"━".repeat(60)}${colors.reset}\n`);
+
+      for (const issue of setupIssues) {
+        const toolName =
+          issue.source === "typescript"
+            ? "TypeScript"
+            : issue.source === "eslint"
+              ? "ESLint"
+              : issue.source.toUpperCase();
+        process.stdout.write(
+          `${colors.error}🚨 ${toolName} Configuration Problem:${colors.reset}\n`,
+        );
+
+        // Extract the main error message (first line of the detailed message)
+        const mainMessage = issue.message?.split("\n")[0] || issue.code;
+        process.stdout.write(
+          `   ${colors.warning}${mainMessage}${colors.reset}\n`,
+        );
+
+        // Show fix suggestion if available
+        if (issue.fixSuggestion) {
+          process.stdout.write(
+            `   ${colors.info}💡 Fix: ${issue.fixSuggestion}${colors.reset}\n`,
+          );
+        }
+        process.stdout.write("\n");
+      }
+
+      process.stdout.write(`${colors.error}${"━".repeat(60)}${colors.reset}\n`);
+      process.stdout.write(
+        `${colors.warning}⚡ Fix these setup issues first - analysis may be incomplete!${colors.reset}\n\n`,
+      );
+    }
 
     // Current Status
     const baseline_ = baseline!;

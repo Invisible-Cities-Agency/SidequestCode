@@ -173,11 +173,16 @@ try {
             : `${pm} run`;
 
     const scripts = {
-      "sidequest:report": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --verbose; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
-      "sidequest:watch": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --watch; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
-      "sidequest:config": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --config; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
-      "sidequest:help": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --help; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
-      "sidequest:ai-context": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --ai-context; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
+      "sidequest:report":
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --verbose; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
+      "sidequest:watch":
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --watch; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
+      "sidequest:config":
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --config; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
+      "sidequest:help":
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --help; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
+      "sidequest:ai-context":
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --ai-context; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
     };
 
     log(`📦 Existing scripts: ${Object.keys(pkg.scripts).join(", ")}`);

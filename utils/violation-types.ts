@@ -50,6 +50,8 @@ export type ViolationCategory =
   | "inheritance" // Override/inheritance issues
   | "index-access" // Index signature access issues
   | "strict-config" // exactOptionalPropertyTypes issues
+  // Setup and configuration issues
+  | "setup-issue" // Tool configuration or installation problems
   // ESLint code quality categories (separation of concerns)
   | "code-quality" // console.log, debugger statements
   | "style" // prefer-const, no-var
@@ -245,6 +247,9 @@ export function getCategoryLabel(category: ViolationCategory): string {
     }
     case "syntax-error": {
       return "Syntax Error";
+    }
+    case "setup-issue": {
+      return "Setup/Config Issue";
     }
 
     // ESLint categories

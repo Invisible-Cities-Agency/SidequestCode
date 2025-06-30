@@ -2,10 +2,7 @@ module.exports = {
   root: true,
   parser: "@typescript-eslint/parser",
   plugins: ["@typescript-eslint", "unicorn"],
-  extends: [
-    "eslint:recommended", 
-    "plugin:unicorn/recommended"
-  ],
+  extends: ["eslint:recommended", "plugin:unicorn/recommended"],
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: "module",
@@ -18,7 +15,7 @@ module.exports = {
   },
   rules: {
     // Let TypeScript handle type checking - ESLint focuses on code style and logic
-    
+
     // Disable ALL TypeScript type-aware rules - TypeScript compiler handles types
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-unused-vars": "off", // Use TypeScript compiler for this
@@ -28,7 +25,7 @@ module.exports = {
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/ban-types": "off",
     "@typescript-eslint/no-inferrable-types": "off",
-    
+
     // General code quality
     "no-console": "off", // We need console for CLI output
     "no-debugger": "error",
