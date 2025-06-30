@@ -56,7 +56,11 @@ export function violationToDatabaseFormat(
     rule_id: violation.rule || violation.code || "unknown",
     category: violation.category,
     severity: violation.severity,
-    source: violation.source as "typescript" | "eslint",
+    source: violation.source as
+      | "typescript"
+      | "eslint"
+      | "unused-exports"
+      | "zod-detection",
     message: violation.message || "No message provided",
     line_number: violation.line || null, // eslint-disable-line unicorn/no-null
     column_number: violation.column || null, // eslint-disable-line unicorn/no-null
@@ -221,11 +225,13 @@ export function validateViolation(violation: Partial<NewViolation>): string[] {
   }
 
   if (
-    !["typescript", "eslint", "unused-exports"].includes(
+    !["typescript", "eslint", "unused-exports", "zod-detection"].includes(
       violation.source as string,
     )
   ) {
-    errors.push("source must be typescript, eslint, or unused-exports");
+    errors.push(
+      "source must be typescript, eslint, unused-exports, or zod-detection",
+    );
   }
 
   if (!violation.message?.trim()) {

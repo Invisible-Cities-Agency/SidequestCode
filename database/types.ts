@@ -15,7 +15,7 @@ interface ViolationTable {
   rule_id: string;
   category: string;
   severity: "error" | "warn" | "info";
-  source: "typescript" | "eslint";
+  source: "typescript" | "eslint" | "unused-exports" | "zod-detection";
   message: string;
   line_number: number | null;
   column_number: number | null;
@@ -115,7 +115,7 @@ export type NewRuleSchedule = Insertable<RuleScheduleTable>;
 
 export interface ViolationSummaryItem {
   category: string;
-  source: "typescript" | "eslint";
+  source: "typescript" | "eslint" | "unused-exports" | "zod-detection";
   severity: "error" | "warn" | "info";
   count: number;
   affected_files: number;
@@ -173,7 +173,7 @@ export interface StorageServiceConfig {
 export interface ViolationQueryParameters {
   status?: "active" | "resolved" | "ignored";
   categories?: string[];
-  sources?: ("typescript" | "eslint")[];
+  sources?: ("typescript" | "eslint" | "unused-exports" | "zod-detection")[];
   severities?: ("error" | "warn" | "info")[];
   file_paths?: string[];
   limit?: number;
