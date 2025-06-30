@@ -18,6 +18,7 @@ import type {
   QualityReport,
   RuleEfficiencyReport,
 } from "./interfaces.js";
+import { arrayAt } from "../utils/node-compatibility.js";
 
 // import type {
 //   ViolationHistory,
@@ -413,7 +414,7 @@ export class AnalysisService implements IAnalysisService {
     }
 
     const first = values[0];
-    const last = values.at(-1);
+    const last = arrayAt(values, -1);
 
     if (first === undefined || last === undefined) {
       return 0;

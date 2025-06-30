@@ -9,6 +9,7 @@ import {
 } from "../utils/violation-types.js";
 import { detectTerminalModeHeuristic } from "./terminal-detector.js";
 import { ANSI_CODES, isESLintCategory } from "../shared/constants.js";
+import { replaceAll } from "../utils/node-compatibility.js";
 import type {
   ColorScheme,
   WatchState,
@@ -616,9 +617,7 @@ export class DeveloperWatchDisplay {
 
     return (
       displayNames[categoryKey] ||
-      categoryKey
-        .replaceAll("-", " ")
-        .replaceAll(/\b\w/g, (l) => l.toUpperCase())
+      replaceAll(categoryKey, "-", " ").replace(/\b\w/g, (l) => l.toUpperCase())
     );
   }
 

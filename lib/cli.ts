@@ -65,6 +65,7 @@ import {
 import { writeFile, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { checkEnvironmentCompatibility } from "../utils/node-compatibility.js";
 
 /**
  * Process violations into summary format for session state
@@ -1264,6 +1265,25 @@ ${colors.secondary}Continuing with your command...${colors.reset}
  * Main execution function
  */
 async function main(): Promise<void> {
+  // Check Node.js compatibility and warn about unsupported versions
+  const compatibility = checkEnvironmentCompatibility();
+  if (!compatibility.compatible) {
+    const colors = getColorScheme();
+    console.warn(
+      `${colors.warning}⚠️  Node.js Compatibility Warning:${colors.reset}`,
+    );
+    compatibility.warnings.forEach((warning) => {
+      console.warn(`   ${colors.error}${warning}${colors.reset}`);
+    });
+    if (compatibility.recommendations.length > 0) {
+      console.warn(`${colors.info}Recommendations:${colors.reset}`);
+      compatibility.recommendations.forEach((rec) => {
+        console.warn(`   • ${rec}`);
+      });
+    }
+    console.warn(); // Empty line for spacing
+  }
+
   // Intercept common user errors before processing
   interceptCommonErrors();
 

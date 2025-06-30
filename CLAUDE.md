@@ -185,6 +185,30 @@ The CLI supports extensive flags for different use cases:
 - File path handling uses Node.js path utilities
 - Database file location respects OS conventions
 
+### Node.js Compatibility
+
+**Supported Versions:**
+
+- Node.js 18.x LTS (Hydrogen) - Maintenance LTS until April 2025
+- Node.js 20.x LTS (Iron) - Active LTS until April 2026
+- Node.js 22.x LTS (Jod) - Active LTS until April 2027
+
+**Compatibility Features:**
+
+- Automatic compatibility checking on startup with helpful warnings
+- Fallback implementations for newer features (replaceAll, Array.at)
+- Graceful degradation for older Node versions
+- Uses `node:` prefix imports (available since Node 16.0.0)
+
+**Feature Compatibility:**
+
+- `String.prototype.replaceAll()` - Native in Node 15+, fallback provided
+- `Array.prototype.at()` - Native in Node 16.6+, fallback provided
+- ESM modules with dynamic imports - Node 12.20.0+
+- AbortController - Native in Node 16+
+
+The tool will display compatibility warnings if running on unsupported versions and provide upgrade recommendations.
+
 ### AI/LLM Integration
 
 - Report commands (`sidequest:report*`) provide clean JSON output
