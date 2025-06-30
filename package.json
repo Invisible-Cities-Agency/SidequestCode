@@ -42,6 +42,7 @@
     "test:coverage": "NODE_OPTIONS='--no-warnings' vitest run --coverage",
     "test:ui": "vitest --ui",
     "test:ci": "NODE_OPTIONS='--no-warnings' vitest run --reporter=json --outputFile=./test-results.json",
+    "test:ci:debug": "NODE_OPTIONS='--no-warnings' bash -c 'pwd && ls -la .vitest && find .vitest -name \"*.test.*\" && vitest run --reporter=verbose'",
     "lint": "eslint . --ext .js,.cjs,.mjs --fix",
     "types:unused": "ts-unused-exports tsconfig.json --showLineNumber",
     "typecheck": "tsc --noEmit",
@@ -51,8 +52,11 @@
     "prepublishOnly": "npm run clean && npm run format && npm run build && npm run test && npm run typecheck && npm run sidequest:precommit",
     "postinstall": "node scripts/postinstall.cjs",
     "install-shortcuts": "node scripts/postinstall.cjs",
-    "alpha-release": "npm version prerelease --preid=alpha && npm publish --tag alpha",
-    "beta-release": "npm version prerelease --preid=beta && npm publish --tag beta"
+    "alpha-release": "npm version prerelease --preid=alpha && git push && git push --tags && npm publish --tag alpha",
+    "beta-release": "npm version prerelease --preid=beta && git push && git push --tags && npm publish --tag beta",
+    "version:increment": "npm version prerelease --preid=alpha",
+    "version:push": "git push && git push --tags",
+    "publish:alpha": "npm publish --tag alpha"
   },
   "keywords": [
     "typescript",

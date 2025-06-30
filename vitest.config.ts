@@ -15,8 +15,13 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
 
-    // File patterns for organized test structure
-    include: [".vitest/**/*.test.{mjs,ts,tsx}"],
+    // File patterns for organized test structure - explicit patterns for CI compatibility
+    include: [
+      "./.vitest/**/*.test.{mjs,ts,tsx}",
+      ".vitest/**/*.test.{mjs,ts,tsx}",
+      "./.vitest/**/*.test.mjs",
+      ".vitest/**/*.test.mjs",
+    ],
     exclude: [
       "node_modules/**",
       "dist/**",
@@ -109,6 +114,9 @@ export default defineConfig({
 
     // Bail on first failure in CI
     bail: process.env["CI"] ? 1 : 0,
+
+    // CI-specific debugging - verbose reporter with additional CI info
+    reporters: process.env["CI"] ? ["verbose"] : ["verbose"],
 
     // Test isolation removed (duplicate)
 
