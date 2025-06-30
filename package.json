@@ -88,7 +88,7 @@
   "bugs": {
     "url": "https://github.com/Invisible-Cities-Agency/SidequestCode/issues"
   },
-  "homepage": "https://github.com/isarmstrong/SideQuestCode#readme",
+  "homepage": "https://github.com/Invisible-Cities-Agency/SidequestCode#readme",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -96,7 +96,7 @@
     "dist/",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "docs/CHANGELOG.md"
   ],
   "dependencies": {
     "better-sqlite3": "^9.0.0",
