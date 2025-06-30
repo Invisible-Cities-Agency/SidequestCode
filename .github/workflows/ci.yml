@@ -36,8 +36,8 @@ jobs:
       - name: Run SideQuest analysis
         run: npm run sidequest:report
 
-      - name: Debug test environment
-        run: npm run test:ci:debug
+      - name: Run test suite
+        run: npm test
 
       - name: Build package
         run: npm run build
