@@ -79,13 +79,41 @@ function findPackageJson() {
 }
 
 function detectPackageManager() {
+  // Check environment variable first (most reliable)
   if (process.env.npm_config_user_agent) {
     const agent = process.env.npm_config_user_agent;
     if (agent.includes("pnpm")) return "pnpm";
     if (agent.includes("yarn")) return "yarn";
     if (agent.includes("bun")) return "bun";
   }
+  
+  // Fallback: check for lock files in current directory and parent directories
+  const fs = require("fs");
+  const path = require("path");
+  
+  let currentDir = process.cwd();
+  
+  // Walk up to find package manager lock files
+  while (currentDir !== path.dirname(currentDir)) {
+    if (fs.existsSync(path.join(currentDir, "pnpm-lock.yaml"))) {
+      return "pnpm";
+    }
+    if (fs.existsSync(path.join(currentDir, "yarn.lock"))) {
+      return "yarn";
+    }
+    if (fs.existsSync(path.join(currentDir, "bun.lockb"))) {
+      return "bun";
+    }
+    currentDir = path.dirname(currentDir);
+  }
+  
   return "npm";
+}
+
+function isPnpmProject() {
+  const pm = detectPackageManager();
+  log(`🔍 Detected package manager: ${pm}`);
+  return pm === "pnpm";
 }
 
 function getBoxedMessage() {
@@ -221,9 +249,13 @@ try {
       console.log(
         `\n📦 SideQuest CQO installed!\n✅ Added scripts: ${added.join(", ")}`,
       );
-      console.log(
-        `\n🚀 Quick start:\n   ${runCmd} sidequest:report\n   ${runCmd} sidequest:watch\n`,
-      );
+      
+      // Show appropriate quick start based on package manager
+      if (pm === "pnpm") {
+        console.log(`\n🚀 Quick start:\n   pnpm sidequest:watch\n   pnpm sidequest:report\n`);
+      } else {
+        console.log(`\n🚀 Quick start:\n   ${runCmd} sidequest:report\n   ${runCmd} sidequest:watch\n`);
+      }
       console.log(`\n🔍 Debug log: ${logPath}`);
     } else {
       log(`ℹ️ All scripts already exist, no changes needed`);
@@ -246,8 +278,8 @@ try {
     console.log(`\n🔍 Debug log: ${logPath}`);
   }
   
-  // Always show next steps for pnpm users regardless of success/failure
-  if (detectPackageManager() === "pnpm") {
+  // Only show pnpm-specific messaging for pnpm projects
+  if (isPnpmProject()) {
     console.log(`\n${getBoxedMessage()}`);
     
     // Write a local file with the next command for easy access
@@ -287,6 +319,11 @@ Generated: ${new Date().toISOString()}
     } catch (e) {
       log(`⚠️ Could not create help file: ${e.message}`);
     }
+  } else {
+    // For non-pnpm users, show simpler success message
+    const pm = detectPackageManager();
+    const runCmd = pm === "yarn" ? "yarn" : `${pm} run`;
+    console.log(`\n✅ SideQuest CQO ready! Try: ${runCmd} sidequest:watch`);
   }
 
   log(`✅ Postinstall completed successfully`);
