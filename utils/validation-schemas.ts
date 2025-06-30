@@ -1,6 +1,6 @@
 /**
  * @fileoverview Zod Validation Schemas
- * 
+ *
  * Comprehensive validation schemas for external data boundaries.
  * Provides runtime type safety for CLI arguments, external process outputs,
  * configuration files, and environment variables.
@@ -26,7 +26,7 @@ export const CLIFlagsSchema = z.object({
   includeESLint: z.boolean().default(false),
   eslintOnly: z.boolean().default(false),
   targetPath: z.string()
-    .regex(/^[a-zA-Z0-9._/-]+$/, 'Invalid target path characters')
+    .regex(/^[\w./-]+$/, 'Invalid target path characters')
     .max(256, 'Target path too long')
     .default('.'),
   verbose: z.boolean().default(false),
@@ -38,14 +38,14 @@ export const CLIFlagsSchema = z.object({
   resetSession: z.boolean().default(false),
   debugTerminal: z.boolean().default(false),
   dataDir: z.string()
-    .regex(/^[a-zA-Z0-9._/-]+$/, 'Invalid data directory path')
+    .regex(/^[\w./-]+$/, 'Invalid data directory path')
     .max(256, 'Data directory path too long')
     .default('./data'),
   generatePRD: z.boolean().default(false),
   configAction: z.string()
     .regex(/^(show|edit|reset)$/, 'Invalid config action')
     .optional(),
-  skipSetup: z.boolean().default(false),
+  skipSetup: z.boolean().default(false)
 }).strict();
 
 export type ValidatedCLIFlags = z.infer<typeof CLIFlagsSchema>;
@@ -60,13 +60,13 @@ export type ValidatedCLIFlags = z.infer<typeof CLIFlagsSchema>;
  */
 export const EnvironmentSchema = z.object({
   CQO_DB_PATH: z.string()
-    .regex(/^[a-zA-Z0-9._/-]+$/, 'Invalid database path characters')
+    .regex(/^[\w./-]+$/, 'Invalid database path characters')
     .max(512, 'Database path too long')
     .optional(),
   TERM_COLOR_MODE: z.enum(['light', 'dark', 'auto']).optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).optional(),
   DEBUG: z.string().optional(),
-  CI: z.string().optional(),
+  CI: z.string().optional()
 }).strict();
 
 export type ValidatedEnvironment = z.infer<typeof EnvironmentSchema>;
@@ -94,11 +94,11 @@ export const TSConfigSchema = z.object({
     paths: z.record(z.array(z.string())).optional(),
     esModuleInterop: z.boolean().optional(),
     allowSyntheticDefaultImports: z.boolean().optional(),
-    moduleResolution: z.string().optional(),
+    moduleResolution: z.string().optional()
   }).optional(),
   include: z.array(z.string()).optional(),
   exclude: z.array(z.string()).optional(),
-  extends: z.string().optional(),
+  extends: z.string().optional()
 }).passthrough(); // Allow additional TypeScript options
 
 export type ValidatedTSConfig = z.infer<typeof TSConfigSchema>;
@@ -108,77 +108,48 @@ export type ValidatedTSConfig = z.infer<typeof TSConfigSchema>;
 // =============================================================================
 
 /**
- * ESLint result message validation schema
- */
-export const ESLintMessageSchema = z.object({
-  ruleId: z.string().nullable(),
-  severity: z.number().min(0).max(2),
-  message: z.string().max(1000, 'Message too long'),
-  line: z.number().positive().max(100000, 'Line number too large'),
-  column: z.number().positive().max(1000, 'Column number too large').optional(),
-  nodeType: z.string().optional(),
-  messageId: z.string().optional(),
-  endLine: z.number().positive().optional(),
-  endColumn: z.number().positive().optional(),
-  fix: z.object({
-    range: z.tuple([z.number(), z.number()]),
-    text: z.string(),
-  }).optional(),
-  suggestions: z.array(z.any()).optional(),
-  suppressions: z.array(z.any()).optional(),
-}).passthrough(); // Allow additional ESLint fields
-
-/**
- * ESLint file result validation schema
- */
-export const ESLintFileResultSchema = z.object({
-  filePath: z.string()
-    .max(512, 'File path too long')
-    .regex(/\.(ts|tsx|js|jsx)$/, 'Invalid file extension'),
-  messages: z.array(ESLintMessageSchema),
-  suppressedMessages: z.array(ESLintMessageSchema).optional(),
-  errorCount: z.number().min(0).max(10000, 'Error count too large'),
-  fatalErrorCount: z.number().min(0).max(10000, 'Fatal error count too large'),
-  warningCount: z.number().min(0).max(10000, 'Warning count too large'),
-  fixableErrorCount: z.number().min(0).max(10000, 'Fixable error count too large'),
-  fixableWarningCount: z.number().min(0).max(10000, 'Fixable warning count too large'),
-  usedDeprecatedRules: z.array(z.object({
-    ruleId: z.string(),
-    replacedBy: z.array(z.string()),
-  })).optional(),
-  source: z.string().optional(),
-}).passthrough(); // Allow additional ESLint fields
-
-/**
  * Complete ESLint output validation schema
+ * Validates ESLint JSON output with inline schema definitions
  */
-export const ESLintOutputSchema = z.array(ESLintFileResultSchema)
-  .max(1000, 'Too many files in ESLint output');
+export const ESLintOutputSchema = z.array(
+  z.object({
+    filePath: z.string()
+      .max(512, 'File path too long')
+      .regex(/\.(ts|tsx|js|jsx)$/, 'Invalid file extension'),
+    messages: z.array(z.object({
+      ruleId: z.string().nullable(),
+      severity: z.number().min(0).max(2),
+      message: z.string().max(1000, 'Message too long'),
+      line: z.number().positive().max(100_000, 'Line number too large'),
+      column: z.number().positive().max(1000, 'Column number too large').optional(),
+      nodeType: z.string().optional(),
+      messageId: z.string().optional(),
+      endLine: z.number().positive().optional(),
+      endColumn: z.number().positive().optional(),
+      fix: z.object({
+        range: z.tuple([z.number(), z.number()]),
+        text: z.string()
+      }).optional(),
+      suggestions: z.array(z.any()).optional(),
+      suppressions: z.array(z.any()).optional()
+    }).passthrough()), // Allow additional ESLint fields
+    suppressedMessages: z.array(z.any()).optional(),
+    errorCount: z.number().min(0).max(10_000, 'Error count too large'),
+    fatalErrorCount: z.number().min(0).max(10_000, 'Fatal error count too large'),
+    warningCount: z.number().min(0).max(10_000, 'Warning count too large'),
+    fixableErrorCount: z.number().min(0).max(10_000, 'Fixable error count too large'),
+    fixableWarningCount: z.number().min(0).max(10_000, 'Fixable warning count too large'),
+    usedDeprecatedRules: z.array(z.object({
+      ruleId: z.string(),
+      replacedBy: z.array(z.string())
+    })).optional(),
+    source: z.string().optional()
+  }).passthrough() // Allow additional ESLint fields
+).max(1000, 'Too many files in ESLint output');
 
 export type ValidatedESLintOutput = z.infer<typeof ESLintOutputSchema>;
 
-// =============================================================================
-// TYPESCRIPT COMPILER OUTPUT
-// =============================================================================
-
-/**
- * TypeScript compiler error validation schema
- * Validates tsc output to prevent malicious error injection
- */
-export const TypeScriptErrorSchema = z.object({
-  file: z.string()
-    .max(512, 'File path too long')
-    .regex(/\.(ts|tsx)$/, 'Invalid TypeScript file extension'),
-  line: z.number().positive().max(100000, 'Line number too large'),
-  column: z.number().positive().max(1000, 'Column number too large'),
-  severity: z.enum(['error', 'warning']),
-  code: z.string()
-    .regex(/^TS\d{4,5}$/, 'Invalid TypeScript error code format')
-    .max(10, 'Error code too long'),
-  message: z.string().max(1000, 'Error message too long'),
-}).strict();
-
-export type ValidatedTypeScriptError = z.infer<typeof TypeScriptErrorSchema>;
+// TypeScript engine uses regex parsing instead of Zod validation for performance
 
 // =============================================================================
 // PACKAGE.JSON VALIDATION
@@ -194,46 +165,13 @@ export const PackageJsonSchema = z.object({
   dependencies: z.record(z.string()).optional(),
   devDependencies: z.record(z.string()).optional(),
   peerDependencies: z.record(z.string()).optional(),
-  scripts: z.record(z.string()).optional(),
+  scripts: z.record(z.string()).optional()
 }).passthrough(); // Allow additional package.json fields
 
 export type ValidatedPackageJson = z.infer<typeof PackageJsonSchema>;
 
-// =============================================================================
-// USER PREFERENCES VALIDATION
-// =============================================================================
-
-/**
- * User preferences validation schema
- * Validates user configuration to prevent malicious preferences
- */
-export const UserPreferencesSchema = z.object({
-  hasCompletedFirstRun: z.boolean().default(false),
-  analysisScope: z.enum(['errors-only', 'warnings', 'complete']).default('errors-only'),
-  terminalColorPreference: z.enum(['auto', 'light', 'dark']).default('auto'),
-  showToolSeparationWarning: z.boolean().default(true),
-  showEducationalHints: z.boolean().default(true),
-}).strict();
-
-export type ValidatedUserPreferences = z.infer<typeof UserPreferencesSchema>;
-
-// =============================================================================
-// RIPGREP OUTPUT VALIDATION
-// =============================================================================
-
-/**
- * Ripgrep output line validation schema
- * Validates rg command output to prevent injection attacks
- */
-export const RipgrepLineSchema = z.object({
-  file: z.string()
-    .max(512, 'File path too long')
-    .regex(/\.(ts|tsx|js|jsx)$/, 'Invalid file extension'),
-  line: z.number().positive().max(100000, 'Line number too large'),
-  content: z.string().max(2000, 'Line content too long'),
-}).strict();
-
-export type ValidatedRipgrepLine = z.infer<typeof RipgrepLineSchema>;
+// User preferences use manual JSON parsing for now
+// Ripgrep validation not implemented yet
 
 // =============================================================================
 // VALIDATION UTILITIES
@@ -251,11 +189,11 @@ export function safeJsonParse<T>(
   try {
     const parsed = JSON.parse(json);
     const result = schema.safeParse(parsed);
-    
+
     if (!result.success) {
       throw new Error(`Invalid ${context} format: ${result.error.message}`);
     }
-    
+
     return result.data;
   } catch (error: any) {
     if (error.message.includes('Invalid')) {
@@ -270,16 +208,16 @@ export function safeJsonParse<T>(
  * Validates environment variables to prevent injection
  */
 export function safeEnvironmentAccess(): ValidatedEnvironment {
-  const env = {
+  const environment = {
     CQO_DB_PATH: process.env['CQO_DB_PATH'],
     TERM_COLOR_MODE: process.env['TERM_COLOR_MODE'],
     NODE_ENV: process.env['NODE_ENV'],
     DEBUG: process.env['DEBUG'],
-    CI: process.env['CI'],
+    CI: process.env['CI']
   };
-  
-  const result = EnvironmentSchema.safeParse(env);
-  
+
+  const result = EnvironmentSchema.safeParse(environment);
+
   if (!result.success) {
     console.warn(`[Security] Invalid environment variables detected: ${result.error.message}`);
     // Return safe defaults instead of throwing
@@ -288,10 +226,10 @@ export function safeEnvironmentAccess(): ValidatedEnvironment {
       TERM_COLOR_MODE: undefined,
       NODE_ENV: undefined,
       DEBUG: undefined,
-      CI: undefined,
+      CI: undefined
     };
   }
-  
+
   return result.data;
 }
 
@@ -299,72 +237,61 @@ export function safeEnvironmentAccess(): ValidatedEnvironment {
  * Safe CLI arguments parsing with validation
  * Validates command-line arguments to prevent injection
  */
-export function safeCLIArgsParse(args: string[]): ValidatedCLIFlags {
-  // Extract flags from command line arguments  
+export function safeCLIArgsParse(arguments_: string[]): ValidatedCLIFlags {
+  // Extract flags from command line arguments
   const flags = {
-    help: args.includes('--help') || args.includes('-h'),
-    helpMarkdown: args.includes('--help-markdown'),
-    helpQuick: args.includes('--help-quick'),
-    aiContext: args.includes('--ai-context'),
-    watch: args.includes('--watch'),
-    includeAny: args.includes('--include-any'),
-    includeESLint: args.includes('--include-eslint'),
-    eslintOnly: args.includes('--eslint-only'),
+    help: arguments_.includes('--help') || arguments_.includes('-h'),
+    helpMarkdown: arguments_.includes('--help-markdown'),
+    helpQuick: arguments_.includes('--help-quick'),
+    aiContext: arguments_.includes('--ai-context'),
+    watch: arguments_.includes('--watch'),
+    includeAny: arguments_.includes('--include-any'),
+    includeESLint: arguments_.includes('--include-eslint'),
+    eslintOnly: arguments_.includes('--eslint-only'),
     targetPath: (() => {
-      const pathIndex = args.indexOf('--path');
-      if (pathIndex !== -1 && pathIndex + 1 < args.length) {
-        return args[pathIndex + 1] || '.';
+      const pathIndex = arguments_.indexOf('--path');
+      if (pathIndex !== -1 && pathIndex + 1 < arguments_.length) {
+        return arguments_[pathIndex + 1] || '.';
       }
       return '.';
     })(),
-    verbose: args.includes('--verbose'),
-    strict: args.includes('--strict'),
-    noCrossoverCheck: args.includes('--no-crossover-check'),
-    failOnCrossover: args.includes('--fail-on-crossover'),
-    usePersistence: !args.includes('--no-persistence'),
-    showBurndown: args.includes('--burndown'),
-    resetSession: args.includes('--reset-session'),
-    debugTerminal: args.includes('--debug-terminal'),
+    verbose: arguments_.includes('--verbose'),
+    strict: arguments_.includes('--strict'),
+    noCrossoverCheck: arguments_.includes('--no-crossover-check'),
+    failOnCrossover: arguments_.includes('--fail-on-crossover'),
+    usePersistence: !arguments_.includes('--no-persistence'),
+    showBurndown: arguments_.includes('--burndown'),
+    resetSession: arguments_.includes('--reset-session'),
+    debugTerminal: arguments_.includes('--debug-terminal'),
     dataDir: (() => {
-      const dataDirectoryIndex = args.indexOf('--data-dir');
-      if (dataDirectoryIndex !== -1 && dataDirectoryIndex + 1 < args.length) {
-        return args[dataDirectoryIndex + 1] || './data';
+      const dataDirectoryIndex = arguments_.indexOf('--data-dir');
+      if (dataDirectoryIndex !== -1 && dataDirectoryIndex + 1 < arguments_.length) {
+        return arguments_[dataDirectoryIndex + 1] || './data';
       }
       return './data';
     })(),
-    generatePRD: args.includes('--prd'),
+    generatePRD: arguments_.includes('--prd'),
     configAction: (() => {
-      const configIndex = args.indexOf('--config');
+      const configIndex = arguments_.indexOf('--config');
       if (configIndex === -1) {
-        return undefined; // No --config flag provided
+        return; // No --config flag provided
       }
-      const nextArgument = args[configIndex + 1];
+      const nextArgument = arguments_[configIndex + 1];
       if (nextArgument && !nextArgument.startsWith('--')) {
         return nextArgument; // --config show, --config reset, --config edit
       }
       return 'show'; // Default to show if just --config
     })(),
-    skipSetup: args.includes('--skip-setup'),
+    skipSetup: arguments_.includes('--skip-setup')
   };
-  
+
   const result = CLIFlagsSchema.safeParse(flags);
-  
+
   if (!result.success) {
     throw new Error(`Invalid command-line arguments: ${result.error.message}`);
   }
-  
+
   return result.data;
 }
 
-/**
- * Security validation for file paths
- * Prevents path traversal attacks
- */
-export const FilePathSchema = z.string()
-  .max(512, 'File path too long')
-  .regex(/^[^<>:"|?*\x00-\x1f]+$/, 'Invalid characters in file path')
-  .refine(path => !path.includes('..'), 'Path traversal not allowed')
-  .refine(path => !path.startsWith('/etc'), 'System directory access not allowed')
-  .refine(path => !path.startsWith('/root'), 'Root directory access not allowed');
-
-export type ValidatedFilePath = z.infer<typeof FilePathSchema>;
+// File path validation not implemented yet

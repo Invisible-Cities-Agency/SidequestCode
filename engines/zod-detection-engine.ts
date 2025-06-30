@@ -38,29 +38,29 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     if (nonZodParsers.includes(schemaName)) {
       return true;
     }
-    
+
     // Check if it's JSON.parse() specifically
     if (content.includes('JSON.parse(')) {
       return true;
     }
-    
+
     // Check if it's in a string literal (comments, error messages, etc.)
-    if (content.includes(`'`) && content.includes(`schema.parse(`)) {
+    if (content.includes('\'') && content.includes('schema.parse(')) {
       return true;
     }
-    if (content.includes(`"`) && content.includes(`schema.parse(`)) {
+    if (content.includes('"') && content.includes('schema.parse(')) {
       return true;
     }
-    if (content.includes(`\``) && content.includes(`schema.parse(`)) {
+    if (content.includes('`') && content.includes('schema.parse(')) {
       return true;
     }
-    
+
     // Check if it's a built-in parse method
-    if (content.includes(`${schemaName}.parse(`) && 
+    if (content.includes(`${schemaName}.parse(`) &&
         (content.includes('parseInt') || content.includes('parseFloat'))) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -121,11 +121,11 @@ export class ZodDetectionEngine extends BaseAuditEngine {
   private async hasZodDependency(): Promise<boolean> {
     try {
       const packageJsonModule = await import(`${process.cwd()}/package.json`);
-      
+
       // Validate package.json structure with Zod for security
       const packageJson: ValidatedPackageJson = PackageJsonSchema.parse(packageJsonModule.default || packageJsonModule);
       console.log('[Security] package.json structure validated successfully');
-      
+
       return !!(packageJson.dependencies?.['zod'] || packageJson.devDependencies?.['zod']);
     } catch (error: any) {
       console.warn('[Zod Detection] Could not validate package.json:', error.message);
@@ -193,7 +193,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
               const parseMatch = content.match(/(\w+)\.parse\(/);
               if (parseMatch) {
                 const schemaName = parseMatch[1];
-                
+
                 // Filter out obvious false positives
                 if (schemaName && !this.isNonZodParse(schemaName, content)) {
                   usage.parseUsages.push({
@@ -241,6 +241,40 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       }
     }
 
+    // Find safeJsonParse() utility function usages - CRITICAL FIX for missed detections
+    const safeJsonParseResult = spawnSync('rg', [
+      '--type', 'ts',
+      '--line-number',
+      'safeJsonParse\\(',
+      '.'
+    ], {
+      encoding: 'utf8',
+      cwd: baseDirectory
+    });
+
+    if (safeJsonParseResult.stdout) {
+      for (const line of safeJsonParseResult.stdout.split('\n')) {
+        if (line.trim()) {
+          const match = line.match(/^([^:]+):(\d+):(.*)/);
+          if (match) {
+            const [, file, lineNumber, content] = match;
+            if (file && lineNumber && content) {
+              // Match pattern: safeJsonParse(data, SchemaName, description)
+              const safeJsonMatch = content.match(/safeJsonParse\([^,]+,\s*(\w+Schema)\s*,/);
+              if (safeJsonMatch && safeJsonMatch[1]) {
+                const schemaName = safeJsonMatch[1];
+                usage.safeParsUsages.push({
+                  file: file.replace(`${baseDirectory}/`, ''),
+                  line: Number.parseInt(lineNumber, 10),
+                  schema: schemaName
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
     return usage;
   }
 
@@ -261,7 +295,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
           severity: 'warn',
           source: this.source,
           rule: 'zod-unused-schema',
-          message: `Zod schema '${schema.name}' is defined but never used with .parse() or .safeParse()`,
+          message: `Zod schema '${schema.name}' is defined but never used with .parse(), .safeParse(), or safeJsonParse()`,
           fixSuggestion: `Remove unused schema '${schema.name}' or add validation calls`
         });
       }

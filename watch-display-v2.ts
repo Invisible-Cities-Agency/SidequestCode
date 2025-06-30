@@ -246,7 +246,7 @@ export class DeveloperWatchDisplay {
   private renderBurndownView(checksCount?: number, actionableViolations?: OrchestratorViolation[]): void {
     const { colors } = this;
     const { sessionStart, currentViolations, baseline, current } = this.state;
-    
+
     // Use filtered actionable violations (errors + warnings only) instead of all violations
     const displayViolations = actionableViolations || this.filterActionableViolations(currentViolations);
     const sessionDuration = Math.floor((Date.now() - sessionStart) / 1000);
@@ -305,7 +305,7 @@ export class DeveloperWatchDisplay {
 
     // Get real-time data from actionable violations only
     const violationData = this.processViolations(displayViolations);
-    
+
     // Show meaningful progress bars based on reduction from baseline
     process.stdout.write('🔍 ESLint Categories:\n');
     const eslintCategoryData = [
@@ -319,15 +319,15 @@ export class DeveloperWatchDisplay {
     for (const category of eslintCategoryData) {
       const currentCount = violationData.byCategory[category.key] || 0;
       const baselineCount = baseline?.byCategory[category.key] || currentCount;
-      
+
       if (currentCount > 0 || baselineCount > 0) {
         const change = currentCount - baselineCount;
         const changeText = change === 0 ? '±0' : (change > 0 ? `+${change}` : `${change}`);
         const changeColor = change > 0 ? colors.error : (change < 0 ? colors.success : colors.muted);
-        
+
         // Create burndown progress bar: shows current vs baseline
         const burndownBar = this.createBurndownBar(baselineCount, currentCount);
-        
+
         process.stdout.write(`  ${category.severity} ${category.name.padEnd(18)} ${baselineCount.toString().padStart(2)} → ${currentCount.toString().padStart(2)} ${changeColor}(${changeText})${colors.reset} ${burndownBar}\n`);
       }
     }
@@ -342,14 +342,14 @@ export class DeveloperWatchDisplay {
     for (const category of tsCategoryData) {
       const currentCount = violationData.byCategory[category.key] || 0;
       const baselineCount = baseline?.byCategory[category.key] || currentCount;
-      
+
       if (currentCount > 0 || baselineCount > 0) {
         const change = currentCount - baselineCount;
         const changeText = change === 0 ? '±0' : (change > 0 ? `+${change}` : `${change}`);
         const changeColor = change > 0 ? colors.error : (change < 0 ? colors.success : colors.muted);
-        
+
         const burndownBar = this.createBurndownBar(baselineCount, currentCount);
-        
+
         process.stdout.write(`  ${category.severity} ${category.name.padEnd(18)} ${baselineCount.toString().padStart(2)} → ${currentCount.toString().padStart(2)} ${changeColor}(${changeText})${colors.reset} ${burndownBar}\n`);
       }
     }
@@ -362,7 +362,7 @@ export class DeveloperWatchDisplay {
       const changeText = change === 0 ? '±0' : (change > 0 ? `+${change}` : `${change}`);
       const changeColor = change > 0 ? colors.error : (change < 0 ? colors.success : colors.muted);
       const burndownBar = this.createBurndownBar(baselineUnusedExports, unusedExportsCount);
-      
+
       process.stdout.write(`\n🗂️ Unused Exports       ${baselineUnusedExports.toString().padStart(2)} → ${unusedExportsCount.toString().padStart(2)} ${changeColor}(${changeText})${colors.reset} ${burndownBar}\n\n`);
     }
 
@@ -439,7 +439,7 @@ export class DeveloperWatchDisplay {
     const maxCount = Math.max(baseline, current, 1);
     const baselineBar = Math.floor((baseline / maxCount) * width);
     const currentBar = Math.floor((current / maxCount) * width);
-    
+
     if (current <= baseline) {
       // Progress made (reduction) - show green completed portion
       const completed = baselineBar - currentBar;
@@ -460,7 +460,7 @@ export class DeveloperWatchDisplay {
    * Info-level items are just noise in watch mode
    */
   private filterActionableViolations(violations: OrchestratorViolation[]): OrchestratorViolation[] {
-    return violations.filter(violation => 
+    return violations.filter(violation =>
       violation.severity === 'error' || violation.severity === 'warn'
     );
   }
@@ -487,7 +487,7 @@ export class DeveloperWatchDisplay {
   async updateDisplay(violations: OrchestratorViolation[], checksCount: number, orchestrator?: any): Promise<void> {
     // Store current violations for all view modes
     this.state.currentViolations = violations;
-    
+
     // Filter violations for actionable display (errors + warnings only)
     const actionableViolations = this.filterActionableViolations(violations);
 

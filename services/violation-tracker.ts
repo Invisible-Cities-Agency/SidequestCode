@@ -376,7 +376,7 @@ export class ViolationTracker implements IViolationTracker {
       deduplicated: 0,
       errors: [] as string[]
     };
-    
+
     for (const result of results) {
       total.processed += result.processed;
       total.inserted += result.inserted;
@@ -384,7 +384,7 @@ export class ViolationTracker implements IViolationTracker {
       total.deduplicated += result.deduplicated;
       total.errors.push(...result.errors);
     }
-    
+
     return total;
   }
 

@@ -44,18 +44,21 @@ import type { CLIFlags, OrchestratorConfigInput } from './utils/types.js';
 import { CodeQualityOrchestrator } from './orchestrator.js';
 
 // Parse command line arguments with Zod validation for security
-import { safeCLIArgsParse, safeEnvironmentAccess } from './utils/validation-schemas.js';
+import { safeCLIArgsParse as safeCLIArgumentsParse, safeEnvironmentAccess } from './utils/validation-schemas.js';
+
+// Static imports for better testability
+import { writeFile } from 'node:fs/promises';
 
 const arguments_ = process.argv.slice(2);
 
 // Validate environment variables for security
-const validatedEnv = safeEnvironmentAccess();
+const validatedEnvironment = safeEnvironmentAccess();
 
 // Use secure CLI argument parsing with Zod validation
 let flags: CLIFlags;
 try {
-  flags = safeCLIArgsParse(arguments_) as CLIFlags;
-  if (validatedEnv.DEBUG) {
+  flags = safeCLIArgumentsParse(arguments_) as CLIFlags;
+  if (validatedEnvironment.DEBUG) {
     console.log('[Security] CLI arguments validated successfully');
   }
 } catch (error: any) {
@@ -83,7 +86,7 @@ try {
     dataDir: './data',
     generatePRD: false,
     configAction: undefined,
-    skipSetup: false,
+    skipSetup: false
   };
 }
 
@@ -380,7 +383,7 @@ TROUBLESHOOTING:
  * Get color scheme for terminal output with light/dark mode support
  */
 function getColorScheme() {
-  const colorMode = validatedEnv.TERM_COLOR_MODE || detectTerminalMode();
+  const colorMode = validatedEnvironment.TERM_COLOR_MODE || detectTerminalMode();
 
   return colorMode === 'light' ? {
     // Light mode: Replicate macOS Terminal "Man Page" theme colors
@@ -480,7 +483,7 @@ async function processViolationsWithPersistence(
     const processingResult = await violationTracker.processViolations(violations);
 
     // Log processing results in debug mode
-    if (validatedEnv.DEBUG) {
+    if (validatedEnvironment.DEBUG) {
       console.log('[Persistence] Processing result:', processingResult);
     }
   } catch (error) {
@@ -601,7 +604,7 @@ function displayZodAnalysisSection(violations: OrchestratorViolation[], colors: 
 /**
  * Generate PRD file for Claude Task Master ingestion
  */
-async function generatePRD(violations: OrchestratorViolation[], targetPath: string): Promise<void> {
+export async function generatePRD(violations: OrchestratorViolation[], targetPath: string): Promise<void> {
   const colors = getColorScheme();
   const timestamp = new Date().toISOString().split('T')[0];
 
@@ -738,8 +741,7 @@ ${[...new Set(violations.map(v => v.file))]
   const prdPath = `${targetPath}/CODE_QUALITY_PRD.md`;
 
   try {
-    const fs = await import('node:fs/promises');
-    await fs.writeFile(prdPath, prdContent, 'utf8');
+    await writeFile(prdPath, prdContent, 'utf8');
     console.log(`${colors.success}✅ PRD generated: ${prdPath}${colors.reset}`);
     console.log(`${colors.info}📋 Ready for Claude Task Master ingestion${colors.reset}`);
   } catch (error) {

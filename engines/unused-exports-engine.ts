@@ -39,7 +39,7 @@ export class UnusedExportsEngine extends BaseAuditEngine {
         '--ignoreLocallyUsed',  // Don't report exports used in same file
         '--excludePathsFromReport=shared/types;shared/constants;utils/types'  // Exclude likely public API files
       ].join(' ');
-      
+
       const { stdout, stderr } = await execPromise(command, {
         cwd: process.cwd(),
         timeout: this.config.timeout || 30_000

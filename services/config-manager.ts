@@ -154,7 +154,8 @@ export class ConfigManager {
    */
   async initializeDatabase(): Promise<Kysely<any>> {
     if (this.databaseInitialized) {
-      return (await import('../database/connection.js')).getDatabase();
+      const connectionModule = await import('../database/connection.js');
+      return connectionModule.getDatabase();
     }
 
     // Ensure data directory exists
@@ -388,10 +389,10 @@ export class ConfigManager {
    */
   async saveToFile(configPath: string): Promise<void> {
     try {
-      const configDir = path.dirname(configPath);
-      await fs.mkdir(configDir, { recursive: true });
+      const configDirectory = path.dirname(configPath);
+      await fs.mkdir(configDirectory, { recursive: true });
 
-      const configData = JSON.stringify(this.config, null, 2);
+      const configData = JSON.stringify(this.config, undefined, 2);
       await fs.writeFile(configPath, configData, 'utf8');
 
       console.log(`[ConfigManager] Configuration saved to: ${configPath}`);

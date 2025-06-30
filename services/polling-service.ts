@@ -4,9 +4,8 @@
  */
 
 import { EventEmitter } from 'node:events';
-import type { IPollingService, IStorageService } from './interfaces.js';
+import type { IPollingService, IStorageService, RuleCheckResult } from './interfaces.js';
 import type { RuleSchedule } from '../database/types.js';
-import type { RuleCheckResult } from './interfaces.js';
 
 // ============================================================================
 // Polling Service Implementation

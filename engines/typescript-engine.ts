@@ -230,7 +230,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   private cacheTypeScriptConfig(tsConfigPath: string): void {
     try {
       const configContent = fs.readFileSync(tsConfigPath, 'utf8');
-      
+
       // Use Zod validation for secure tsconfig.json parsing
       const config: ValidatedTSConfig = safeJsonParse(configContent, TSConfigSchema, 'tsconfig.json');
       console.log('[Security] TypeScript configuration validated successfully');

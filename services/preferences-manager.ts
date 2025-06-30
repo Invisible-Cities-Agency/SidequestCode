@@ -225,7 +225,7 @@ export class PreferencesManager {
   private savePreferences(): void {
     try {
       this.preferences.userChoices.lastConfigUpdate = new Date().toISOString();
-      const content = JSON.stringify(this.preferences, null, 2);
+      const content = JSON.stringify(this.preferences, undefined, 2);
       fs.writeFileSync(this.preferencesPath, content, 'utf8');
     } catch (error) {
       console.warn(`[Preferences] Could not save preferences: ${error}`);

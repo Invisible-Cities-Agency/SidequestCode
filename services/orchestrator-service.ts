@@ -13,10 +13,9 @@ import type {
   WatchModeOptions,
   OrchestratorConfig,
   HealthCheckResult,
-  SystemStats
+  SystemStats,
+  RuleCheckResult
 } from './interfaces.js';
-
-import type { RuleCheckResult } from './interfaces.js';
 import { ConfigManager } from './config-manager.js';
 import { getPollingService } from './polling-service.js';
 import { getAnalysisService } from './analysis-service.js';
