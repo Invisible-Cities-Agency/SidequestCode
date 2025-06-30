@@ -33,7 +33,10 @@
       "Bash(npm publish:*)",
       "Bash(npm ls:*)",
       "Bash(npx husky init:*)",
-      "Bash(echo \"Exit code: $?\")"
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(git push:*)",
+      "Bash(npm view:*)",
+      "Bash(npm dist-tag:*)"
     ],
     "deny": []
   }

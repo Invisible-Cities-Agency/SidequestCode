@@ -1,13 +1,12 @@
 {
-  "name": "sidequest-cqo",
-  "version": "0.1.0-alpha.4",
-  "description": "🤖🧑‍💻 Human-AI partnership code quality orchestrator optimized for the reality that AI moves faster than developers can track ripple effects • 🔄 Real-time systems view reveals how every TypeScript type change breaks 3 ESLint rules (and vice versa) • ⚡ Built-in :ai-context command gets LLMs up to speed instantly on your codebase health • 🎯 Multi-engine coordination shows cascading violation effects across your entire system as they happen • 📊 Live monitoring solves the major pain point: seeing code quality impact of every change in real-time • 🧠 Systematic improvement tracking (fix 250+ violations systematically vs hunting individual errors) • 📋 Clean JSON output for CI, LLMs, and automated workflows",
+  "name": "@invisiblecities/sidequest-cqo",
+  "version": "0.1.0-alpha.7",
+  "description": "I need a description that retains the heart of what the thing does but doesn't sound like LLM shill (emoji spam, over excitement, direct quotes of my description without segue, etc)",
   "type": "module",
   "main": "dist/lib/cli.js",
   "bin": {
-    "code-quality-orchestrator": "dist/lib/cli.js",
-    "sidequest": "dist/lib/cli.js",
-    "cqo": "dist/lib/cli.js"
+    "sidequest-cqo": "dist/lib/cli.js",
+    "scqo": "dist/lib/cli.js"
   },
   "scripts": {
     "prepare": "husky",
@@ -50,7 +49,7 @@
     "format:check": "prettier --check .",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run format && npm run build && npm run test && npm run typecheck",
-    "postinstall": "node -e \"console.log('\\n📦 SideQuest CQO installed successfully!\\n🔧 If you encounter SQLite build issues, try:\\n   npm rebuild better-sqlite3\\n   or install build tools for your platform\\n')\"",
+    "postinstall": "node -e \"const fs=require('fs');const path=require('path');try{const pkgPath=path.join(process.cwd(),'../../../package.json');if(fs.existsSync(pkgPath)){const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8'));if(!pkg.scripts)pkg.scripts={};const scripts={'sidequest:report':'sidequest-cqo --verbose','sidequest:watch':'sidequest-cqo --watch','sidequest:config':'sidequest-cqo --config','sidequest:help':'sidequest-cqo --help'};let added=[];Object.entries(scripts).forEach(([name,cmd])=>{if(!pkg.scripts[name]){pkg.scripts[name]=cmd;added.push(name)}});if(added.length>0){fs.writeFileSync(pkgPath,JSON.stringify(pkg,null,2));console.log('\\n📦 SideQuest CQO installed!\\n✅ Added scripts:',added.join(', '));console.log('\\n🚀 Quick start:\\n   npm run sidequest:report\\n   npm run sidequest:watch\\n')}else{console.log('\\n📦 SideQuest CQO installed! Scripts already exist.\\n')}}}catch(e){console.log('\\n📦 SideQuest CQO installed!\\n💡 Use: pnpx sidequest-cqo --help\\n')}\"",
     "alpha-release": "npm version prerelease --preid=alpha && npm publish --tag alpha",
     "beta-release": "npm version prerelease --preid=beta && npm publish --tag beta"
   },
@@ -77,7 +76,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Invisible-Cities-Agency/SidequestCode.git"
+    "url": "git+https://github.com/Invisible-Cities-Agency/SidequestCode.git"
   },
   "bugs": {
     "url": "https://github.com/Invisible-Cities-Agency/SidequestCode/issues"
@@ -98,12 +97,11 @@
     "LICENSE",
     "docs/CHANGELOG.md"
   ],
-  "dependencies": {
-    "better-sqlite3": "^11.0.0",
-    "kysely": "^0.27.0",
-    "zod": "^3.25.67"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "kysely": "^0.27.0",
+    "zod": "^3.25.67",
+    "better-sqlite3": "^11.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",

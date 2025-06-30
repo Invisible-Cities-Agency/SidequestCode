@@ -580,7 +580,12 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     ];
 
     if (includeAny) {
-      patterns.push(String.raw`:\s*any\b`, String.raw`=\s*any\b`, '<any>', 'as any');
+      patterns.push(
+        String.raw`:\s*any\b`,
+        String.raw`=\s*any\b`,
+        '<any>',
+        'as any'
+      );
     }
 
     return patterns;

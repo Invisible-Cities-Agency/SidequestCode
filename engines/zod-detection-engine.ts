@@ -373,7 +373,13 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     // Look for external API calls without Zod validation
     const apiCallResult = spawnSync(
       'rg',
-      ['--type', 'ts', '--line-number', String.raw`(fetch\(|axios\.|request\()`, '.'],
+      [
+        '--type',
+        'ts',
+        '--line-number',
+        String.raw`(fetch\(|axios\.|request\()`,
+        '.'
+      ],
       {
         encoding: 'utf8',
         cwd: baseDirectory

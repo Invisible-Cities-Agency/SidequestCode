@@ -48,7 +48,7 @@ export const CLIFlagsSchema = z
     configAction: z
       .string()
       .regex(/^(show|edit|reset)$/, 'Invalid config action')
-      .optional(),
+      .optional()
   })
   .strict();
 
@@ -327,7 +327,7 @@ export function safeCLIArgsParse(arguments_: string[]): ValidatedCLIFlags {
         return nextArgument; // --config show, --config reset, --config edit
       }
       return 'show'; // Default to show if just --config
-    })(),
+    })()
   };
 
   const result = CLIFlagsSchema.safeParse(flags);

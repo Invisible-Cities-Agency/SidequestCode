@@ -16,7 +16,7 @@ export function detectTerminalBackground(): Promise<
     process.env['CI'] ||
     process.env['NODE_ENV'] === 'test'
   ) {
-    return Promise.resolve(undefined);
+    return Promise.resolve();
   }
 
   // Check if terminal supports OSC queries
@@ -34,7 +34,7 @@ export function detectTerminalBackground(): Promise<
     process.env['COLORTERM'] === 'truecolor';
 
   if (!supportsOSC) {
-    return Promise.resolve(undefined);
+    return Promise.resolve();
   }
 
   return new Promise((resolve) => {
@@ -43,7 +43,7 @@ export function detectTerminalBackground(): Promise<
     // Set up timeout (300ms should be enough, shorter for better UX)
     const timeout = setTimeout(() => {
       cleanup();
-      resolve(undefined);
+      resolve();
     }, 300);
 
     const cleanup = () => {
@@ -125,11 +125,11 @@ export function detectTerminalBackground(): Promise<
         process.stdout.write('\u001B]11;?\u001B\\');
       } else {
         cleanup();
-        resolve(undefined);
+        resolve();
       }
     } catch {
       cleanup();
-      resolve(undefined);
+      resolve();
     }
   });
 }
