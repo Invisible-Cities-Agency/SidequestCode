@@ -12,7 +12,7 @@ npx sidequest-cqo --install-shortcuts
 
 # This adds shortcuts so you can use direct commands (no "run" needed!):
 pnpm sidequest:watch     # ✅ Direct command
-pnpm sidequest:report    # ✅ Direct command  
+pnpm sidequest:report    # ✅ Direct command
 pnpm sidequest:help      # ✅ Direct command
 ```
 

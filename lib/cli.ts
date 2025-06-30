@@ -71,12 +71,12 @@ function detectPnpmProject(): boolean {
     const path = require("node:path");
     
     // Check for pnpm-lock.yaml in current directory and parent directories
-    let currentDir = process.cwd();
-    while (currentDir !== path.dirname(currentDir)) {
-      if (fs.existsSync(path.join(currentDir, "pnpm-lock.yaml"))) {
+    let currentDirectory = process.cwd();
+    while (currentDirectory !== path.dirname(currentDirectory)) {
+      if (fs.existsSync(path.join(currentDirectory, "pnpm-lock.yaml"))) {
         return true;
       }
-      currentDir = path.dirname(currentDir);
+      currentDirectory = path.dirname(currentDirectory);
     }
     
     // Check user agent (if available)

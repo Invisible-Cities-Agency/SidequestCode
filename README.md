@@ -5,6 +5,7 @@ Configuration-agnostic TypeScript and ESLint orchestrator that respects your pro
 ## 📦 Installation
 
 ### npm & yarn (automatic)
+
 ```bash
 npm install --save-dev @invisiblecities/sidequest-cqo
 # OR
@@ -12,13 +13,14 @@ yarn add -D @invisiblecities/sidequest-cqo
 ```
 
 ### pnpm (one extra step)
+
 ```bash
 pnpm add -D @invisiblecities/sidequest-cqo
 npx sidequest-cqo --install-shortcuts  # Adds shortcuts to package.json
 
 # Now you can use without "run":
 pnpm sidequest:watch     # ✅ Direct command (no "run" needed!)
-pnpm sidequest:report    # ✅ Direct command 
+pnpm sidequest:report    # ✅ Direct command
 pnpm sidequest:help      # ✅ Direct command
 ```
 

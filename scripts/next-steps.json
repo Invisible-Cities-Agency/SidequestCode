@@ -6,7 +6,7 @@
     "reason": "pnpm 10+ blocks postinstall by default for security",
     "shortcuts_added": [
       "pnpm run sidequest:report",
-      "pnpm run sidequest:watch", 
+      "pnpm run sidequest:watch",
       "pnpm run sidequest:config",
       "pnpm run sidequest:help"
     ],
@@ -14,7 +14,7 @@
     "manual_alternative": {
       "sidequest:report": "sidequest-cqo --verbose",
       "sidequest:watch": "sidequest-cqo --watch",
-      "sidequest:config": "sidequest-cqo --config", 
+      "sidequest:config": "sidequest-cqo --config",
       "sidequest:help": "sidequest-cqo --help"
     }
   },
@@ -25,7 +25,7 @@
   },
   "yarn": {
     "title": "✅ Ready to Use!",
-    "description": "Shortcuts installed automatically", 
+    "description": "Shortcuts installed automatically",
     "quick_start": "yarn sidequest:watch"
   },
   "bun": {

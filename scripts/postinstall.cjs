@@ -86,13 +86,13 @@ function detectPackageManager() {
     if (agent.includes("yarn")) return "yarn";
     if (agent.includes("bun")) return "bun";
   }
-  
+
   // Fallback: check for lock files in current directory and parent directories
   const fs = require("fs");
   const path = require("path");
-  
+
   let currentDir = process.cwd();
-  
+
   // Walk up to find package manager lock files
   while (currentDir !== path.dirname(currentDir)) {
     if (fs.existsSync(path.join(currentDir, "pnpm-lock.yaml"))) {
@@ -106,7 +106,7 @@ function detectPackageManager() {
     }
     currentDir = path.dirname(currentDir);
   }
-  
+
   return "npm";
 }
 
@@ -119,7 +119,7 @@ function isPnpmProject() {
 function getBoxedMessage() {
   const border = "═".repeat(62);
   const nextCommand = "npx sidequest-cqo --install-shortcuts";
-  
+
   return `
 ╔${border}╗
 ║                    🚀 PNPM USERS: ONE MORE STEP!                    ║
@@ -249,12 +249,16 @@ try {
       console.log(
         `\n📦 SideQuest CQO installed!\n✅ Added scripts: ${added.join(", ")}`,
       );
-      
+
       // Show appropriate quick start based on package manager
       if (pm === "pnpm") {
-        console.log(`\n🚀 Quick start:\n   pnpm sidequest:watch\n   pnpm sidequest:report\n`);
+        console.log(
+          `\n🚀 Quick start:\n   pnpm sidequest:watch\n   pnpm sidequest:report\n`,
+        );
       } else {
-        console.log(`\n🚀 Quick start:\n   ${runCmd} sidequest:report\n   ${runCmd} sidequest:watch\n`);
+        console.log(
+          `\n🚀 Quick start:\n   ${runCmd} sidequest:report\n   ${runCmd} sidequest:watch\n`,
+        );
       }
       console.log(`\n🔍 Debug log: ${logPath}`);
     } else {
@@ -277,11 +281,11 @@ try {
     );
     console.log(`\n🔍 Debug log: ${logPath}`);
   }
-  
+
   // Only show pnpm-specific messaging for pnpm projects
   if (isPnpmProject()) {
     console.log(`\n${getBoxedMessage()}`);
-    
+
     // Write a local file with the next command for easy access
     try {
       const nextCommand = "npx sidequest-cqo --install-shortcuts";
@@ -312,10 +316,12 @@ pnpm 10+ blocks postinstall scripts by default for security. This is normal beha
 
 Generated: ${new Date().toISOString()}
 `;
-      
+
       fs.writeFileSync("SIDEQUEST-NEXT-STEPS.md", helpFile);
       log(`📄 Created SIDEQUEST-NEXT-STEPS.md with copy-paste commands`);
-      console.log(`\n📄 Created: ./SIDEQUEST-NEXT-STEPS.md (contains copy-paste commands)`);
+      console.log(
+        `\n📄 Created: ./SIDEQUEST-NEXT-STEPS.md (contains copy-paste commands)`,
+      );
     } catch (e) {
       log(`⚠️ Could not create help file: ${e.message}`);
     }
