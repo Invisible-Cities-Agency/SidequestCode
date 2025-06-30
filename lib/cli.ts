@@ -32,19 +32,19 @@
 import {
   createOrchestratorService,
   resetAllServices
-} from './services/index.js';
-import type { Violation as OrchestratorViolation, OrchestratorResult } from './utils/violation-types.js';
+} from '../services/index.js';
+import type { Violation as OrchestratorViolation, OrchestratorResult } from '../utils/violation-types.js';
 // ViolationSummaryItem no longer needed - using live data only
 import { getDeveloperWatchDisplay, resetDeveloperWatchDisplay } from './watch-display-v2.js';
 import { detectTerminalBackground, detectTerminalModeHeuristic, debugTerminalEnvironment } from './terminal-detector.js';
-import { isESLintCategory } from './shared/constants.js';
-import type { CLIFlags, OrchestratorConfigInput } from './utils/types.js';
+import { isESLintCategory } from '../shared/constants.js';
+import type { CLIFlags, OrchestratorConfigInput } from '../utils/types.js';
 
 // Import the old orchestrator temporarily for compatibility
 import { CodeQualityOrchestrator } from './orchestrator.js';
 
 // Parse command line arguments with Zod validation for security
-import { safeCLIArgsParse as safeCLIArgumentsParse, safeEnvironmentAccess } from './utils/validation-schemas.js';
+import { safeCLIArgsParse as safeCLIArgumentsParse, safeEnvironmentAccess } from '../utils/validation-schemas.js';
 
 // Static imports for better testability
 import { writeFile } from 'node:fs/promises';
@@ -754,7 +754,7 @@ ${[...new Set(violations.map(v => v.file))]
  */
 async function checkAndRunFirstTimeSetup(): Promise<boolean> {
   try {
-    const { InteractiveSetup } = await import('./services/interactive-setup.js');
+    const { InteractiveSetup } = await import('../services/interactive-setup.js');
 
     if (InteractiveSetup.shouldRunSetup(flags.dataDir)) {
       const colors = getColorScheme();
@@ -778,7 +778,7 @@ async function handleConfigCommand(action: string): Promise<void> {
 
   try {
     // Import preferences manager
-    const { PreferencesManager } = await import('./services/preferences-manager.js');
+    const { PreferencesManager } = await import('../services/preferences-manager.js');
     const prefs = PreferencesManager.getInstance(flags.dataDir);
 
     switch (action) {

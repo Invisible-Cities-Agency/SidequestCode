@@ -172,3 +172,7 @@ beta-*.tgz
 # Local development overrides
 .local/
 local-*/
+
+# Private Files
+ROADMAP.md
+docs/ROADMAP.md

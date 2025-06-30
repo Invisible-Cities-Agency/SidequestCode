@@ -3,12 +3,12 @@
  * Shows current state, trends, and actionable insights
  */
 
-import { getCategoryLabel, type Violation as OrchestratorViolation } from './utils/violation-types.js';
+import { getCategoryLabel, type Violation as OrchestratorViolation } from '../utils/violation-types.js';
 import { detectTerminalModeHeuristic } from './terminal-detector.js';
 import {
   ANSI_CODES,
   isESLintCategory
-} from './shared/constants.js';
+} from '../shared/constants.js';
 import type {
   ColorScheme,
   WatchState,
@@ -16,7 +16,7 @@ import type {
   TodayProgressData,
   ConsoleBackup,
   TerminalMode
-} from './shared/types.js';
+} from '../shared/types.js';
 
 export class DeveloperWatchDisplay {
   private state: WatchState;

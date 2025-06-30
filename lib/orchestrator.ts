@@ -6,11 +6,11 @@
  */
 
 // import * as path from "path";
-import { BaseAuditEngine } from './engines/base-engine.js';
-import { TypeScriptAuditEngine } from './engines/typescript-engine.js';
-import { ESLintAuditEngine } from './engines/eslint-engine.js';
-import { UnusedExportsEngine } from './engines/unused-exports-engine.js';
-import { ZodDetectionEngine } from './engines/zod-detection-engine.js';
+import { BaseAuditEngine } from '../engines/base-engine.js';
+import { TypeScriptAuditEngine } from '../engines/typescript-engine.js';
+import { ESLintAuditEngine } from '../engines/eslint-engine.js';
+import { UnusedExportsEngine } from '../engines/unused-exports-engine.js';
+import { ZodDetectionEngine } from '../engines/zod-detection-engine.js';
 import type {
   Violation,
   EngineResult,
@@ -20,8 +20,8 @@ import type {
   WatchEvent,
   WatchEventData,
   CrossoverConfig
-} from './utils/violation-types.js';
-import { createCrossoverDetector } from './utils/crossover-detector.js';
+} from '../utils/violation-types.js';
+import { createCrossoverDetector } from '../utils/crossover-detector.js';
 
 /**
  * Configuration for the orchestrator

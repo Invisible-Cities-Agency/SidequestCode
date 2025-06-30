@@ -28,7 +28,8 @@
       "Bash(tsx:*)",
       "WebFetch(domain:github.com)",
       "Bash(npm test)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

@@ -1,46 +1,46 @@
 {
   "name": "@sidequest/code-quality-orchestrator",
   "version": "0.1.0-alpha.2",
-  "description": "Configuration-agnostic TypeScript and ESLint orchestrator that respects your project's setup with real-time watch mode",
+  "description": "🤖🧑‍💻 Human-AI partnership code quality orchestrator optimized for the reality that AI moves faster than developers can track ripple effects • 🔄 Real-time systems view reveals how every TypeScript type change breaks 3 ESLint rules (and vice versa) • ⚡ Built-in :ai-context command gets LLMs up to speed instantly on your codebase health • 🎯 Multi-engine coordination shows cascading violation effects across your entire system as they happen • 📊 Live monitoring solves the major pain point: seeing code quality impact of every change in real-time • 🧠 Systematic improvement tracking (fix 250+ violations systematically vs hunting individual errors) • 📋 Clean JSON output for CI, LLMs, and automated workflows",
   "type": "module",
-  "main": "dist/cli.js",
+  "main": "dist/lib/cli.js",
   "bin": {
-    "code-quality-orchestrator": "dist/cli.js",
-    "sidequest": "dist/cli.js",
-    "cqo": "dist/cli.js"
+    "code-quality-orchestrator": "dist/lib/cli.js",
+    "sidequest": "dist/lib/cli.js",
+    "cqo": "dist/lib/cli.js"
   },
   "scripts": {
     "prepare": "echo 'Skipping build for now'",
     "build": "tsc",
-    "dev": "tsx cli.ts",
+    "dev": "tsx lib/cli.ts",
     
-    "sidequest": "tsx cli.ts --verbose --skip-setup",
+    "sidequest": "tsx lib/cli.ts --verbose --skip-setup",
     
-    "sidequest:watch": "tsx cli.ts --watch",
-    "sidequest:watch:eslint": "tsx cli.ts --watch --include-eslint",
-    "sidequest:watch:strict": "tsx cli.ts --watch --strict",
+    "sidequest:watch": "tsx lib/cli.ts --watch",
+    "sidequest:watch:eslint": "tsx lib/cli.ts --watch --include-eslint",
+    "sidequest:watch:strict": "tsx lib/cli.ts --watch --strict",
     
-    "sidequest:analyze": "tsx cli.ts",
-    "sidequest:analyze:eslint": "tsx cli.ts --include-eslint",
-    "sidequest:analyze:strict": "tsx cli.ts --strict",
+    "sidequest:analyze": "tsx lib/cli.ts",
+    "sidequest:analyze:eslint": "tsx lib/cli.ts --include-eslint",
+    "sidequest:analyze:strict": "tsx lib/cli.ts --strict",
     
-    "sidequest:report": "tsx cli.ts --verbose --skip-setup",
-    "sidequest:report:eslint": "tsx cli.ts --verbose --skip-setup --include-eslint",
-    "sidequest:report:strict": "tsx cli.ts --verbose --skip-setup --strict",
+    "sidequest:report": "tsx lib/cli.ts --verbose --skip-setup",
+    "sidequest:report:eslint": "tsx lib/cli.ts --verbose --skip-setup --include-eslint",
+    "sidequest:report:strict": "tsx lib/cli.ts --verbose --skip-setup --strict",
     
-    "sidequest:config": "tsx cli.ts --config",
-    "sidequest:config:show": "tsx cli.ts --config show",
-    "sidequest:config:edit": "tsx cli.ts --config edit",
-    "sidequest:config:reset": "tsx cli.ts --config reset",
+    "sidequest:config": "tsx lib/cli.ts --config",
+    "sidequest:config:show": "tsx lib/cli.ts --config show",
+    "sidequest:config:edit": "tsx lib/cli.ts --config edit",
+    "sidequest:config:reset": "tsx lib/cli.ts --config reset",
     
-    "sidequest:help": "tsx cli.ts --help",
-    "sidequest:help:markdown": "tsx cli.ts --help-markdown",
-    "sidequest:help:quick": "tsx cli.ts --help-quick",
-    "sidequest:ai-context": "tsx cli.ts --ai-context",
+    "sidequest:help": "tsx lib/cli.ts --help",
+    "sidequest:help:markdown": "tsx lib/cli.ts --help-markdown",
+    "sidequest:help:quick": "tsx lib/cli.ts --help-quick",
+    "sidequest:ai-context": "tsx lib/cli.ts --ai-context",
     
-    "sidequest:prd": "tsx cli.ts --prd",
-    "sidequest:debug:terminal": "tsx cli.ts --debug-terminal",
-    "sidequest:session:reset": "tsx cli.ts --reset-session",
+    "sidequest:prd": "tsx lib/cli.ts --prd",
+    "sidequest:debug:terminal": "tsx lib/cli.ts --debug-terminal",
+    "sidequest:session:reset": "tsx lib/cli.ts --reset-session",
     "test": "NODE_OPTIONS='--no-warnings' vitest run --config vitest.config.ts --reporter=verbose",
     "test:core": "NODE_OPTIONS='--no-warnings' vitest run '.vitest/core/**/*.test.{mjs,ts}' --reporter=verbose",
     "test:edge": "NODE_OPTIONS='--no-warnings' vitest run '.vitest/edge/**/*.test.mjs' --reporter=verbose",
@@ -77,16 +77,16 @@
     "compilation"
   ],
   "author": {
-    "name": "Ian Armstrong",
-    "email": "sidequest@example.com"
+    "name": "Ian Armstrong, Invisible Cities, LLC",
+    "email": "skyline@invisiblecities.agency"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/isarmstrong/SideQuestCode.git"
+    "url": "https://github.com/Invisible-Cities-Agency/SidequestCode.git"
   },
   "bugs": {
-    "url": "https://github.com/isarmstrong/SideQuestCode/issues"
+    "url": "https://github.com/Invisible-Cities-Agency/SidequestCode/issues"
   },
   "homepage": "https://github.com/isarmstrong/SideQuestCode#readme",
   "engines": {
@@ -128,7 +128,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "funding": {
-    "type": "individual",
-    "url": "https://github.com/sponsors/isarmstrong"
+    "type": "organization",
+    "url": "https://github.com/sponsors/Invisible-Cities-Agency"
   }
 }

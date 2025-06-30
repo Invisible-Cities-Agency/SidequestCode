@@ -507,11 +507,6 @@ npm run sidequest:report:strict      # Strict mode
 
 MIT License - see LICENSE file for details.
 
-## 🙏 Acknowledgments
-
-- Terminal color detection inspired by modern terminal capabilities
-- Architecture patterns from production monitoring systems
-- Community feedback from TypeScript and Node.js developers
 
 ---
 
