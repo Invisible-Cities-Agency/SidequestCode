@@ -48,7 +48,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run format && npm run build && npm run test && npm run typecheck",
+    "prepublishOnly": "npm run clean && npm run format && npm run build && npm run test && npm run typecheck && npm run sidequest:precommit",
     "postinstall": "node scripts/postinstall.cjs",
     "install-shortcuts": "node scripts/postinstall.cjs",
     "alpha-release": "npm version prerelease --preid=alpha && npm publish --tag alpha",
