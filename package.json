@@ -1,5 +1,5 @@
 {
-  "name": "@invisiblecities/sidequest-cqo",
+  "name": "sidequest-cqo",
   "version": "0.1.0-alpha.2",
   "description": "🤖🧑‍💻 Human-AI partnership code quality orchestrator optimized for the reality that AI moves faster than developers can track ripple effects • 🔄 Real-time systems view reveals how every TypeScript type change breaks 3 ESLint rules (and vice versa) • ⚡ Built-in :ai-context command gets LLMs up to speed instantly on your codebase health • 🎯 Multi-engine coordination shows cascading violation effects across your entire system as they happen • 📊 Live monitoring solves the major pain point: seeing code quality impact of every change in real-time • 🧠 Systematic improvement tracking (fix 250+ violations systematically vs hunting individual errors) • 📋 Clean JSON output for CI, LLMs, and automated workflows",
   "type": "module",
