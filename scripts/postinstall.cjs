@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-const fs = require('node:fs');
-const path = require('node:path');
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Create a log file for debugging real-world installations
 const logPath = path.join(
-  require('node:os').tmpdir(),
-  'sidequest-postinstall.log'
+  require("node:os").tmpdir(),
+  "sidequest-postinstall.log",
 );
 
 function log(message) {
@@ -24,31 +24,31 @@ function log(message) {
 
 function findPackageJson() {
   log(`🔍 Starting package.json search from: ${process.cwd()}`);
-  log(`🔍 Environment: ${process.env.npm_config_user_agent || 'unknown'}`);
+  log(`🔍 Environment: ${process.env.npm_config_user_agent || "unknown"}`);
 
   // Try common paths first
   const possiblePaths = [
-    path.join(process.cwd(), '../../../package.json'),
-    path.join(process.cwd(), '../../../../package.json'),
-    path.join(process.cwd(), '../../package.json'),
-    path.join(process.cwd(), '../package.json'),
-    path.join(process.cwd(), 'package.json')
+    path.join(process.cwd(), "../../../package.json"),
+    path.join(process.cwd(), "../../../../package.json"),
+    path.join(process.cwd(), "../../package.json"),
+    path.join(process.cwd(), "../package.json"),
+    path.join(process.cwd(), "package.json"),
   ];
 
   // Walk up directory tree
   let current = process.cwd();
   while (current !== path.dirname(current)) {
-    const packagePath = path.join(current, 'package.json');
+    const packagePath = path.join(current, "package.json");
     log(`🔍 Checking: ${packagePath}`);
 
     if (fs.existsSync(packagePath)) {
       try {
-        const package_ = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
-        log(`📦 Found package: ${package_.name || 'unnamed'}`);
+        const package_ = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+        log(`📦 Found package: ${package_.name || "unnamed"}`);
 
         if (
           package_.name &&
-          !package_.name.includes('sidequest-cqo') &&
+          !package_.name.includes("sidequest-cqo") &&
           (package_.dependencies || package_.devDependencies)
         ) {
           log(`✅ Selected target package.json: ${packagePath}`);
@@ -62,12 +62,12 @@ function findPackageJson() {
   }
 
   // Try possible paths as fallback
-  log('🔍 Trying fallback paths...');
+  log("🔍 Trying fallback paths...");
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) {
       try {
-        const package_ = JSON.parse(fs.readFileSync(p, 'utf8'));
-        if (package_.name && !package_.name.includes('sidequest-cqo')) {
+        const package_ = JSON.parse(fs.readFileSync(p, "utf8"));
+        if (package_.name && !package_.name.includes("sidequest-cqo")) {
           log(`✅ Found fallback package.json: ${p}`);
           return p;
         }
@@ -77,7 +77,7 @@ function findPackageJson() {
     }
   }
 
-  log('❌ No suitable package.json found');
+  log("❌ No suitable package.json found");
   return null;
 }
 
@@ -85,49 +85,49 @@ function detectPackageManager() {
   // Check environment variable first (most reliable)
   if (process.env.npm_config_user_agent) {
     const agent = process.env.npm_config_user_agent;
-    if (agent.includes('pnpm')) {
-      return 'pnpm';
+    if (agent.includes("pnpm")) {
+      return "pnpm";
     }
-    if (agent.includes('yarn')) {
-      return 'yarn';
+    if (agent.includes("yarn")) {
+      return "yarn";
     }
-    if (agent.includes('bun')) {
-      return 'bun';
+    if (agent.includes("bun")) {
+      return "bun";
     }
   }
 
   // Fallback: check for lock files in current directory and parent directories
-  const fs = require('node:fs');
-  const path = require('node:path');
+  const fs = require("node:fs");
+  const path = require("node:path");
 
   let currentDir = process.cwd();
 
   // Walk up to find package manager lock files
   while (currentDir !== path.dirname(currentDir)) {
-    if (fs.existsSync(path.join(currentDir, 'pnpm-lock.yaml'))) {
-      return 'pnpm';
+    if (fs.existsSync(path.join(currentDir, "pnpm-lock.yaml"))) {
+      return "pnpm";
     }
-    if (fs.existsSync(path.join(currentDir, 'yarn.lock'))) {
-      return 'yarn';
+    if (fs.existsSync(path.join(currentDir, "yarn.lock"))) {
+      return "yarn";
     }
-    if (fs.existsSync(path.join(currentDir, 'bun.lockb'))) {
-      return 'bun';
+    if (fs.existsSync(path.join(currentDir, "bun.lockb"))) {
+      return "bun";
     }
     currentDir = path.dirname(currentDir);
   }
 
-  return 'npm';
+  return "npm";
 }
 
 function isPnpmProject() {
   const pm = detectPackageManager();
   log(`🔍 Detected package manager: ${pm}`);
-  return pm === 'pnpm';
+  return pm === "pnpm";
 }
 
 function getBoxedMessage() {
-  const border = '═'.repeat(62);
-  const nextCommand = 'npx sidequest-cqo --install-shortcuts';
+  const border = "═".repeat(62);
+  const nextCommand = "npx sidequest-cqo --install-shortcuts";
 
   return `
 ╔${border}╗
@@ -152,16 +152,16 @@ function getBoxedMessage() {
 }
 
 try {
-  log('🚀 SideQuest CQO postinstall started');
+  log("🚀 SideQuest CQO postinstall started");
   log(`📍 Working directory: ${process.cwd()}`);
-  log(`🔍 Process args: ${process.argv.join(' ')}`);
+  log(`🔍 Process args: ${process.argv.join(" ")}`);
 
   const packagePath = findPackageJson();
 
   if (packagePath) {
     log(`📦 Processing package.json: ${packagePath}`);
 
-    const packageContent = fs.readFileSync(packagePath, 'utf8');
+    const packageContent = fs.readFileSync(packagePath, "utf8");
     const package_ = JSON.parse(packageContent);
 
     log(`📦 Original package name: ${package_.name}`);
@@ -175,28 +175,28 @@ try {
     log(`📦 Detected package manager: ${pm}`);
 
     const runCmd =
-      pm === 'npm'
-        ? 'npm run'
-        : pm === 'yarn'
-          ? 'yarn'
-          : pm === 'bun'
-            ? 'bun run'
+      pm === "npm"
+        ? "npm run"
+        : pm === "yarn"
+          ? "yarn"
+          : pm === "bun"
+            ? "bun run"
             : `${pm} run`;
 
     const scripts = {
-      'sidequest:report':
+      "sidequest:report":
         'if [ "$VERCEL" != "1" ]; then sidequest-cqo --verbose; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
-      'sidequest:watch':
+      "sidequest:watch":
         'if [ "$VERCEL" != "1" ]; then sidequest-cqo --watch; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
-      'sidequest:config':
+      "sidequest:config":
         'if [ "$VERCEL" != "1" ]; then sidequest-cqo --config; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
-      'sidequest:help':
+      "sidequest:help":
         'if [ "$VERCEL" != "1" ]; then sidequest-cqo --help; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
-      'sidequest:ai-context':
-        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --ai-context; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi'
+      "sidequest:ai-context":
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --ai-context; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
     };
 
-    log(`📦 Existing scripts: ${Object.keys(package_.scripts).join(', ')}`);
+    log(`📦 Existing scripts: ${Object.keys(package_.scripts).join(", ")}`);
 
     const added = [];
     Object.entries(scripts).forEach(([name, cmd]) => {
@@ -219,7 +219,7 @@ try {
 
       // Write updated package.json preserving formatting style
       // Read original to detect indentation style
-      const originalLines = packageContent.split('\n');
+      const originalLines = packageContent.split("\n");
       const indentMatch = originalLines.find((line) => line.match(/^ +"/));
       const indentSize = indentMatch ? indentMatch.match(/^( +)/)[1].length : 2;
 
@@ -229,14 +229,14 @@ try {
       // Also write with delay to survive formatter overwrites
       setTimeout(() => {
         try {
-          const recheckContent = fs.readFileSync(packagePath, 'utf8');
+          const recheckContent = fs.readFileSync(packagePath, "utf8");
           const recheckPackage = JSON.parse(recheckContent);
           const hasAllScripts = Object.keys(scripts).every(
-            (name) => recheckPackage.scripts[name]
+            (name) => recheckPackage.scripts[name],
           );
 
           if (!hasAllScripts) {
-            log('⚠️ Scripts were overwritten by formatter, re-adding...');
+            log("⚠️ Scripts were overwritten by formatter, re-adding...");
             Object.entries(scripts).forEach(([name, cmd]) => {
               if (!recheckPackage.scripts[name]) {
                 recheckPackage.scripts[name] = cmd;
@@ -244,9 +244,9 @@ try {
             });
             fs.writeFileSync(
               packagePath,
-              JSON.stringify(recheckPackage, null, indentSize)
+              JSON.stringify(recheckPackage, null, indentSize),
             );
-            log('✅ Re-added scripts after formatter conflict');
+            log("✅ Re-added scripts after formatter conflict");
           }
         } catch (error) {
           log(`⚠️ Could not recheck/fix scripts: ${error.message}`);
@@ -254,47 +254,47 @@ try {
       }, 100);
 
       // Verify the write succeeded
-      const verifyContent = fs.readFileSync(packagePath, 'utf8');
+      const verifyContent = fs.readFileSync(packagePath, "utf8");
       const verifyPackage = JSON.parse(verifyContent);
       const hasAllScripts = Object.keys(scripts).every(
-        (name) => verifyPackage.scripts[name]
+        (name) => verifyPackage.scripts[name],
       );
 
       log(`✅ Verification: All scripts present = ${hasAllScripts}`);
-      log(`📦 Final scripts: ${Object.keys(verifyPackage.scripts).join(', ')}`);
+      log(`📦 Final scripts: ${Object.keys(verifyPackage.scripts).join(", ")}`);
 
       console.log(
-        `\n📦 SideQuest CQO installed!\n✅ Added scripts: ${added.join(', ')}`
+        `\n📦 SideQuest CQO installed!\n✅ Added scripts: ${added.join(", ")}`,
       );
 
       // Show appropriate quick start based on package manager
-      if (pm === 'pnpm') {
+      if (pm === "pnpm") {
         console.log(
-          '\n🚀 Quick start:\n   pnpm sidequest:watch\n   pnpm sidequest:report\n'
+          "\n🚀 Quick start:\n   pnpm sidequest:watch\n   pnpm sidequest:report\n",
         );
       } else {
         console.log(
-          `\n🚀 Quick start:\n   ${runCmd} sidequest:report\n   ${runCmd} sidequest:watch\n`
+          `\n🚀 Quick start:\n   ${runCmd} sidequest:report\n   ${runCmd} sidequest:watch\n`,
         );
       }
       console.log(`\n🔍 Debug log: ${logPath}`);
     } else {
-      log('ℹ️ All scripts already exist, no changes needed');
-      console.log('\n📦 SideQuest CQO installed! Scripts already exist.\n');
+      log("ℹ️ All scripts already exist, no changes needed");
+      console.log("\n📦 SideQuest CQO installed! Scripts already exist.\n");
     }
   } else {
-    log('❌ No package.json found, providing fallback instructions');
+    log("❌ No package.json found, providing fallback instructions");
     const pm = detectPackageManager();
     const execCmd =
-      pm === 'npm'
-        ? 'npx'
-        : pm === 'yarn'
-          ? 'yarn dlx'
-          : pm === 'bun'
-            ? 'bunx'
+      pm === "npm"
+        ? "npx"
+        : pm === "yarn"
+          ? "yarn dlx"
+          : pm === "bun"
+            ? "bunx"
             : `${pm}x`;
     console.log(
-      `\n📦 SideQuest CQO installed!\n💡 Use: ${execCmd} sidequest-cqo --help\n`
+      `\n📦 SideQuest CQO installed!\n💡 Use: ${execCmd} sidequest-cqo --help\n`,
     );
     console.log(`\n🔍 Debug log: ${logPath}`);
   }
@@ -305,7 +305,7 @@ try {
 
     // Write a local file with the next command for easy access
     try {
-      const nextCommand = 'npx sidequest-cqo --install-shortcuts';
+      const nextCommand = "npx sidequest-cqo --install-shortcuts";
       const helpFile = `# SideQuest CQO - Next Steps
 
 ## For pnpm users, run this command to add shortcuts:
@@ -336,10 +336,10 @@ pnpm 10+ blocks postinstall scripts by default for security. This is normal beha
 Generated: ${new Date().toISOString()}
 `;
 
-      fs.writeFileSync('SIDEQUEST-NEXT-STEPS.md', helpFile);
-      log('📄 Created SIDEQUEST-NEXT-STEPS.md with copy-paste commands');
+      fs.writeFileSync("SIDEQUEST-NEXT-STEPS.md", helpFile);
+      log("📄 Created SIDEQUEST-NEXT-STEPS.md with copy-paste commands");
       console.log(
-        '\n📄 Created: ./SIDEQUEST-NEXT-STEPS.md (contains copy-paste commands)'
+        "\n📄 Created: ./SIDEQUEST-NEXT-STEPS.md (contains copy-paste commands)",
       );
     } catch (error) {
       log(`⚠️ Could not create help file: ${error.message}`);
@@ -347,26 +347,26 @@ Generated: ${new Date().toISOString()}
   } else {
     // For non-pnpm users, show simpler success message
     const pm = detectPackageManager();
-    const runCmd = pm === 'yarn' ? 'yarn' : `${pm} run`;
+    const runCmd = pm === "yarn" ? "yarn" : `${pm} run`;
     console.log(`\n✅ SideQuest CQO ready! Try: ${runCmd} sidequest:watch`);
   }
 
-  log('✅ Postinstall completed successfully');
+  log("✅ Postinstall completed successfully");
 } catch (error) {
   log(`❌ Error in postinstall: ${error.message}`);
   log(`❌ Stack trace: ${error.stack}`);
 
   const pm = detectPackageManager();
   const execCmd =
-    pm === 'npm'
-      ? 'npx'
-      : pm === 'yarn'
-        ? 'yarn dlx'
-        : pm === 'bun'
-          ? 'bunx'
+    pm === "npm"
+      ? "npx"
+      : pm === "yarn"
+        ? "yarn dlx"
+        : pm === "bun"
+          ? "bunx"
           : `${pm}x`;
   console.log(
-    `\n📦 SideQuest CQO installed!\n💡 Use: ${execCmd} sidequest-cqo --help\n`
+    `\n📦 SideQuest CQO installed!\n💡 Use: ${execCmd} sidequest-cqo --help\n`,
   );
   console.log(`\n🔍 Debug log: ${logPath}`);
 }

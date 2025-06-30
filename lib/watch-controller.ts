@@ -213,11 +213,8 @@ export class WatchController extends EventEmitter {
         }
       }, 3000);
 
-      // Safety timeout (10 minutes)
-      this.watchTimeout = setTimeout(
-        () => this.shutdown("timeout"),
-        10 * 60 * 1000,
-      );
+      // Initial inactivity timeout (10 minutes) - will be reset on activity
+      this.resetTimeout();
 
       // Setup graceful shutdown handlers
       this.setupShutdownHandlers();
@@ -225,6 +222,23 @@ export class WatchController extends EventEmitter {
       this.handleError(error);
       throw error;
     }
+  }
+
+  /**
+   * Reset the inactivity timeout (called on any activity)
+   */
+  private resetTimeout(): void {
+    if (this.watchTimeout) {
+      clearTimeout(this.watchTimeout);
+    }
+    
+    // Reset 10-minute inactivity timeout
+    this.watchTimeout = setTimeout(
+      () => this.shutdown("timeout"),
+      10 * 60 * 1000,
+    );
+    
+    debugLog("WatchController", "Inactivity timeout reset (10 minutes)");
   }
 
   /**
@@ -236,6 +250,9 @@ export class WatchController extends EventEmitter {
 
     try {
       debugLog("WatchController", "Starting analysis cycle...");
+      
+      // Reset timeout on any analysis activity
+      this.resetTimeout();
 
       // Get current violations using legacy orchestrator with timeout
       debugLog("WatchController", "Running legacy orchestrator analysis...");
@@ -482,7 +499,7 @@ export class WatchController extends EventEmitter {
     display.shutdown();
 
     const reasonMessages = {
-      timeout: "⏰ Watch mode timeout reached (10 minutes). Stopping...",
+      timeout: "⏰ Watch mode stopped after 10 minutes of inactivity.",
       interrupt: "👋 Enhanced Code Quality Orchestrator watch stopped.",
       error: "💥 Watch mode stopped due to critical error.",
     };
