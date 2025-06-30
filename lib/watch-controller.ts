@@ -60,6 +60,12 @@ export class WatchController extends EventEmitter {
     const { flags, orchestrator, sessionManager, display, colors } =
       this.config;
 
+    // Pre-flight checks
+    console.log("[WatchController] Starting pre-flight checks...");
+    console.log(`[WatchController] Working directory: ${process.cwd()}`);
+    console.log(`[WatchController] Node version: ${process.version}`);
+    console.log(`[WatchController] Platform: ${process.platform}`);
+
     try {
       // Handle session restoration or creation
       let session = null;
@@ -107,9 +113,23 @@ export class WatchController extends EventEmitter {
       );
 
       // Perform initial analysis before starting watch cycle
+      console.log("[WatchController] Starting initial analysis cycle...");
       this.stateManager.startAnalysis();
-      await this.runAnalysisCycle();
+
+      await Promise.race([
+        this.runAnalysisCycle(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Initial analysis timeout after 120s")),
+            120000,
+          ),
+        ),
+      ]);
+
       this.stateManager.completeAnalysis();
+      console.log(
+        "[WatchController] Initial analysis completed, starting watch cycle...",
+      );
 
       // Start watch cycle
       this.watchInterval = setInterval(() => {
@@ -143,28 +163,57 @@ export class WatchController extends EventEmitter {
       this.config;
 
     try {
-      // Get current violations using legacy orchestrator
-      const result = await legacyOrchestrator.analyze();
+      console.log("[WatchController] Starting analysis cycle...");
+
+      // Get current violations using legacy orchestrator with timeout
+      console.log("[WatchController] Running legacy orchestrator analysis...");
+      const result = (await Promise.race([
+        legacyOrchestrator.analyze(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Analysis timeout after 60s")),
+            60000,
+          ),
+        ),
+      ])) as any;
+      console.log(
+        `[WatchController] Analysis completed, found ${result.violations?.length || 0} violations`,
+      );
+
       const checksCount = this.stateManager.getChecksCount() + 1;
 
       // Process violations with persistence (for historical tracking)
+      console.log(
+        "[WatchController] Processing violations with persistence...",
+      );
       await this.processViolationsWithPersistence(result.violations);
 
       // Update session state
+      console.log("[WatchController] Updating session state...");
       const current = processViolationSummary(result.violations);
       await sessionManager.updateSession({
         checksCount,
         current,
         baseline: undefined, // Let display manage baseline
       });
+      console.log("[WatchController] Session state updated");
 
       if (flags.verbose) {
+        console.log(
+          "[WatchController] Getting dashboard data for verbose output...",
+        );
         const enhancedResult = {
           ...result,
           database: {
-            dashboard: await orchestrator
-              .getStorageService()
-              .getDashboardData(),
+            dashboard: (await Promise.race([
+              orchestrator.getStorageService().getDashboardData(),
+              new Promise((_, reject) =>
+                setTimeout(
+                  () => reject(new Error("Dashboard data timeout after 30s")),
+                  30000,
+                ),
+              ),
+            ])) as any,
           },
         };
         console.log(JSON.stringify(enhancedResult, undefined, 2));

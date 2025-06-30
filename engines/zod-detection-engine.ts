@@ -131,12 +131,35 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       const cwd = process.cwd();
       console.log(`[Zod Detection] Checking for Zod dependency in: ${cwd}`);
 
-      const packageJsonModule = await import(`${cwd}/package.json`);
+      let packageJsonData: any;
+
+      // Try file system approach first (more reliable)
+      try {
+        const fs = await import("node:fs/promises");
+        const packageJsonPath = `${cwd}/package.json`;
+        console.log(
+          `[Zod Detection] Reading package.json from: ${packageJsonPath}`,
+        );
+
+        const packageJsonContent = await fs.readFile(packageJsonPath, "utf8");
+        packageJsonData = JSON.parse(packageJsonContent);
+        console.log(`[Zod Detection] Successfully read package.json via fs`);
+      } catch (fsError: any) {
+        console.log(
+          `[Zod Detection] fs.readFile failed: ${fsError.message}, trying import()`,
+        );
+
+        // Fallback to import approach
+        const packageJsonModule = await import(`${cwd}/package.json`);
+        packageJsonData = packageJsonModule.default || packageJsonModule;
+        console.log(
+          `[Zod Detection] Successfully read package.json via import()`,
+        );
+      }
 
       // Validate package.json structure with Zod for security
-      const packageJson: ValidatedPackageJson = PackageJsonSchema.parse(
-        packageJsonModule.default || packageJsonModule,
-      );
+      const packageJson: ValidatedPackageJson =
+        PackageJsonSchema.parse(packageJsonData);
       console.log("[Security] package.json structure validated successfully");
 
       const hasZodInDeps = !!packageJson.dependencies?.["zod"];
@@ -153,6 +176,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         "[Zod Detection] Could not validate package.json:",
         error.message,
       );
+      console.warn("[Zod Detection] Full error:", error);
       return false;
     }
   }
