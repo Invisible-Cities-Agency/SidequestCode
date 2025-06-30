@@ -1,6 +1,6 @@
 {
   "name": "sidequest-cqo",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "🤖🧑‍💻 Human-AI partnership code quality orchestrator optimized for the reality that AI moves faster than developers can track ripple effects • 🔄 Real-time systems view reveals how every TypeScript type change breaks 3 ESLint rules (and vice versa) • ⚡ Built-in :ai-context command gets LLMs up to speed instantly on your codebase health • 🎯 Multi-engine coordination shows cascading violation effects across your entire system as they happen • 📊 Live monitoring solves the major pain point: seeing code quality impact of every change in real-time • 🧠 Systematic improvement tracking (fix 250+ violations systematically vs hunting individual errors) • 📋 Clean JSON output for CI, LLMs, and automated workflows",
   "type": "module",
   "main": "dist/lib/cli.js",
@@ -50,6 +50,7 @@
     "format:check": "prettier --check .",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run format && npm run build && npm run test && npm run typecheck",
+    "postinstall": "node -e \"console.log('\\n📦 SideQuest CQO installed successfully!\\n🔧 If you encounter SQLite build issues, try:\\n   npm rebuild better-sqlite3\\n   or install build tools for your platform\\n')\"",
     "alpha-release": "npm version prerelease --preid=alpha && npm publish --tag alpha",
     "beta-release": "npm version prerelease --preid=beta && npm publish --tag beta"
   },
@@ -83,8 +84,10 @@
   },
   "homepage": "https://github.com/Invisible-Cities-Agency/SidequestCode#readme",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
+  "os": ["darwin", "linux", "win32"],
   "files": [
     "dist/",
     "README.md",
@@ -92,25 +95,25 @@
     "docs/CHANGELOG.md"
   ],
   "dependencies": {
-    "better-sqlite3": "^9.0.0",
+    "better-sqlite3": "^11.0.0",
     "kysely": "^0.27.0",
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "@vitest/coverage-v8": "^1.0.0",
-    "@vitest/ui": "^1.0.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-unicorn": "^50.0.0",
-    "prettier": "^3.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-unicorn": "^55.0.0",
+    "prettier": "^3.3.0",
     "ts-unused-exports": "^11.0.1",
-    "tsx": "^4.0.0",
-    "type-fest": "^4.10.0",
+    "tsx": "^4.20.0",
+    "type-fest": "^4.41.0",
     "typescript": "^5.8.3",
-    "vitest": "^1.0.0"
+    "vitest": "^1.6.0"
   },
   "peerDependencies": {
     "eslint": ">=8.0.0",

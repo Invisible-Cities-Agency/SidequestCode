@@ -29,7 +29,9 @@
       "WebFetch(domain:github.com)",
       "Bash(npm test)",
       "Bash(ls:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npm publish:*)",
+      "Bash(npm ls:*)"
     ],
     "deny": []
   }
