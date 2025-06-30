@@ -475,7 +475,7 @@ export class StorageService {
     return await database
       .selectFrom("rule_schedules")
       .selectAll()
-      .where("enabled", "=", true)
+      .where("enabled", "=", 1)
       .where((eb) =>
         eb.or([eb("next_run_at", "is", null), eb("next_run_at", "<=", now)]),
       )
@@ -554,7 +554,7 @@ export class StorageService {
       database
         .selectFrom("rule_schedules")
         .select("next_run_at")
-        .where("enabled", "=", true)
+        .where("enabled", "=", 1)
         .where("next_run_at", "is not", null)
         .orderBy("next_run_at", "asc")
         .limit(1)

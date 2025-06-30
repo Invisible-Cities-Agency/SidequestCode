@@ -54,7 +54,7 @@ interface RuleScheduleTable {
   id: Generated<number>;
   rule_id: string;
   engine: "typescript" | "eslint";
-  enabled: Generated<boolean>;
+  enabled: Generated<number>; // SQLite stores boolean as integer (0/1)
   priority: Generated<number>;
   check_frequency_ms: Generated<number>;
   last_run_at: string | null;
@@ -126,7 +126,7 @@ export interface ViolationSummaryItem {
 export interface RulePerformanceItem {
   rule_id: string;
   engine: "typescript" | "eslint";
-  enabled: boolean;
+  enabled: number; // SQLite stores boolean as integer (0/1)
   avg_execution_time_ms: number;
   avg_violations_found: number;
   consecutive_zero_count: number;

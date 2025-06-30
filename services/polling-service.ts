@@ -133,7 +133,7 @@ export class PollingService extends EventEmitter implements IPollingService {
     await this.storageService.upsertRuleSchedule({
       rule_id: rule,
       engine,
-      enabled: true,
+      enabled: 1,
       priority: 1,
       check_frequency_ms: frequency,
     });
@@ -148,7 +148,7 @@ export class PollingService extends EventEmitter implements IPollingService {
     await this.storageService.upsertRuleSchedule({
       rule_id: rule,
       engine,
-      enabled: false,
+      enabled: 0,
       priority: 999,
       check_frequency_ms: this.defaultFrequencyMs,
     });
