@@ -9,20 +9,20 @@ const logPath = path.join(require("os").tmpdir(), "sidequest-postinstall.log");
 function log(message) {
   const timestamp = new Date().toISOString();
   const logMessage = `${timestamp}: ${message}\n`;
-  
+
   try {
     fs.appendFileSync(logPath, logMessage);
   } catch (e) {
     // Ignore logging errors - don't want to break installation
   }
-  
+
   console.log(message);
 }
 
 function findPackageJson() {
   log(`🔍 Starting package.json search from: ${process.cwd()}`);
-  log(`🔍 Environment: ${process.env.npm_config_user_agent || 'unknown'}`);
-  
+  log(`🔍 Environment: ${process.env.npm_config_user_agent || "unknown"}`);
+
   // Try common paths first
   const possiblePaths = [
     path.join(process.cwd(), "../../../package.json"),
@@ -37,12 +37,12 @@ function findPackageJson() {
   while (current !== path.dirname(current)) {
     const pkgPath = path.join(current, "package.json");
     log(`🔍 Checking: ${pkgPath}`);
-    
+
     if (fs.existsSync(pkgPath)) {
       try {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-        log(`📦 Found package: ${pkg.name || 'unnamed'}`);
-        
+        log(`📦 Found package: ${pkg.name || "unnamed"}`);
+
         if (
           pkg.name &&
           !pkg.name.includes("sidequest-cqo") &&
@@ -91,24 +91,24 @@ function detectPackageManager() {
 try {
   log(`🚀 SideQuest CQO postinstall started`);
   log(`📍 Working directory: ${process.cwd()}`);
-  log(`🔍 Process args: ${process.argv.join(' ')}`);
-  
+  log(`🔍 Process args: ${process.argv.join(" ")}`);
+
   const pkgPath = findPackageJson();
-  
+
   if (pkgPath) {
     log(`📦 Processing package.json: ${pkgPath}`);
-    
+
     const pkgContent = fs.readFileSync(pkgPath, "utf8");
     const pkg = JSON.parse(pkgContent);
-    
+
     log(`📦 Original package name: ${pkg.name}`);
     log(`📦 Has scripts section: ${!!pkg.scripts}`);
-    
+
     if (!pkg.scripts) pkg.scripts = {};
-    
+
     const pm = detectPackageManager();
     log(`📦 Detected package manager: ${pm}`);
-    
+
     const runCmd =
       pm === "npm"
         ? "npm run"
@@ -125,7 +125,7 @@ try {
       "sidequest:help": "sidequest-cqo --help",
     };
 
-    log(`📦 Existing scripts: ${Object.keys(pkg.scripts).join(', ')}`);
+    log(`📦 Existing scripts: ${Object.keys(pkg.scripts).join(", ")}`);
 
     let added = [];
     Object.entries(scripts).forEach(([name, cmd]) => {
@@ -137,27 +137,56 @@ try {
         log(`⚠️ Script already exists: ${name}`);
       }
     });
-    
+
     if (added.length > 0) {
       log(`💾 Writing updated package.json with ${added.length} new scripts`);
-      
+
       // Create backup
-      const backupPath = pkgPath + '.sidequest-backup';
+      const backupPath = pkgPath + ".sidequest-backup";
       fs.writeFileSync(backupPath, pkgContent);
       log(`💾 Created backup: ${backupPath}`);
+
+      // Write updated package.json preserving formatting style
+      // Read original to detect indentation style
+      const originalLines = pkgContent.split('\n');
+      const indentMatch = originalLines.find(line => line.match(/^[ ]+"/));
+      const indentSize = indentMatch ? indentMatch.match(/^( +)/)[1].length : 2;
       
-      // Write updated package.json
-      const updatedContent = JSON.stringify(pkg, null, 2);
+      const updatedContent = JSON.stringify(pkg, null, indentSize);
       fs.writeFileSync(pkgPath, updatedContent);
       
+      // Also write with delay to survive formatter overwrites
+      setTimeout(() => {
+        try {
+          const recheckContent = fs.readFileSync(pkgPath, "utf8");
+          const recheckPkg = JSON.parse(recheckContent);
+          const hasAllScripts = Object.keys(scripts).every(name => recheckPkg.scripts[name]);
+          
+          if (!hasAllScripts) {
+            log(`⚠️ Scripts were overwritten by formatter, re-adding...`);
+            Object.entries(scripts).forEach(([name, cmd]) => {
+              if (!recheckPkg.scripts[name]) {
+                recheckPkg.scripts[name] = cmd;
+              }
+            });
+            fs.writeFileSync(pkgPath, JSON.stringify(recheckPkg, null, indentSize));
+            log(`✅ Re-added scripts after formatter conflict`);
+          }
+        } catch (e) {
+          log(`⚠️ Could not recheck/fix scripts: ${e.message}`);
+        }
+      }, 100);
+
       // Verify the write succeeded
       const verifyContent = fs.readFileSync(pkgPath, "utf8");
       const verifyPkg = JSON.parse(verifyContent);
-      const hasAllScripts = Object.keys(scripts).every(name => verifyPkg.scripts[name]);
-      
+      const hasAllScripts = Object.keys(scripts).every(
+        (name) => verifyPkg.scripts[name],
+      );
+
       log(`✅ Verification: All scripts present = ${hasAllScripts}`);
-      log(`📦 Final scripts: ${Object.keys(verifyPkg.scripts).join(', ')}`);
-      
+      log(`📦 Final scripts: ${Object.keys(verifyPkg.scripts).join(", ")}`);
+
       console.log(
         `\n📦 SideQuest CQO installed!\n✅ Added scripts: ${added.join(", ")}`,
       );
@@ -185,12 +214,12 @@ try {
     );
     console.log(`\n🔍 Debug log: ${logPath}`);
   }
-  
+
   log(`✅ Postinstall completed successfully`);
 } catch (e) {
   log(`❌ Error in postinstall: ${e.message}`);
   log(`❌ Stack trace: ${e.stack}`);
-  
+
   const pm = detectPackageManager();
   const execCmd =
     pm === "npm"
