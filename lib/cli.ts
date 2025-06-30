@@ -42,6 +42,7 @@ import {
   getDeveloperWatchDisplay,
   resetDeveloperWatchDisplay,
 } from "./watch-display-v2.js";
+import { SessionManager } from "../services/session-manager.js";
 import {
   detectTerminalBackground,
   detectTerminalModeHeuristic,
@@ -63,6 +64,25 @@ import {
 import { writeFile, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+
+/**
+ * Process violations into summary format for session state
+ */
+function processViolationSummary(violations: OrchestratorViolation[]) {
+  const bySource: Record<string, number> = {};
+  const byCategory: Record<string, number> = {};
+
+  for (const violation of violations) {
+    bySource[violation.source] = (bySource[violation.source] || 0) + 1;
+    byCategory[violation.category] = (byCategory[violation.category] || 0) + 1;
+  }
+
+  return {
+    total: violations.length,
+    bySource,
+    byCategory,
+  };
+}
 
 /**
  * Get the current package version from package.json
@@ -141,6 +161,7 @@ try {
     usePersistence: true,
     showBurndown: false,
     resetSession: false,
+    resumeSession: false,
     debugTerminal: false,
     dataDir: "./data",
     generatePRD: false,
@@ -345,6 +366,8 @@ ANALYSIS OPTIONS:
   --path <dir>             Target directory (default: app)
   --color-scheme <mode>    Color mode: auto, light, dark
   --data-dir <dir>         Database directory (default: ./data)
+  --resume                 Resume previous watch session with stats
+  --reset-session          Clear session state and start fresh
 
 OUTPUT OPTIONS:
   --verbose                Detailed JSON output format
@@ -403,6 +426,12 @@ EXAMPLES:
 
   # Install shortcuts manually (pnpm users)
   sidequest --install-shortcuts
+
+  # Resume previous watch session
+  sidequest --watch --resume
+
+  # Reset session and start fresh
+  sidequest --watch --reset-session
 
 TROUBLESHOOTING:
   If colors look wrong, use explicit mode:
@@ -1249,10 +1278,14 @@ async function main(): Promise<void> {
     );
 
     try {
-      // Reset services if requested
+      // Initialize session manager
+      const sessionManager = new SessionManager(flags.dataDir);
+
+      // Handle session management
       if (flags.resetSession) {
+        await sessionManager.clearSession();
         resetAllServices();
-        resetDeveloperWatchDisplay(); // Also reset the display state
+        resetDeveloperWatchDisplay();
         console.log(
           `${colors.warning}♻️  Session reset - starting fresh...${colors.reset}`,
         );
@@ -1285,12 +1318,39 @@ async function main(): Promise<void> {
       }
 
       if (flags.watch) {
-        // Enhanced watch mode with persistence
+        // Handle session resumption or creation
+        let session = null;
+        let checksCount = 0;
+
+        if (flags.resumeSession) {
+          session = await sessionManager.loadSession();
+          if (session && sessionManager.canResumeSession(session, flags)) {
+            checksCount = session.checksCount;
+            console.log(
+              `${colors.success}🔄 Resuming previous session (${session.checksCount} checks, ${Math.floor((Date.now() - session.startTime) / 60000)}min ago)...${colors.reset}`,
+            );
+            const stats = sessionManager.getSessionStats();
+            if (stats && stats.errorCount > 0) {
+              console.log(
+                `${colors.warning}⚠️  Previous session had ${stats.errorCount} errors${colors.reset}`,
+              );
+            }
+          } else {
+            console.log(
+              `${colors.warning}⚠️  Cannot resume previous session, starting fresh...${colors.reset}`,
+            );
+            session = null;
+          }
+        }
+
+        if (!session) {
+          session = await sessionManager.createSession(flags);
+        }
+
+        // Enhanced watch mode with session persistence
         console.log(
           `${colors.bold}${colors.info}Starting Enhanced Code Quality Watch...${colors.reset}`,
         );
-
-        let checksCount = 0;
 
         // Start watch mode with orchestrator service
         await orchestrator.startWatchMode({
@@ -1345,13 +1405,22 @@ async function main(): Promise<void> {
           },
         });
 
-        // Get the clean developer display
+        // Get the clean developer display and restore session state if resuming
         const watchDisplay = getDeveloperWatchDisplay();
+        if (flags.resumeSession && session) {
+          // Restore display state from session
+          watchDisplay.restoreFromSession({
+            sessionStart: session.startTime,
+            baseline: session.baseline,
+            current: session.current,
+            viewMode: session.viewMode,
+          });
+        }
 
         // Enable silent mode for services during watch
         orchestrator.setSilentMode(true);
 
-        // Watch cycle with persistence
+        // Watch cycle with persistence and comprehensive error handling
         const runEnhancedWatchCycle = async () => {
           try {
             // Get current violations using legacy orchestrator
@@ -1363,6 +1432,14 @@ async function main(): Promise<void> {
               result.violations,
               orchestrator,
             );
+
+            // Update session state
+            const current = processViolationSummary(result.violations);
+            await sessionManager.updateSession({
+              checksCount,
+              current,
+              baseline: session?.baseline || current,
+            });
 
             if (flags.verbose) {
               const enhancedResult = {
@@ -1383,7 +1460,66 @@ async function main(): Promise<void> {
               );
             }
           } catch (error) {
-            console.error("[Enhanced Watch] Analysis failed:", error);
+            // Enhanced error handling with detailed diagnostics
+            const errorObj =
+              error instanceof Error ? error : new Error(String(error));
+            const timestamp = new Date().toISOString();
+            const errorDetails = {
+              timestamp,
+              error: errorObj.message,
+              stack: errorObj.stack,
+              checksCount,
+              cwd: process.cwd(),
+              nodeVersion: process.version,
+              platform: process.platform,
+            };
+
+            // Log to console with user-friendly message
+            console.error(
+              `\n${colors.error}🚨 Watch Mode Error at ${timestamp}${colors.reset}`,
+            );
+            console.error(
+              `${colors.warning}Reason: ${errorObj.message}${colors.reset}`,
+            );
+            console.error(
+              `${colors.secondary}Check ${checksCount} failed. Watch mode continuing...${colors.reset}\n`,
+            );
+
+            // Log error to session
+            await sessionManager.logError(errorObj, checksCount, {
+              nodeVersion: process.version,
+              platform: process.platform,
+            });
+
+            // Log detailed error to file for debugging
+            try {
+              const fs = require("node:fs");
+              const path = require("node:path");
+              const logDir = path.join(process.cwd(), ".sidequest-logs");
+              const logFile = path.join(logDir, "watch-errors.log");
+
+              if (!fs.existsSync(logDir)) {
+                fs.mkdirSync(logDir, { recursive: true });
+              }
+
+              const logEntry = `${JSON.stringify(errorDetails, null, 2)}\n\n`;
+              fs.appendFileSync(logFile, logEntry);
+
+              console.error(
+                `${colors.info}📝 Error logged to: ${logFile}${colors.reset}`,
+              );
+            } catch (logError) {
+              const logErrorObj =
+                logError instanceof Error
+                  ? logError
+                  : new Error(String(logError));
+              console.error(
+                `${colors.warning}⚠️  Could not log error details: ${logErrorObj.message}${colors.reset}`,
+              );
+            }
+
+            // Emit error event for potential recovery
+            orchestrator.emit("watchCycleError", errorObj, checksCount);
           }
         };
 

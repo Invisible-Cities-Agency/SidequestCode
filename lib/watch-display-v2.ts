@@ -1103,6 +1103,25 @@ export class DeveloperWatchDisplay {
     return "info";
   }
 
+  /**
+   * Restore display state from a previous session
+   */
+  restoreFromSession(sessionData: {
+    sessionStart: number;
+    baseline: ViolationSummary | undefined;
+    current: ViolationSummary;
+    viewMode: string;
+  }): void {
+    this.state.sessionStart = sessionData.sessionStart;
+    this.state.baseline = sessionData.baseline;
+    this.state.current = sessionData.current;
+    this.state.viewMode = sessionData.viewMode as
+      | "dashboard"
+      | "tidy"
+      | "burndown";
+    this.state.isInitialized = true;
+  }
+
   shutdown(): void {
     this.restoreOutput();
     // Restore stdin if it was modified

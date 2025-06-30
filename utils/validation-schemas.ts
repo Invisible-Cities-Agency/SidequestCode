@@ -38,6 +38,7 @@ export const CLIFlagsSchema = z
     usePersistence: z.boolean().default(true),
     showBurndown: z.boolean().default(false),
     resetSession: z.boolean().default(false),
+    resumeSession: z.boolean().default(false),
     debugTerminal: z.boolean().default(false),
     dataDir: z
       .string()
@@ -306,6 +307,7 @@ export function safeCLIArgumentsParse(arguments_: string[]): ValidatedCLIFlags {
     usePersistence: !arguments_.includes("--no-persistence"),
     showBurndown: arguments_.includes("--burndown"),
     resetSession: arguments_.includes("--reset-session"),
+    resumeSession: arguments_.includes("--resume"),
     debugTerminal: arguments_.includes("--debug-terminal"),
     dataDir: (() => {
       const dataDirectoryIndex = arguments_.indexOf("--data-dir");

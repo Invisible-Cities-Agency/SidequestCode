@@ -30,6 +30,7 @@ export interface CLIFlags extends Record<string, unknown> {
   readonly usePersistence: boolean;
   readonly showBurndown: boolean;
   readonly resetSession: boolean;
+  readonly resumeSession: boolean;
   readonly debugTerminal: boolean;
   readonly dataDir: string;
   readonly generatePRD: boolean;
