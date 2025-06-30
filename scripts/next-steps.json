@@ -1,0 +1,45 @@
+{
+  "pnpm": {
+    "title": "🚀 PNPM USERS: One More Step!",
+    "description": "pnpm timing requires manual shortcut installation",
+    "command": "npx sidequest-cqo --install-shortcuts",
+    "reason": "pnpm 10+ blocks postinstall by default for security",
+    "shortcuts_added": [
+      "pnpm run sidequest:report",
+      "pnpm run sidequest:watch", 
+      "pnpm run sidequest:config",
+      "pnpm run sidequest:help"
+    ],
+    "quick_start": "pnpm run sidequest:watch",
+    "manual_alternative": {
+      "sidequest:report": "sidequest-cqo --verbose",
+      "sidequest:watch": "sidequest-cqo --watch",
+      "sidequest:config": "sidequest-cqo --config", 
+      "sidequest:help": "sidequest-cqo --help"
+    }
+  },
+  "npm": {
+    "title": "✅ Ready to Use!",
+    "description": "Shortcuts installed automatically",
+    "quick_start": "npm run sidequest:watch"
+  },
+  "yarn": {
+    "title": "✅ Ready to Use!",
+    "description": "Shortcuts installed automatically", 
+    "quick_start": "yarn sidequest:watch"
+  },
+  "bun": {
+    "title": "✅ Ready to Use!",
+    "description": "Shortcuts installed automatically",
+    "quick_start": "bun run sidequest:watch"
+  },
+  "fallback": {
+    "title": "📦 Direct Usage Available",
+    "description": "Use npx commands directly",
+    "commands": [
+      "npx sidequest-cqo --verbose",
+      "npx sidequest-cqo --watch",
+      "npx sidequest-cqo --help"
+    ]
+  }
+}

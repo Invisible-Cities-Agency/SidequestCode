@@ -887,33 +887,44 @@ async function checkAndRunFirstTimeSetup(): Promise<boolean> {
  */
 async function handleInstallShortcuts(): Promise<void> {
   const colors = getColorScheme();
-  
+
   try {
-    console.log(`${colors.info}📦 Installing SideQuest shortcuts...${colors.reset}`);
-    
+    console.log(
+      `${colors.info}📦 Installing SideQuest shortcuts...${colors.reset}`,
+    );
+
     // Import and run the postinstall script directly
     const { execSync } = await import("node:child_process");
     const path = await import("node:path");
     const { fileURLToPath } = await import("node:url");
-    
+
     // Get the package installation directory
     const currentModuleUrl = import.meta.url;
     const currentDirectory = path.dirname(fileURLToPath(currentModuleUrl));
     const packageRoot = path.join(currentDirectory, "..");
-    const postinstallScript = path.join(packageRoot, "scripts", "postinstall.cjs");
-    
+    const postinstallScript = path.join(
+      packageRoot,
+      "scripts",
+      "postinstall.cjs",
+    );
+
     // Run the postinstall script
-    execSync(`node "${postinstallScript}"`, { 
+    execSync(`node "${postinstallScript}"`, {
       stdio: "inherit",
-      cwd: process.cwd() 
+      cwd: process.cwd(),
     });
-    
-    console.log(`${colors.success}✅ Shortcuts installation completed!${colors.reset}`);
+
+    console.log(
+      `${colors.success}✅ Shortcuts installation completed!${colors.reset}`,
+    );
     console.log(`${colors.info}💡 Try: pnpm run sidequest:help${colors.reset}`);
-    
   } catch (error: any) {
-    console.error(`${colors.error}❌ Failed to install shortcuts: ${error.message}${colors.reset}`);
-    console.error(`${colors.warning}💡 You can add scripts manually to package.json:${colors.reset}`);
+    console.error(
+      `${colors.error}❌ Failed to install shortcuts: ${error.message}${colors.reset}`,
+    );
+    console.error(
+      `${colors.warning}💡 You can add scripts manually to package.json:${colors.reset}`,
+    );
     console.log(`
 {
   "scripts": {

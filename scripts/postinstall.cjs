@@ -88,6 +88,32 @@ function detectPackageManager() {
   return "npm";
 }
 
+function getBoxedMessage() {
+  const border = "═".repeat(62);
+  const nextCommand = "npx sidequest-cqo --install-shortcuts";
+  
+  return `
+╔${border}╗
+║                    🚀 PNPM USERS: ONE MORE STEP!                    ║
+╠${border}╣
+║  pnpm timing requires manual shortcut installation.                 ║
+║                                                                     ║
+║  📋 COPY & RUN THIS COMMAND:                                        ║
+║                                                                     ║
+║      ${nextCommand}                     ║
+║                                                                     ║
+║  ✅ Then use direct commands (no "run" needed!):                    ║
+║      pnpm sidequest:watch                                           ║
+║      pnpm sidequest:report                                          ║
+║                                                                     ║
+║  💡 Only needed once per project                                    ║
+║  📖 Full guide: docs/PNPM-INSTALL.md                               ║
+╚${border}╝
+
+💬 pnpm 10+ blocks postinstall by default - this is normal!
+`;
+}
+
 try {
   log(`🚀 SideQuest CQO postinstall started`);
   log(`📍 Working directory: ${process.cwd()}`);
@@ -218,6 +244,49 @@ try {
       `\n📦 SideQuest CQO installed!\n💡 Use: ${execCmd} sidequest-cqo --help\n`,
     );
     console.log(`\n🔍 Debug log: ${logPath}`);
+  }
+  
+  // Always show next steps for pnpm users regardless of success/failure
+  if (detectPackageManager() === "pnpm") {
+    console.log(`\n${getBoxedMessage()}`);
+    
+    // Write a local file with the next command for easy access
+    try {
+      const nextCommand = "npx sidequest-cqo --install-shortcuts";
+      const helpFile = `# SideQuest CQO - Next Steps
+
+## For pnpm users, run this command to add shortcuts:
+
+\`\`\`bash
+${nextCommand}
+\`\`\`
+
+## This will add these shortcuts to your package.json:
+
+- \`pnpm sidequest:report\` - TypeScript analysis (JSON output)
+- \`pnpm sidequest:watch\` - Real-time watch mode  
+- \`pnpm sidequest:config\` - Configuration management
+- \`pnpm sidequest:help\` - Show help
+
+## Quick start after setup (no "run" needed!):
+\`\`\`bash
+pnpm sidequest:watch     # ✅ Direct command
+pnpm sidequest:report    # ✅ Direct command  
+pnpm sidequest:help      # ✅ Direct command
+\`\`\`
+
+## Why this is needed:
+pnpm 10+ blocks postinstall scripts by default for security. This is normal behavior.
+
+Generated: ${new Date().toISOString()}
+`;
+      
+      fs.writeFileSync("SIDEQUEST-NEXT-STEPS.md", helpFile);
+      log(`📄 Created SIDEQUEST-NEXT-STEPS.md with copy-paste commands`);
+      console.log(`\n📄 Created: ./SIDEQUEST-NEXT-STEPS.md (contains copy-paste commands)`);
+    } catch (e) {
+      log(`⚠️ Could not create help file: ${e.message}`);
+    }
   }
 
   log(`✅ Postinstall completed successfully`);

@@ -97,7 +97,8 @@
     "scripts/",
     "README.md",
     "LICENSE",
-    "docs/CHANGELOG.md"
+    "docs/CHANGELOG.md",
+    "docs/PNPM-INSTALL.md"
   ],
   "dependencies": {},
   "devDependencies": {

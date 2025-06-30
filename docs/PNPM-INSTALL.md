@@ -8,10 +8,12 @@ After installing the package, run:
 
 ```bash
 # For pnpm users - run this after installing @invisiblecities/sidequest-cqo
-pnpm exec sidequest-cqo --install-shortcuts
+npx sidequest-cqo --install-shortcuts
 
-# Alternative: use npx
-npx @invisiblecities/sidequest-cqo --install-shortcuts
+# This adds shortcuts so you can use direct commands (no "run" needed!):
+pnpm sidequest:watch     # ✅ Direct command
+pnpm sidequest:report    # ✅ Direct command  
+pnpm sidequest:help      # ✅ Direct command
 ```
 
 ## Option 2: Manual Package.json Addition
@@ -22,7 +24,7 @@ Add these scripts to your package.json manually:
 {
   "scripts": {
     "sidequest:report": "sidequest-cqo --verbose",
-    "sidequest:watch": "sidequest-cqo --watch", 
+    "sidequest:watch": "sidequest-cqo --watch",
     "sidequest:config": "sidequest-cqo --config",
     "sidequest:help": "sidequest-cqo --help"
   }

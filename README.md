@@ -2,6 +2,28 @@
 
 Configuration-agnostic TypeScript and ESLint orchestrator that respects your project setup with real-time watch mode, interactive first-run setup, and intelligent separation of concerns guidance.
 
+## 📦 Installation
+
+### npm & yarn (automatic)
+```bash
+npm install --save-dev @invisiblecities/sidequest-cqo
+# OR
+yarn add -D @invisiblecities/sidequest-cqo
+```
+
+### pnpm (one extra step)
+```bash
+pnpm add -D @invisiblecities/sidequest-cqo
+npx sidequest-cqo --install-shortcuts  # Adds shortcuts to package.json
+
+# Now you can use without "run":
+pnpm sidequest:watch     # ✅ Direct command (no "run" needed!)
+pnpm sidequest:report    # ✅ Direct command 
+pnpm sidequest:help      # ✅ Direct command
+```
+
+> **Why the extra step?** pnpm 10+ executes postinstall before writing package.json, so shortcuts need manual installation. The `--install-shortcuts` command is only needed once per project.
+
 ## 🚀 Common Commands
 
 ### 🤖 For LLMs/AI Assistants (Machine-Readable JSON Output)
