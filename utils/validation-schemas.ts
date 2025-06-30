@@ -45,6 +45,7 @@ export const CLIFlagsSchema = z
       .max(256, "Data directory path too long")
       .default("./data"),
     generatePRD: z.boolean().default(false),
+    installShortcuts: z.boolean().default(false),
     configAction: z
       .string()
       .regex(/^(show|edit|reset)$/, "Invalid config action")
@@ -317,6 +318,7 @@ export function safeCLIArgumentsParse(arguments_: string[]): ValidatedCLIFlags {
       return "./data";
     })(),
     generatePRD: arguments_.includes("--prd"),
+    installShortcuts: arguments_.includes("--install-shortcuts"),
     configAction: (() => {
       const configIndex = arguments_.indexOf("--config");
       if (configIndex === -1) {

@@ -148,20 +148,22 @@ try {
 
       // Write updated package.json preserving formatting style
       // Read original to detect indentation style
-      const originalLines = pkgContent.split('\n');
-      const indentMatch = originalLines.find(line => line.match(/^[ ]+"/));
+      const originalLines = pkgContent.split("\n");
+      const indentMatch = originalLines.find((line) => line.match(/^[ ]+"/));
       const indentSize = indentMatch ? indentMatch.match(/^( +)/)[1].length : 2;
-      
+
       const updatedContent = JSON.stringify(pkg, null, indentSize);
       fs.writeFileSync(pkgPath, updatedContent);
-      
+
       // Also write with delay to survive formatter overwrites
       setTimeout(() => {
         try {
           const recheckContent = fs.readFileSync(pkgPath, "utf8");
           const recheckPkg = JSON.parse(recheckContent);
-          const hasAllScripts = Object.keys(scripts).every(name => recheckPkg.scripts[name]);
-          
+          const hasAllScripts = Object.keys(scripts).every(
+            (name) => recheckPkg.scripts[name],
+          );
+
           if (!hasAllScripts) {
             log(`⚠️ Scripts were overwritten by formatter, re-adding...`);
             Object.entries(scripts).forEach(([name, cmd]) => {
@@ -169,7 +171,10 @@ try {
                 recheckPkg.scripts[name] = cmd;
               }
             });
-            fs.writeFileSync(pkgPath, JSON.stringify(recheckPkg, null, indentSize));
+            fs.writeFileSync(
+              pkgPath,
+              JSON.stringify(recheckPkg, null, indentSize),
+            );
             log(`✅ Re-added scripts after formatter conflict`);
           }
         } catch (e) {

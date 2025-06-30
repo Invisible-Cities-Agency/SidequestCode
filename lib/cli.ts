@@ -98,6 +98,7 @@ try {
     debugTerminal: false,
     dataDir: "./data",
     generatePRD: false,
+    installShortcuts: false,
     configAction: undefined,
   };
 }
@@ -307,6 +308,7 @@ CONFIGURATION:
                           show (default) - Display current preferences
                           edit - Open preferences in editor
                           reset - Reset to defaults
+  --install-shortcuts      Manually install package.json shortcuts (pnpm fix)
 
 EXAMPLES:
   # Start watching with auto-detected colors
@@ -351,6 +353,9 @@ EXAMPLES:
   # Reset preferences to defaults
   sidequest --config reset
 
+  # Install shortcuts manually (pnpm users)
+  sidequest --install-shortcuts
+
 TROUBLESHOOTING:
   If colors look wrong, use explicit mode:
   sidequest --watch --color-scheme dark    # For black/dark terminals
@@ -381,6 +386,9 @@ TROUBLESHOOTING:
   Command not found: sidequest:watch?
     Don't use: npm sidequest:watch
     Use:       npm run sidequest:watch
+    
+    pnpm users: If shortcuts weren't added during install:
+    Run: npx sidequest-cqo --install-shortcuts
 
   Want to skip interactive setup?
     Use: npm run sidequest:report (for LLMs/automation)
@@ -875,6 +883,50 @@ async function checkAndRunFirstTimeSetup(): Promise<boolean> {
 }
 
 /**
+ * Handle shortcuts installation for pnpm compatibility
+ */
+async function handleInstallShortcuts(): Promise<void> {
+  const colors = getColorScheme();
+  
+  try {
+    console.log(`${colors.info}📦 Installing SideQuest shortcuts...${colors.reset}`);
+    
+    // Import and run the postinstall script directly
+    const { execSync } = await import("node:child_process");
+    const path = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    
+    // Get the package installation directory
+    const currentModuleUrl = import.meta.url;
+    const currentDirectory = path.dirname(fileURLToPath(currentModuleUrl));
+    const packageRoot = path.join(currentDirectory, "..");
+    const postinstallScript = path.join(packageRoot, "scripts", "postinstall.cjs");
+    
+    // Run the postinstall script
+    execSync(`node "${postinstallScript}"`, { 
+      stdio: "inherit",
+      cwd: process.cwd() 
+    });
+    
+    console.log(`${colors.success}✅ Shortcuts installation completed!${colors.reset}`);
+    console.log(`${colors.info}💡 Try: pnpm run sidequest:help${colors.reset}`);
+    
+  } catch (error: any) {
+    console.error(`${colors.error}❌ Failed to install shortcuts: ${error.message}${colors.reset}`);
+    console.error(`${colors.warning}💡 You can add scripts manually to package.json:${colors.reset}`);
+    console.log(`
+{
+  "scripts": {
+    "sidequest:report": "sidequest-cqo --verbose",
+    "sidequest:watch": "sidequest-cqo --watch",
+    "sidequest:config": "sidequest-cqo --config",
+    "sidequest:help": "sidequest-cqo --help"
+  }
+}`);
+  }
+}
+
+/**
  * Handle configuration commands
  */
 async function handleConfigCommand(action: string): Promise<void> {
@@ -1064,6 +1116,12 @@ async function main(): Promise<void> {
   // Handle configuration commands
   if (flags.configAction) {
     await handleConfigCommand(flags.configAction);
+    process.exit(0);
+  }
+
+  // Handle shortcuts installation for pnpm compatibility
+  if (flags.installShortcuts) {
+    await handleInstallShortcuts();
     process.exit(0);
   }
 

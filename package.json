@@ -9,7 +9,7 @@
     "scqo": "dist/lib/cli.js"
   },
   "scripts": {
-    "prepare": "husky",
+    "prepare": "husky && node scripts/postinstall.cjs",
     "build": "tsc",
     "dev": "tsx lib/cli.ts",
     "sidequest": "tsx lib/cli.ts --verbose",
@@ -50,6 +50,7 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run format && npm run build && npm run test && npm run typecheck",
     "postinstall": "node scripts/postinstall.cjs",
+    "install-shortcuts": "node scripts/postinstall.cjs",
     "alpha-release": "npm version prerelease --preid=alpha && npm publish --tag alpha",
     "beta-release": "npm version prerelease --preid=beta && npm publish --tag beta"
   },
