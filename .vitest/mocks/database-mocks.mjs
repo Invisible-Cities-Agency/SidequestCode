@@ -3,36 +3,36 @@
  * Comprehensive mocks for SQLite and Kysely operations
  */
 
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
 // Mock constants for consistent database testing
 export const DATABASE_MOCK_CONSTANTS = {
-  CONNECTION_STRING: 'test-database.db',
+  CONNECTION_STRING: "test-database.db",
   VIOLATION_RECORD: {
-    id: 'test-violation-123',
-    file: 'src/test.ts',
+    id: "test-violation-123",
+    file: "src/test.ts",
     line: 42,
     column: 10,
-    message: 'Test violation message',
-    category: 'test-category',
-    severity: 'warn',
-    source: 'typescript',
-    rule: 'test-rule',
+    message: "Test violation message",
+    category: "test-category",
+    severity: "warn",
+    source: "typescript",
+    rule: "test-rule",
     created_at: new Date().toISOString(),
-    session_id: 'test-session-456'
+    session_id: "test-session-456",
   },
-  
+
   DASHBOARD_DATA: {
     total_files_affected: 15,
     total_violations: 42,
     recent_history: [
-      { date: '2024-01-01', violations: 45 },
-      { date: '2024-01-02', violations: 42 }
+      { date: "2024-01-01", violations: 45 },
+      { date: "2024-01-02", violations: 42 },
     ],
     performance_metrics: [
-      { operation: 'store_violations', avg_duration_ms: 25 },
-      { operation: 'query_violations', avg_duration_ms: 15 }
-    ]
+      { operation: "store_violations", avg_duration_ms: 25 },
+      { operation: "query_violations", avg_duration_ms: 15 },
+    ],
   },
 
   STORAGE_STATS: {
@@ -40,8 +40,8 @@ export const DATABASE_MOCK_CONSTANTS = {
     filesAffected: 15,
     avgPerFile: 2.8,
     lastUpdate: new Date().toISOString(),
-    databaseSize: '2.5MB'
-  }
+    databaseSize: "2.5MB",
+  },
 };
 
 // Mock SQLite connection with comprehensive method coverage
@@ -51,13 +51,13 @@ export const mockSQLiteConnection = {
   close: vi.fn(),
   pragma: vi.fn(),
   transaction: vi.fn(),
-  
+
   // Mock for prepared statements
   _mockPreparedStatement: {
     run: vi.fn(),
     get: vi.fn(),
     all: vi.fn(),
-    finalize: vi.fn()
+    finalize: vi.fn(),
   },
 
   reset() {
@@ -73,7 +73,7 @@ export const mockSQLiteConnection = {
     this.close.mockResolvedValue();
     this.pragma.mockReturnValue([{ busy_timeout: 30000 }]);
     this.transaction.mockImplementation((fn) => fn());
-  }
+  },
 };
 
 // Mock Kysely database instance
@@ -84,7 +84,7 @@ export const mockKyselyDatabase = {
   deleteFrom: vi.fn(),
   schema: vi.fn(),
   destroy: vi.fn(),
-  
+
   // Query builder chain mocks
   _mockQueryBuilder: {
     select: vi.fn(),
@@ -95,7 +95,7 @@ export const mockKyselyDatabase = {
     executeTakeFirst: vi.fn(),
     values: vi.fn(),
     set: vi.fn(),
-    returning: vi.fn()
+    returning: vi.fn(),
   },
 
   reset() {
@@ -117,7 +117,7 @@ export const mockKyselyDatabase = {
       set: vi.fn().mockReturnThis(),
       returning: vi.fn().mockReturnThis(),
       execute: vi.fn().mockResolvedValue([]),
-      executeTakeFirst: vi.fn().mockResolvedValue(null)
+      executeTakeFirst: vi.fn().mockResolvedValue(null),
     };
 
     this.selectFrom.mockReturnValue(chainableMock);
@@ -125,7 +125,7 @@ export const mockKyselyDatabase = {
     this.updateTable.mockReturnValue(chainableMock);
     this.deleteFrom.mockReturnValue(chainableMock);
     this.destroy.mockResolvedValue();
-  }
+  },
 };
 
 // Database scenario helpers for different operational states
@@ -134,24 +134,28 @@ export const databaseScenarios = {
   healthy() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Setup successful operations
-    mockKyselyDatabase._mockQueryBuilder.execute.mockResolvedValue([DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD]);
-    mockKyselyDatabase._mockQueryBuilder.executeTakeFirst.mockResolvedValue(DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD);
+    mockKyselyDatabase._mockQueryBuilder.execute.mockResolvedValue([
+      DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD,
+    ]);
+    mockKyselyDatabase._mockQueryBuilder.executeTakeFirst.mockResolvedValue(
+      DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD,
+    );
   },
 
   // Database connection failure
   connectionError() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Simulate connection failures
     mockSQLiteConnection.prepare.mockImplementation(() => {
-      throw new Error('SQLITE_CANTOPEN: unable to open database file');
+      throw new Error("SQLITE_CANTOPEN: unable to open database file");
     });
-    
+
     mockKyselyDatabase.selectFrom.mockImplementation(() => {
-      throw new Error('Database connection failed');
+      throw new Error("Database connection failed");
     });
   },
 
@@ -159,14 +163,14 @@ export const databaseScenarios = {
   databaseLocked() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Simulate database lock
     mockSQLiteConnection.exec.mockImplementation(() => {
-      throw new Error('SQLITE_BUSY: database is locked');
+      throw new Error("SQLITE_BUSY: database is locked");
     });
-    
+
     mockKyselyDatabase._mockQueryBuilder.execute.mockRejectedValue(
-      new Error('SQLITE_BUSY: database is locked')
+      new Error("SQLITE_BUSY: database is locked"),
     );
   },
 
@@ -174,11 +178,11 @@ export const databaseScenarios = {
   corruptedData() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Return corrupted/unexpected data
     mockKyselyDatabase._mockQueryBuilder.execute.mockResolvedValue([
       { ...DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD, id: null }, // Invalid data
-      'invalid-string-record' // Wrong type
+      "invalid-string-record", // Wrong type
     ]);
   },
 
@@ -186,20 +190,27 @@ export const databaseScenarios = {
   largeDataset() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Generate large dataset
-    const largeViolationSet = Array(1000).fill(null).map((_, i) => ({
-      ...DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD,
-      id: `violation-${i}`,
-      file: `src/file-${i}.ts`,
-      line: i + 1
-    }));
-    
-    mockKyselyDatabase._mockQueryBuilder.execute.mockResolvedValue(largeViolationSet);
-    
+    const largeViolationSet = Array(1000)
+      .fill(null)
+      .map((_, i) => ({
+        ...DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD,
+        id: `violation-${i}`,
+        file: `src/file-${i}.ts`,
+        line: i + 1,
+      }));
+
+    mockKyselyDatabase._mockQueryBuilder.execute.mockResolvedValue(
+      largeViolationSet,
+    );
+
     // Simulate slower queries for large datasets
     mockKyselyDatabase._mockQueryBuilder.execute.mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve(largeViolationSet), 50))
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve(largeViolationSet), 50),
+        ),
     );
   },
 
@@ -207,22 +218,24 @@ export const databaseScenarios = {
   emptyDatabase() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Return empty results
     mockKyselyDatabase._mockQueryBuilder.execute.mockResolvedValue([]);
-    mockKyselyDatabase._mockQueryBuilder.executeTakeFirst.mockResolvedValue(null);
+    mockKyselyDatabase._mockQueryBuilder.executeTakeFirst.mockResolvedValue(
+      null,
+    );
   },
 
   // Transaction failure scenario
   transactionFailure() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Simulate transaction rollback
     mockSQLiteConnection.transaction.mockImplementation((fn) => {
       try {
         fn();
-        throw new Error('Transaction failed - rolling back');
+        throw new Error("Transaction failed - rolling back");
       } catch (error) {
         throw error;
       }
@@ -233,19 +246,19 @@ export const databaseScenarios = {
   schemaMigration() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Simulate schema changes
     mockKyselyDatabase.schema.mockReturnValue({
       createTable: vi.fn().mockReturnValue({
         addColumn: vi.fn().mockReturnValue({
-          execute: vi.fn().mockResolvedValue()
-        })
+          execute: vi.fn().mockResolvedValue(),
+        }),
       }),
       alterTable: vi.fn().mockReturnValue({
         addColumn: vi.fn().mockReturnValue({
-          execute: vi.fn().mockResolvedValue()
-        })
-      })
+          execute: vi.fn().mockResolvedValue(),
+        }),
+      }),
     });
   },
 
@@ -253,26 +266,27 @@ export const databaseScenarios = {
   performancePressure() {
     mockSQLiteConnection.reset();
     mockKyselyDatabase.reset();
-    
+
     // Simulate slow operations
     mockKyselyDatabase._mockQueryBuilder.execute.mockImplementation(
-      () => new Promise(resolve => {
-        // Simulate memory pressure
-        const largeBuffer = new Array(10000).fill('performance-test');
-        
-        setTimeout(() => {
-          largeBuffer.length = 0; // Cleanup
-          resolve([DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD]);
-        }, 100);
-      })
+      () =>
+        new Promise((resolve) => {
+          // Simulate memory pressure
+          const largeBuffer = new Array(10000).fill("performance-test");
+
+          setTimeout(() => {
+            largeBuffer.length = 0; // Cleanup
+            resolve([DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD]);
+          }, 100);
+        }),
     );
-  }
+  },
 };
 
 // Global reset function for clean test isolation
 export const resetDatabaseMocks = () => {
   vi.clearAllMocks();
-  
+
   mockSQLiteConnection.reset();
   mockKyselyDatabase.reset();
 };
@@ -280,24 +294,30 @@ export const resetDatabaseMocks = () => {
 // Performance testing helpers
 export const createMockViolationRecord = (overrides = {}) => ({
   ...DATABASE_MOCK_CONSTANTS.VIOLATION_RECORD,
-  ...overrides
+  ...overrides,
 });
 
 export const createLargeViolationDataset = (size = 1000) => {
-  return Array(size).fill(null).map((_, i) => createMockViolationRecord({
-    id: `perf-test-${i}`,
-    file: `src/performance-${i}.ts`,
-    line: i + 1
-  }));
+  return Array(size)
+    .fill(null)
+    .map((_, i) =>
+      createMockViolationRecord({
+        id: `perf-test-${i}`,
+        file: `src/performance-${i}.ts`,
+        line: i + 1,
+      }),
+    );
 };
 
 // Memory testing utilities
 export const simulateMemoryPressure = () => {
-  const largeData = new Array(5000).fill('x'.repeat(1000));
-  
+  const largeData = new Array(5000).fill("x".repeat(1000));
+
   return {
-    cleanup: () => { largeData.length = 0; },
-    getSize: () => largeData.length
+    cleanup: () => {
+      largeData.length = 0;
+    },
+    getSize: () => largeData.length,
   };
 };
 
