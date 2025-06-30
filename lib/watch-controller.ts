@@ -146,8 +146,11 @@ export class WatchController extends EventEmitter {
       debugLog("WatchController", "Starting initial analysis cycle...");
       this.stateManager.startAnalysis();
 
+      let initialAnalysisResult: any = null;
       await Promise.race([
-        this.runAnalysisCycle(),
+        this.runAnalysisCycle().then((result) => {
+          initialAnalysisResult = result;
+        }),
         new Promise((_, reject) =>
           setTimeout(
             () => reject(new Error("Initial analysis timeout after 120s")),
@@ -161,6 +164,44 @@ export class WatchController extends EventEmitter {
         "WatchController",
         "Initial analysis completed, starting watch cycle...",
       );
+
+      // Force an initial display update now that we're in 'ready' state
+      debugLog(
+        "WatchController",
+        "Performing initial display update after state transition",
+      );
+      if (this.stateManager.canUpdateDisplay()) {
+        try {
+          // Use the stored result from initial analysis instead of running again
+          if (initialAnalysisResult) {
+            await display.updateDisplay(
+              initialAnalysisResult.violations,
+              this.stateManager.getChecksCount(),
+              orchestrator,
+            );
+            debugLog(
+              "WatchController",
+              "Initial display update completed successfully",
+            );
+          } else {
+            debugLog(
+              "WatchController",
+              "No initial analysis result available for display",
+            );
+          }
+        } catch (error) {
+          debugLog("WatchController", "Initial display update failed", error);
+        }
+      } else {
+        debugLog(
+          "WatchController",
+          "Cannot perform initial display update - not allowed in current state",
+          {
+            phase: this.stateManager.getPhase(),
+            canUpdate: this.stateManager.canUpdateDisplay(),
+          },
+        );
+      }
 
       // Start watch cycle
       this.watchInterval = setInterval(() => {
@@ -189,7 +230,7 @@ export class WatchController extends EventEmitter {
   /**
    * Run a single analysis cycle
    */
-  private async runAnalysisCycle(): Promise<void> {
+  private async runAnalysisCycle(): Promise<any> {
     const { legacyOrchestrator, orchestrator, sessionManager, display, flags } =
       this.config;
 
@@ -254,11 +295,31 @@ export class WatchController extends EventEmitter {
         console.log(JSON.stringify(enhancedResult, undefined, 2));
       } else {
         // Only update display if analysis is allowed (prevents race conditions)
+        debugLog("WatchController", "Checking if display update is allowed", {
+          canUpdate: this.stateManager.canUpdateDisplay(),
+          phase: this.stateManager.getPhase(),
+          analysisInProgress: this.stateManager.isAnalyzing(),
+          stateSummary: this.stateManager.getStateSummary(),
+        });
         if (this.stateManager.canUpdateDisplay()) {
+          debugLog(
+            "WatchController",
+            "Calling display.updateDisplay with violations",
+            {
+              violationCount: result.violations.length,
+              checksCount,
+            },
+          );
           await display.updateDisplay(
             result.violations,
             checksCount,
             orchestrator,
+          );
+          debugLog("WatchController", "Display update completed");
+        } else {
+          debugLog(
+            "WatchController",
+            "Display update skipped - not allowed in current state",
           );
         }
       }
@@ -268,8 +329,12 @@ export class WatchController extends EventEmitter {
         checksCount,
         violationCount: result.violations.length,
       });
+
+      // Return the result for initial display update
+      return result;
     } catch (error) {
       this.handleError(error);
+      throw error;
     }
   }
 

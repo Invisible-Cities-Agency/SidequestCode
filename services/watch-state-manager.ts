@@ -5,6 +5,7 @@
  */
 
 import { EventEmitter } from "node:events";
+import { debugLog } from "../utils/debug-logger.js";
 
 export type WatchPhase =
   | "initializing" // Setting up services
@@ -151,18 +152,36 @@ export class WatchStateManager extends EventEmitter {
    * Start analysis cycle (only if allowed)
    */
   startAnalysis(): boolean {
+    debugLog("WatchStateManager", "startAnalysis called", {
+      canStart: this.canStartAnalysis(),
+      currentPhase: this.state.phase,
+      analysisInProgress: this.state.analysisInProgress,
+    });
     if (!this.canStartAnalysis()) {
+      debugLog("WatchStateManager", "Cannot start analysis in current state");
       return false;
     }
 
-    return this.transition("analyzing", "analysis_cycle_start");
+    const result = this.transition("analyzing", "analysis_cycle_start");
+    debugLog("WatchStateManager", "Analysis started", {
+      transitionResult: result,
+    });
+    return result;
   }
 
   /**
    * Complete analysis cycle
    */
   completeAnalysis(): boolean {
+    debugLog("WatchStateManager", "completeAnalysis called", {
+      currentPhase: this.state.phase,
+      checksCount: this.state.checksCount,
+    });
     if (this.state.phase !== "analyzing") {
+      debugLog(
+        "WatchStateManager",
+        "Cannot complete analysis - not in analyzing phase",
+      );
       return false;
     }
 
@@ -170,7 +189,17 @@ export class WatchStateManager extends EventEmitter {
 
     // Transition to ready if this is first analysis, otherwise back to running
     const nextPhase = this.state.checksCount === 1 ? "ready" : "running";
-    return this.transition(nextPhase, "analysis_cycle_complete");
+    debugLog("WatchStateManager", "Transitioning after analysis completion", {
+      nextPhase,
+      checksCount: this.state.checksCount,
+      isFirstAnalysis: this.state.checksCount === 1,
+    });
+    const result = this.transition(nextPhase, "analysis_cycle_complete");
+    debugLog("WatchStateManager", "Analysis completed", {
+      transitionResult: result,
+      newPhase: this.state.phase,
+    });
+    return result;
   }
 
   /**
@@ -225,20 +254,34 @@ export class WatchStateManager extends EventEmitter {
    * Check if analysis can be started
    */
   canStartAnalysis(): boolean {
-    return (
-      ["ready", "running"].includes(this.state.phase) &&
-      !this.state.analysisInProgress
-    );
+    const canStart =
+      ["initializing", "ready", "running"].includes(this.state.phase) &&
+      !this.state.analysisInProgress;
+    debugLog("WatchStateManager", "canStartAnalysis check", {
+      canStart,
+      phase: this.state.phase,
+      analysisInProgress: this.state.analysisInProgress,
+      phaseAllowed: ["initializing", "ready", "running"].includes(
+        this.state.phase,
+      ),
+    });
+    return canStart;
   }
 
   /**
    * Check if display updates are allowed
    */
   canUpdateDisplay(): boolean {
-    return (
+    const canUpdate =
       ["ready", "running"].includes(this.state.phase) &&
-      !this.state.analysisInProgress
-    );
+      !this.state.analysisInProgress;
+    debugLog("WatchStateManager", "canUpdateDisplay check", {
+      canUpdate,
+      phase: this.state.phase,
+      analysisInProgress: this.state.analysisInProgress,
+      phaseAllowed: ["ready", "running"].includes(this.state.phase),
+    });
+    return canUpdate;
   }
 
   /**

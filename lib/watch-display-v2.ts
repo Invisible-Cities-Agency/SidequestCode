@@ -668,6 +668,13 @@ export class DeveloperWatchDisplay {
     checksCount: number,
     orchestrator?: any,
   ): Promise<void> {
+    debugLog("WatchDisplay", "updateDisplay called", {
+      violationCount: violations.length,
+      checksCount,
+      isInitialized: this.state.isInitialized,
+      hasConsoleBackup: !!this.consoleBackup,
+    });
+
     // Ensure output capture is enabled (safe to call multiple times)
     if (!this.consoleBackup) {
       debugLog("WatchDisplay", "Enabling output capture during updateDisplay");
@@ -735,7 +742,19 @@ export class DeveloperWatchDisplay {
     }
 
     // Clear screen and render
+    debugLog("WatchDisplay", "About to call render method", {
+      checksCount,
+      hasTodayData: !!todayData,
+      setupIssuesCount: setupIssues.length,
+    });
     this.render(checksCount, todayData, setupIssues);
+    debugLog("WatchDisplay", "Render method completed");
+
+    // Mark as initialized after first successful render
+    if (!this.state.isInitialized) {
+      this.state.isInitialized = true;
+      debugLog("WatchDisplay", "Display marked as initialized");
+    }
   }
 
   private processViolations(
@@ -780,12 +799,20 @@ export class DeveloperWatchDisplay {
     todayData?: TodayProgressData | null,
     setupIssues?: OrchestratorViolation[],
   ): void {
+    debugLog("WatchDisplay", "render method called", {
+      checksCount,
+      hasTodayData: !!todayData,
+      setupIssuesCount: setupIssues?.length || 0,
+      currentTotal: this.state.current.total,
+      baselineTotal: this.state.baseline?.total,
+    });
     const { colors } = this;
     const { lastUpdate, sessionStart, current, baseline } = this.state;
     const sessionDuration = Math.floor((lastUpdate - sessionStart) / 1000);
     const timestamp = new Date().toLocaleTimeString();
 
     // Clear screen completely and reset position
+    debugLog("WatchDisplay", "About to clear screen and start rendering UI");
     process.stdout.write("\u001B[?25l"); // Hide cursor
     process.stdout.write("\u001B[2J"); // Clear entire screen
     process.stdout.write("\u001B[3J"); // Clear scrollback buffer
@@ -1036,6 +1063,10 @@ export class DeveloperWatchDisplay {
       `\n${colors.muted}Ctrl+B: Burndown • Ctrl+T: Comprehensive • Ctrl+D: Toggle Colors • Ctrl+C: Exit${colors.reset}\n`,
     );
     process.stdout.write("\u001B[?25h"); // Show cursor
+    debugLog(
+      "WatchDisplay",
+      "Main render method completed - UI should now be visible",
+    );
   }
 
   /**
