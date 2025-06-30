@@ -128,7 +128,10 @@ export class ZodDetectionEngine extends BaseAuditEngine {
 
   private async hasZodDependency(): Promise<boolean> {
     try {
-      const packageJsonModule = await import(`${process.cwd()}/package.json`);
+      const cwd = process.cwd();
+      console.log(`[Zod Detection] Checking for Zod dependency in: ${cwd}`);
+
+      const packageJsonModule = await import(`${cwd}/package.json`);
 
       // Validate package.json structure with Zod for security
       const packageJson: ValidatedPackageJson = PackageJsonSchema.parse(
@@ -136,10 +139,15 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       );
       console.log("[Security] package.json structure validated successfully");
 
-      return !!(
-        packageJson.dependencies?.["zod"] ||
-        packageJson.devDependencies?.["zod"]
-      );
+      const hasZodInDeps = !!packageJson.dependencies?.["zod"];
+      const hasZodInDevDeps = !!packageJson.devDependencies?.["zod"];
+      const hasZod = hasZodInDeps || hasZodInDevDeps;
+
+      console.log(`[Zod Detection] Zod in dependencies: ${hasZodInDeps}`);
+      console.log(`[Zod Detection] Zod in devDependencies: ${hasZodInDevDeps}`);
+      console.log(`[Zod Detection] Zod detected: ${hasZod}`);
+
+      return hasZod;
     } catch (error: any) {
       console.warn(
         "[Zod Detection] Could not validate package.json:",
