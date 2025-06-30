@@ -41,7 +41,9 @@
       "Bash(npm version:*)",
       "Bash(npm_config_user_agent=\"pnpm/10.12.3 npm/? node/v22.11.0 darwin x64\" node ../../../../../../../debug-postinstall.js)",
       "Bash(npm_config_user_agent=\"pnpm/10.12.3 npm/? node/v22.11.0 darwin x64\" node ../../../../../../../debug-postinstall.cjs)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)"
     ],
     "deny": []
   }

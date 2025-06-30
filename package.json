@@ -42,7 +42,7 @@
     "test:coverage": "NODE_OPTIONS='--no-warnings' vitest run --coverage",
     "test:ui": "vitest --ui",
     "test:ci": "NODE_OPTIONS='--no-warnings' vitest run --reporter=json --outputFile=./test-results.json",
-    "lint": "eslint . --ext .ts,.tsx --fix",
+    "lint": "eslint . --ext .js,.cjs,.mjs --fix",
     "types:unused": "ts-unused-exports tsconfig.json --showLineNumber",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
