@@ -18,12 +18,14 @@ npx sidequest
 ## Data Directory Control
 
 ### Environment Variable (Global)
+
 ```bash
 export CQO_DB_PATH="/path/to/custom/database.db"
 npx sidequest
 ```
 
 ### CLI Flag (Per-run)
+
 ```bash
 # Project-scoped storage
 npx sidequest --data-dir ./project-data
@@ -38,6 +40,7 @@ npx sidequest --data-dir /tmp/cqo-analysis
 ## Installation Modes
 
 ### 1. Project Mode (Recommended for most users)
+
 Store data alongside your project for project-specific analytics:
 
 ```bash
@@ -48,12 +51,14 @@ npx sidequest --watch
 ```
 
 **Benefits:**
+
 - Project-specific violation history
 - Analytics tied to specific codebase
 - Easy to `.gitignore` if needed
 - Natural cleanup when project is removed
 
 ### 2. Global Mode (For cross-project analysis)
+
 Store data in a central location for analyzing multiple projects:
 
 ```bash
@@ -65,11 +70,13 @@ npx sidequest --data-dir ~/.cqo-data --watch
 ```
 
 **Benefits:**
+
 - Cross-project trend analysis
 - Centralized violation database
 - Useful for consultants analyzing multiple codebases
 
 ### 3. CI/CD Mode (Temporary analysis)
+
 Use temporary storage for build systems:
 
 ```bash
@@ -77,6 +84,7 @@ npx sidequest --data-dir /tmp/cqo-ci --json
 ```
 
 **Benefits:**
+
 - No persistent storage
 - Clean environment for each run
 - Suitable for build pipelines
@@ -95,6 +103,7 @@ data/
 ## Configuration Examples
 
 ### Project .gitignore
+
 ```gitignore
 # Code Quality Orchestrator data
 /data/
@@ -103,6 +112,7 @@ data/
 ```
 
 ### Package.json Scripts
+
 ```json
 {
   "scripts": {
@@ -114,6 +124,7 @@ data/
 ```
 
 ### Global Configuration
+
 ```bash
 # In your shell profile (.bashrc, .zshrc, etc.)
 export CQO_DB_PATH="$HOME/.cqo-data/code-quality.db"
@@ -128,15 +139,16 @@ The application follows these principles:
 ✅ **SAFE:** Uses relative paths by default (./data/)  
 ✅ **CONFIGURABLE:** Multiple options to control location  
 ✅ **PREDICTABLE:** Clear documentation of file creation  
-✅ **RESPECTFUL:** No global files without explicit permission  
+✅ **RESPECTFUL:** No global files without explicit permission
 
 ❌ **AVOIDS:** Creating files in unexpected system locations  
 ❌ **AVOIDS:** Polluting user home directory by default  
-❌ **AVOIDS:** Hidden configuration files without consent  
+❌ **AVOIDS:** Hidden configuration files without consent
 
 ## Troubleshooting
 
 ### Permission Issues
+
 ```bash
 # If permission denied, check directory permissions
 ls -la $(dirname ~/.cqo-data)
@@ -146,6 +158,7 @@ mkdir -p ~/.cqo-data
 ```
 
 ### Database Corruption
+
 ```bash
 # Remove corrupted database (will recreate)
 rm -rf ./data/
@@ -155,6 +168,7 @@ rm -rf ~/.cqo-data/
 ```
 
 ### Disk Space
+
 ```bash
 # Check database size
 du -h ./data/code-quality.db

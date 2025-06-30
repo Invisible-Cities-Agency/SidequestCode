@@ -11,8 +11,8 @@ import type {
   EngineConfig,
   ViolationSource,
   ViolationCategory,
-  ViolationSeverity
-} from '../utils/violation-types.js';
+  ViolationSeverity,
+} from "../utils/violation-types.js";
 
 /**
  * Abstract base class for all audit engines
@@ -32,7 +32,7 @@ export abstract class BaseAuditEngine {
   constructor(
     engineName: string,
     source: ViolationSource,
-    config: EngineConfig
+    config: EngineConfig,
   ) {
     this.engineName = engineName;
     this.source = source;
@@ -48,7 +48,7 @@ export abstract class BaseAuditEngine {
    */
   async execute(
     targetPath: string,
-    options: Record<string, unknown> = {}
+    options: Record<string, unknown> = {},
   ): Promise<EngineResult> {
     const startTime = Date.now();
     this.abortController = new AbortController();
@@ -80,13 +80,13 @@ export abstract class BaseAuditEngine {
         metadata: {
           targetPath,
           violationsFound: violations.length,
-          config: this.config
-        }
+          config: this.config,
+        },
       };
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Log the error but don't throw if allowFailure is true
       console.warn(`[${this.engineName}] Analysis failed: ${errorMessage}`);
@@ -103,8 +103,8 @@ export abstract class BaseAuditEngine {
         error: errorMessage,
         metadata: {
           targetPath,
-          failureRecovery: true
-        }
+          failureRecovery: true,
+        },
       };
     } finally {
       this.abortController = undefined;
@@ -135,7 +135,7 @@ export abstract class BaseAuditEngine {
    */
   protected abstract analyze(
     _targetPath: string,
-    _options: Record<string, unknown>
+    _options: Record<string, unknown>,
   ): Promise<Violation[]>;
 
   /**
@@ -149,7 +149,7 @@ export abstract class BaseAuditEngine {
     severity: ViolationSeverity,
     rule?: string,
     message?: string,
-    column?: number
+    column?: number,
   ): Violation {
     const violation: Violation = {
       file,
@@ -157,7 +157,7 @@ export abstract class BaseAuditEngine {
       code: code.trim(),
       category,
       severity,
-      source: this.source
+      source: this.source,
     };
 
     if (column !== undefined) {
@@ -185,7 +185,7 @@ export abstract class BaseAuditEngine {
   protected generateFixSuggestion?(
     _category: ViolationCategory,
     _rule?: string,
-    _code?: string
+    _code?: string,
   ): string | undefined;
 
   /**
@@ -212,7 +212,7 @@ export abstract class BaseAuditEngine {
       enabled: this.config.enabled,
       priority: this.config.priority,
       allowFailure: this.config.allowFailure,
-      timeout: this.config.timeout
+      timeout: this.config.timeout,
     };
   }
 }

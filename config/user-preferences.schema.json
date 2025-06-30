@@ -24,7 +24,7 @@
               "description": "Enable strict analysis mode by default"
             },
             "includePatternChecking": {
-              "type": "boolean", 
+              "type": "boolean",
               "description": "Include unknown/any pattern checking by default"
             }
           }
@@ -100,7 +100,12 @@
         },
         "preferredEngine": {
           "type": "string",
-          "enum": ["typescript-only", "eslint-only", "both-separate", "both-mixed"],
+          "enum": [
+            "typescript-only",
+            "eslint-only",
+            "both-separate",
+            "both-mixed"
+          ],
           "description": "User's preferred engine configuration"
         },
         "lastConfigUpdate": {

@@ -20,7 +20,7 @@ npm run sidequest:report:strict      # Strict mode analysis (JSON)
 ```bash
 # Real-time monitoring (most common for humans)
 npm run sidequest:start              # Auto-detected colors
-npm run sidequest:watch:dark         # Force dark theme  
+npm run sidequest:watch:dark         # Force dark theme
 npm run sidequest:watch:light        # Force light theme
 npm run sidequest:watch:eslint       # Include ESLint analysis
 
@@ -36,7 +36,7 @@ npm run sidequest:config:reset       # Reset to defaults
 
 # Help & context
 npm run sidequest:help               # Standard CLI help
-npm run sidequest:help:markdown      # Formatted documentation  
+npm run sidequest:help:markdown      # Formatted documentation
 npm run sidequest:help:quick         # One-liner summary
 npm run sidequest:ai-context         # LLM context & guidance
 
@@ -69,7 +69,7 @@ npm run sidequest:session:reset      # Fresh start
 Unlike basic linting tools that analyze code in isolation, SideQuest provides **comprehensive interconnected analysis** that reveals how changes propagate across your entire codebase:
 
 - **🔄 Real-Time Cascade Effects** - See how fixing one violation immediately impacts related violations across multiple files
-- **🎯 Multi-Engine Coordination** - TypeScript, ESLint, and unused exports analysis work together, not in isolation  
+- **🎯 Multi-Engine Coordination** - TypeScript, ESLint, and unused exports analysis work together, not in isolation
 - **📊 Systematic Improvement** - Track violation reductions systematically (e.g., 362 → 112 violations = 69% improvement) rather than fixing random individual issues
 - **🧠 Intelligent Prioritization** - Understand which fixes will have the highest impact across interconnected systems
 - **⚡ Live Feedback Loops** - Watch your entire system's health improve in real-time as you make changes
@@ -134,7 +134,7 @@ Top Issues:
 
 Session Summary:
   📈 +5 new issues found
-  📉 -2 issues resolved  
+  📉 -2 issues resolved
   🔺 Net: +3
 
 Today's Progress:
@@ -152,7 +152,7 @@ Press Ctrl+C to stop monitoring...
 On first use, the tool guides you through configuration:
 
 1. **Analysis Scope**: Choose errors-only, warnings-and-errors, or complete analysis
-2. **Tool Separation**: Learn about TypeScript vs ESLint separation of concerns  
+2. **Tool Separation**: Learn about TypeScript vs ESLint separation of concerns
 3. **Terminal Colors**: Auto-detect or manual light/dark theme selection
 4. **Output Detail**: Concise summaries vs verbose JSON output
 5. **Helpful Hints**: Enable/disable educational warnings and tips
@@ -205,7 +205,7 @@ Stored at `~/.sidequest-cqo/user-preferences.json`:
 Automatic detection and fallback support:
 
 - **Dark Mode**: Replicates macOS Terminal "Pro" theme colors
-- **Light Mode**: Replicates macOS Terminal "Man Page" theme colors  
+- **Light Mode**: Replicates macOS Terminal "Man Page" theme colors
 - **Auto-Detection**: Uses OSC escape sequences with heuristic fallback
 - **Manual Override**: `--color-scheme light|dark|auto`
 
@@ -229,6 +229,7 @@ code-quality-orchestrator/
 ## 🛠 CLI Commands
 
 ### Core Analysis
+
 ```bash
 sidequest --watch                   # TypeScript compilation checking (default)
 sidequest --watch --include-eslint  # Add ESLint analysis (optional)
@@ -236,7 +237,8 @@ sidequest --include-any             # Include 'any' pattern checking (optional)
 sidequest --path <dir>              # Target directory (default: app)
 ```
 
-### Configuration Management  
+### Configuration Management
+
 ```bash
 sidequest --config                  # Show current preferences
 sidequest --config edit             # Edit preferences file
@@ -245,6 +247,7 @@ sidequest --skip-setup              # Skip first-run interactive setup
 ```
 
 ### Terminal & Display
+
 ```bash
 sidequest --color-scheme auto        # Auto-detect (default)
 sidequest --color-scheme light       # Light terminals (Novel/Man Page)
@@ -253,6 +256,7 @@ sidequest --verbose                  # Detailed JSON output format
 ```
 
 ### Advanced Features
+
 ```bash
 sidequest --burndown                 # Show historical violation trends
 sidequest --prd                      # Generate PRD file for task master
@@ -262,6 +266,7 @@ sidequest --reset-session            # Reset session baseline
 ```
 
 ### Examples
+
 ```bash
 # First run with interactive setup
 sidequest --watch
@@ -312,7 +317,7 @@ sidequest --prd
 The generated PRD includes:
 
 - **Executive Summary** with violation metrics
-- **Problem Statement** with current state analysis  
+- **Problem Statement** with current state analysis
 - **Detailed Requirements** prioritized by impact
 - **Technical Approach** with phased implementation
 - **Success Metrics** with specific targets
@@ -322,17 +327,21 @@ The generated PRD includes:
 
 ```markdown
 # Code Quality Improvement PRD
+
 Generated: 2025-06-29
 Target: ./src
 
 ## Executive Summary
+
 This codebase requires systematic improvements to address 127 violations across 23 files...
 
 ## Priority 1: Critical Errors (5 items)
+
 - **type-annotation**: Missing return type (src/utils.ts:45)
 - **no-explicit-any**: Unsafe any usage (src/types.ts:12)
 
-## Priority 2: High-Impact Categories  
+## Priority 2: High-Impact Categories
+
 - **type-annotation**: 45 violations (35.4% of total)
 - **eslint-style**: 32 violations (25.2% of total)
 ```
@@ -340,7 +349,7 @@ This codebase requires systematic improvements to address 127 violations across 
 ### Integration Workflow
 
 1. **Analysis**: `sidequest --watch` to identify all code quality issues
-2. **PRD Generation**: `sidequest --prd` to create structured requirements document  
+2. **PRD Generation**: `sidequest --prd` to create structured requirements document
 3. **Task Master**: Import `CODE_QUALITY_PRD.md` for automatic task breakdown
 4. **Implementation**: Follow generated project plan with priorities
 5. **Validation**: `sidequest --verbose` to verify improvements
@@ -348,6 +357,7 @@ This codebase requires systematic improvements to address 127 violations across 
 ## 🏗 Development
 
 ### Setup
+
 ```bash
 git clone <repository>
 cd code-quality-orchestrator
@@ -355,6 +365,7 @@ npm install
 ```
 
 ### Testing
+
 ```bash
 npm test              # Run all tests
 npm run test:core     # Core unit tests
@@ -363,6 +374,7 @@ npm run test:watch    # Watch mode for TDD
 ```
 
 ### Code Quality
+
 ```bash
 npm run lint          # ESLint check
 npm run typecheck     # TypeScript validation
@@ -371,6 +383,7 @@ npm run typecheck     # TypeScript validation
 ## 🔧 Configuration
 
 ### Environment Variables
+
 ```bash
 # Terminal color override
 TERM_COLOR_MODE=dark|light
@@ -384,6 +397,7 @@ CQO_MAX_HISTORY_DAYS=30
 ```
 
 ### Command Line Flags
+
 - `--watch` - Enable real-time watch mode
 - `--include-eslint` - Include ESLint violations
 - `--include-any` - Include TypeScript 'any' violations
@@ -397,20 +411,22 @@ CQO_MAX_HISTORY_DAYS=30
 ## 📈 Performance
 
 - **Watch Cycle**: < 300ms typical execution time
-- **Memory Usage**: < 50MB for large codebases  
+- **Memory Usage**: < 50MB for large codebases
 - **Database**: SQLite with WAL mode for concurrent access
 - **Cache Hit Rate**: > 90% for violation tracking
 
 ## 🎯 Supported Violations
 
 ### TypeScript
+
 - Type aliases and annotations
 - Generic constraints
 - Unknown type usage
 - Branded types
 - Type casting
 
-### ESLint  
+### ESLint
+
 - Code quality rules
 - Style violations
 - Architecture issues
@@ -420,20 +436,23 @@ CQO_MAX_HISTORY_DAYS=30
 ## 🐛 Troubleshooting
 
 ### Common Command Issues
+
 ```bash
 # ❌ Don't use (will fail)
 npm sidequest:start
 npm run sidequest --watch
 
-# ✅ Use these instead  
+# ✅ Use these instead
 npm run sidequest:start
 npm run sidequest:report
 ```
 
 ### Setup Issues
+
 **Setup running every time?**
 
 This should NOT happen with the new smart detection. If it does:
+
 ```bash
 # Check if preferences exist
 ls ~/.sidequest-cqo/user-preferences.json
@@ -449,18 +468,21 @@ npm run sidequest:report
 ```
 
 **Smart Setup Logic:**
+
 - ✅ **First time ever**: Shows setup (no preferences, no database)
 - ✅ **Setup completed**: Never shows again (`hasCompletedFirstRun: true`)
 - ✅ **Database exists**: Skips setup (assumes existing user)
 - ✅ **Automation mode**: `sidequest:report*` always skips setup
 
 ### Color Issues
+
 **Colors look wrong or unreadable?**
+
 ```bash
 # Force dark mode (for black terminals)
 npm run sidequest:watch:dark
 
-# Force light mode (for white terminals) 
+# Force light mode (for white terminals)
 npm run sidequest:watch:light
 
 # Debug automatic detection
@@ -468,7 +490,9 @@ npm run sidequest:debug:terminal
 ```
 
 ### Performance Issues
+
 **Analysis taking too long?**
+
 ```bash
 # Check performance with debug info
 npm run sidequest:debug:verbose
@@ -481,11 +505,13 @@ npm run sidequest:analyze
 ```
 
 ### For LLMs/Automation
+
 **Need clean JSON output?**
+
 ```bash
 # Use report commands - no interactive prompts
 npm run sidequest:report             # TypeScript only
-npm run sidequest:report:eslint      # Include ESLint  
+npm run sidequest:report:eslint      # Include ESLint
 npm run sidequest:report:strict      # Strict mode
 ```
 
@@ -498,6 +524,7 @@ npm run sidequest:report:strict      # Strict mode
 5. Submit a pull request
 
 ### Code Style
+
 - TypeScript strict mode
 - No `any` types allowed
 - Comprehensive error handling
@@ -506,7 +533,6 @@ npm run sidequest:report:strict      # Strict mode
 ## 📄 License
 
 MIT License - see LICENSE file for details.
-
 
 ---
 

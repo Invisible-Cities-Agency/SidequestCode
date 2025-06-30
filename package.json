@@ -13,31 +13,24 @@
     "prepare": "echo 'Skipping build for now'",
     "build": "tsc",
     "dev": "tsx lib/cli.ts",
-    
     "sidequest": "tsx lib/cli.ts --verbose --skip-setup",
-    
     "sidequest:watch": "tsx lib/cli.ts --watch",
     "sidequest:watch:eslint": "tsx lib/cli.ts --watch --include-eslint",
     "sidequest:watch:strict": "tsx lib/cli.ts --watch --strict",
-    
     "sidequest:analyze": "tsx lib/cli.ts",
     "sidequest:analyze:eslint": "tsx lib/cli.ts --include-eslint",
     "sidequest:analyze:strict": "tsx lib/cli.ts --strict",
-    
     "sidequest:report": "tsx lib/cli.ts --verbose --skip-setup",
     "sidequest:report:eslint": "tsx lib/cli.ts --verbose --skip-setup --include-eslint",
     "sidequest:report:strict": "tsx lib/cli.ts --verbose --skip-setup --strict",
-    
     "sidequest:config": "tsx lib/cli.ts --config",
     "sidequest:config:show": "tsx lib/cli.ts --config show",
     "sidequest:config:edit": "tsx lib/cli.ts --config edit",
     "sidequest:config:reset": "tsx lib/cli.ts --config reset",
-    
     "sidequest:help": "tsx lib/cli.ts --help",
     "sidequest:help:markdown": "tsx lib/cli.ts --help-markdown",
     "sidequest:help:quick": "tsx lib/cli.ts --help-quick",
     "sidequest:ai-context": "tsx lib/cli.ts --ai-context",
-    
     "sidequest:prd": "tsx lib/cli.ts --prd",
     "sidequest:debug:terminal": "tsx lib/cli.ts --debug-terminal",
     "sidequest:session:reset": "tsx lib/cli.ts --reset-session",

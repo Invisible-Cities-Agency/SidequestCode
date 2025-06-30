@@ -6,16 +6,20 @@
  * Respects the client's tsconfig.json and compiler options.
  */
 
-import { spawnSync } from 'node:child_process';
-import * as path from 'node:path';
-import * as fs from 'node:fs';
-import { BaseAuditEngine } from './base-engine.js';
+import { spawnSync } from "node:child_process";
+import * as path from "node:path";
+import * as fs from "node:fs";
+import { BaseAuditEngine } from "./base-engine.js";
 import type {
   Violation,
   ViolationCategory,
-  ViolationSeverity
-} from '../utils/violation-types.js';
-import { safeJsonParse, TSConfigSchema, type ValidatedTSConfig } from '../utils/validation-schemas.js';
+  ViolationSeverity,
+} from "../utils/violation-types.js";
+import {
+  safeJsonParse,
+  TSConfigSchema,
+  type ValidatedTSConfig,
+} from "../utils/validation-schemas.js";
 
 /**
  * Engine for TypeScript compilation validation
@@ -31,7 +35,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     enabled?: boolean;
     options?: {
       includeAny?: boolean; // Optional pattern checking
-      strict?: boolean;     // For pattern checks only
+      strict?: boolean; // For pattern checks only
       targetPath?: string;
       checkCompilation?: boolean; // Primary function: run tsc --noEmit
     };
@@ -43,16 +47,16 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       enabled: true,
       options: {
         includeAny: false, // Optional pattern checking
-        strict: false,     // For pattern checks only
-        targetPath: 'app',
-        checkCompilation: true // Primary function: run tsc --noEmit
+        strict: false, // For pattern checks only
+        targetPath: "app",
+        checkCompilation: true, // Primary function: run tsc --noEmit
       },
       priority: 1,
       timeout: 30_000,
-      allowFailure: false
+      allowFailure: false,
     };
     const mergedConfig = { ...defaultConfig, ...config };
-    super('TypeScript Compiler', 'typescript', mergedConfig);
+    super("TypeScript Compiler", "typescript", mergedConfig);
     this.baseDir = process.cwd();
   }
 
@@ -61,22 +65,31 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    */
   protected async analyze(
     targetPath: string,
-    options: Record<string, unknown> = {}
+    options: Record<string, unknown> = {},
   ): Promise<Violation[]> {
     const violations: Violation[] = [];
-    const checkCompilation = options['checkCompilation'] ?? this.config.options['checkCompilation'] ?? true;
-    const includeAny = options['includeAny'] ?? this.config.options['includeAny'] ?? false;
+    const checkCompilation =
+      options["checkCompilation"] ??
+      this.config.options["checkCompilation"] ??
+      true;
+    const includeAny =
+      options["includeAny"] ?? this.config.options["includeAny"] ?? false;
     const searchPath = path.join(this.baseDir, targetPath);
 
     // FIRST: Run TypeScript compiler to catch actual compilation errors
     if (checkCompilation) {
-      const compilationViolations = await Promise.resolve(this.checkTypeScriptCompilation(searchPath));
+      const compilationViolations = await Promise.resolve(
+        this.checkTypeScriptCompilation(searchPath),
+      );
       violations.push(...compilationViolations);
     }
 
     // OPTIONAL: Run pattern-based checks for unknown/any usage
     if (includeAny) {
-      const patternViolations = this.checkPatternViolations(targetPath, options);
+      const patternViolations = this.checkPatternViolations(
+        targetPath,
+        options,
+      );
       violations.push(...patternViolations);
     }
 
@@ -101,31 +114,46 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
 
     try {
       // Run tsc --noEmit with the found tsconfig (respecting their exact configuration)
-      const result = spawnSync('npx', ['tsc', '--noEmit', '--project', tsConfigPath], {
-        encoding: 'utf8',
-        cwd: this.baseDir,
-        signal: this.abortController?.signal
-      });
+      const result = spawnSync(
+        "npx",
+        ["tsc", "--noEmit", "--project", tsConfigPath],
+        {
+          encoding: "utf8",
+          cwd: this.baseDir,
+          signal: this.abortController?.signal,
+        },
+      );
 
       if (result.error) {
-        console.warn('[TypeScript Engine] Failed to run tsc:', result.error.message);
+        console.warn(
+          "[TypeScript Engine] Failed to run tsc:",
+          result.error.message,
+        );
         return violations;
       }
 
       // Parse TypeScript compiler output
       if (result.stderr) {
-        const compilationViolations = this.parseTypeScriptErrors(result.stderr, tsConfigPath);
+        const compilationViolations = this.parseTypeScriptErrors(
+          result.stderr,
+          tsConfigPath,
+        );
         violations.push(...compilationViolations);
       }
 
       // Some errors might be in stdout
-      if (result.stdout && result.stdout.includes('error TS')) {
-        const compilationViolations = this.parseTypeScriptErrors(result.stdout, tsConfigPath);
+      if (result.stdout && result.stdout.includes("error TS")) {
+        const compilationViolations = this.parseTypeScriptErrors(
+          result.stdout,
+          tsConfigPath,
+        );
         violations.push(...compilationViolations);
       }
-
     } catch (error) {
-      console.warn('[TypeScript Engine] TypeScript compilation check failed:', error);
+      console.warn(
+        "[TypeScript Engine] TypeScript compilation check failed:",
+        error,
+      );
     }
 
     return violations;
@@ -138,7 +166,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     let currentDirectory = searchPath;
 
     while (currentDirectory !== path.dirname(currentDirectory)) {
-      const tsConfigPath = path.join(currentDirectory, 'tsconfig.json');
+      const tsConfigPath = path.join(currentDirectory, "tsconfig.json");
       if (fs.existsSync(tsConfigPath)) {
         return tsConfigPath;
       }
@@ -146,7 +174,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     }
 
     // Check project root
-    const rootTsConfig = path.join(this.baseDir, 'tsconfig.json');
+    const rootTsConfig = path.join(this.baseDir, "tsconfig.json");
     if (fs.existsSync(rootTsConfig)) {
       return rootTsConfig;
     }
@@ -161,19 +189,31 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     const violations: Violation[] = [];
 
     try {
-      const result = spawnSync('npx', ['tsc', '--noEmit', '--target', 'ES2024', '--module', 'ESNext', '--strict', `${searchPath  }/**/*.ts`], {
-        encoding: 'utf8',
-        cwd: this.baseDir,
-        signal: this.abortController?.signal
-      });
+      const result = spawnSync(
+        "npx",
+        [
+          "tsc",
+          "--noEmit",
+          "--target",
+          "ES2024",
+          "--module",
+          "ESNext",
+          "--strict",
+          `${searchPath}/**/*.ts`,
+        ],
+        {
+          encoding: "utf8",
+          cwd: this.baseDir,
+          signal: this.abortController?.signal,
+        },
+      );
 
       if (result.stderr) {
         const compilationViolations = this.parseTypeScriptErrors(result.stderr);
         violations.push(...compilationViolations);
       }
-
     } catch (error) {
-      console.warn('[TypeScript Engine] Direct tsc compilation failed:', error);
+      console.warn("[TypeScript Engine] Direct tsc compilation failed:", error);
     }
 
     return violations;
@@ -182,9 +222,12 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   /**
    * Parse TypeScript compiler error output into violations
    */
-  private parseTypeScriptErrors(errorOutput: string, _tsConfigPath?: string): Violation[] {
+  private parseTypeScriptErrors(
+    errorOutput: string,
+    _tsConfigPath?: string,
+  ): Violation[] {
     const violations: Violation[] = [];
-    const lines = errorOutput.split('\n');
+    const lines = errorOutput.split("\n");
 
     for (const line of lines) {
       if (this.abortController?.signal.aborted) {
@@ -192,10 +235,15 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       }
 
       // Match TypeScript error format: file(line,col): error TSxxxx: message
-      const match = line.match(/^(.+?)\((\d+),(\d+)\):\s*(error|warning)\s+(TS\d+):\s*(.+)$/);
+      const match = line.match(
+        /^(.+?)\((\d+),(\d+)\):\s*(error|warning)\s+(TS\d+):\s*(.+)$/,
+      );
       if (match) {
-        const [, filePath, lineString, , severityString, ruleCode, message] = match;
-        if (!filePath || !lineString || !message) {continue;}
+        const [, filePath, lineString, , severityString, ruleCode, message] =
+          match;
+        if (!filePath || !lineString || !message) {
+          continue;
+        }
 
         const line = Number.parseInt(lineString, 10);
         // const _column = parseInt(colStr || '0', 10);
@@ -204,20 +252,25 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         const relativePath = path.relative(this.baseDir, filePath);
 
         // Use TypeScript's own severity determination
-        const severity: ViolationSeverity = severityString === 'error' ? 'error' : 'warn';
+        const severity: ViolationSeverity =
+          severityString === "error" ? "error" : "warn";
 
         // Get category from database mapping or use default
-        const category: ViolationCategory = this.getCategoryForRule(ruleCode || 'TS0000');
+        const category: ViolationCategory = this.getCategoryForRule(
+          ruleCode || "TS0000",
+        );
 
-        violations.push(this.createViolation(
-          relativePath,
-          line,
-          message.trim(),
-          category,
-          severity,
-          ruleCode || 'TS0000',
-          message.trim()
-        ));
+        violations.push(
+          this.createViolation(
+            relativePath,
+            line,
+            message.trim(),
+            category,
+            severity,
+            ruleCode || "TS0000",
+            message.trim(),
+          ),
+        );
       }
     }
 
@@ -229,35 +282,47 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    */
   private cacheTypeScriptConfig(tsConfigPath: string): void {
     try {
-      const configContent = fs.readFileSync(tsConfigPath, 'utf8');
+      const configContent = fs.readFileSync(tsConfigPath, "utf8");
 
       // Use Zod validation for secure tsconfig.json parsing
-      const config: ValidatedTSConfig = safeJsonParse(configContent, TSConfigSchema, 'tsconfig.json');
-      console.log('[Security] TypeScript configuration validated successfully');
+      const config: ValidatedTSConfig = safeJsonParse(
+        configContent,
+        TSConfigSchema,
+        "tsconfig.json",
+      );
+      console.log("[Security] TypeScript configuration validated successfully");
 
       // Store in database (pseudo-code - would need actual DB connection)
       // This ensures watch mode and reports can access client configuration quickly
       const configSummary = {
         path: tsConfigPath,
         strict: config.compilerOptions?.strict ?? false,
-        exactOptionalPropertyTypes: config.compilerOptions?.exactOptionalPropertyTypes ?? false,
-        noUncheckedIndexedAccess: config.compilerOptions?.noUncheckedIndexedAccess ?? false,
+        exactOptionalPropertyTypes:
+          config.compilerOptions?.exactOptionalPropertyTypes ?? false,
+        noUncheckedIndexedAccess:
+          config.compilerOptions?.noUncheckedIndexedAccess ?? false,
         noImplicitAny: config.compilerOptions?.noImplicitAny ?? false,
-        target: config.compilerOptions?.target ?? 'ES5',
-        module: config.compilerOptions?.module ?? 'CommonJS',
-        lastScanned: new Date().toISOString()
+        target: config.compilerOptions?.target ?? "ES5",
+        module: config.compilerOptions?.module ?? "CommonJS",
+        lastScanned: new Date().toISOString(),
       };
 
       // Log configuration discovery (without imposing opinion)
-      console.log(`[TypeScript Engine] Client configuration loaded: ${tsConfigPath}`);
+      console.log(
+        `[TypeScript Engine] Client configuration loaded: ${tsConfigPath}`,
+      );
       console.log(`[TypeScript Engine] Strict mode: ${configSummary.strict}`);
       console.log(`[TypeScript Engine] Target: ${configSummary.target}`);
 
       // TODO: Store configSummary in database for watch mode access
-
     } catch (error: any) {
-      console.warn('[TypeScript Engine] Could not validate TypeScript config:', error.message);
-      console.warn('[TypeScript Engine] Continuing with default configuration...');
+      console.warn(
+        "[TypeScript Engine] Could not validate TypeScript config:",
+        error.message,
+      );
+      console.warn(
+        "[TypeScript Engine] Continuing with default configuration...",
+      );
     }
   }
 
@@ -275,65 +340,134 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    * Pattern-based fallback for rule categorization until database is integrated
    */
   private getDefaultCategoryFromPattern(ruleCode: string): ViolationCategory {
-    const numericCode = ruleCode.replace('TS', '');
+    const numericCode = ruleCode.replace("TS", "");
 
     // Module resolution and import/export issues
-    if (['2307', '2305', '2306', '1016', '1259', '1192', '1149', '2451', '2393', '2440', '2300', '1038', '2339'].includes(numericCode)) {
-      return 'module-resolution';
+    if (
+      [
+        "2307",
+        "2305",
+        "2306",
+        "1016",
+        "1259",
+        "1192",
+        "1149",
+        "2451",
+        "2393",
+        "2440",
+        "2300",
+        "1038",
+        "2339",
+      ].includes(numericCode)
+    ) {
+      return "module-resolution";
     }
 
     // Null safety and undefined issues
-    if (['2532', '2533', '2531', '18048', '18047', '2454', '2722', '2721', '2345', '2322', '2349'].includes(numericCode)) {
-      return 'null-safety';
+    if (
+      [
+        "2532",
+        "2533",
+        "2531",
+        "18048",
+        "18047",
+        "2454",
+        "2722",
+        "2721",
+        "2345",
+        "2322",
+        "2349",
+      ].includes(numericCode)
+    ) {
+      return "null-safety";
     }
 
     // Type annotation and type issues (most 7xxx codes and common type errors)
-    if (/^7\d{3}$/.test(numericCode) || ['2322', '2304', '2314', '2315', '2344', '2362', '2355', '2741'].includes(numericCode)) {
-      return 'type-alias';
+    if (
+      /^7\d{3}$/.test(numericCode) ||
+      ["2322", "2304", "2314", "2315", "2344", "2362", "2355", "2741"].includes(
+        numericCode,
+      )
+    ) {
+      return "type-alias";
     }
 
     // Unused code issues (6xxx codes and specific unused patterns)
-    if (/^6\d{3}$/.test(numericCode) || ['2695', '2578'].includes(numericCode)) {
-      return 'unused-code';
+    if (
+      /^6\d{3}$/.test(numericCode) ||
+      ["2695", "2578"].includes(numericCode)
+    ) {
+      return "unused-code";
     }
 
     // Class/inheritance and override issues
-    if (['4114', '2515', '2564', '2334', '2335', '2336', '2337', '2510', '2511', '2512', '2513', '2416', '2417'].includes(numericCode)) {
-      return 'inheritance';
+    if (
+      [
+        "4114",
+        "2515",
+        "2564",
+        "2334",
+        "2335",
+        "2336",
+        "2337",
+        "2510",
+        "2511",
+        "2512",
+        "2513",
+        "2416",
+        "2417",
+      ].includes(numericCode)
+    ) {
+      return "inheritance";
     }
 
     // Index access and element access issues
-    if (['4111', '2339', '2740', '2538', '7053'].includes(numericCode)) {
-      return 'index-access';
+    if (["4111", "2339", "2740", "2538", "7053"].includes(numericCode)) {
+      return "index-access";
     }
 
     // Strict config and exactOptionalPropertyTypes issues
-    if (['2375', '2379', '2412', '2783', '2784'].includes(numericCode)) {
-      return 'strict-config';
+    if (["2375", "2379", "2412", "2783", "2784"].includes(numericCode)) {
+      return "strict-config";
     }
 
     // Syntax and parsing errors
-    if (/^1\d{3}$/.test(numericCode) || ['1005', '1109', '1161', '1434'].includes(numericCode)) {
-      return 'syntax-error';
+    if (
+      /^1\d{3}$/.test(numericCode) ||
+      ["1005", "1109", "1161", "1434"].includes(numericCode)
+    ) {
+      return "syntax-error";
     }
 
     // Modernization (decorators, async/await, newer TS features)
-    if (['1206', '1207', '1208', '1219', '1308', '1353', '2794', '2705', '2706'].includes(numericCode)) {
-      return 'modernization';
+    if (
+      [
+        "1206",
+        "1207",
+        "1208",
+        "1219",
+        "1308",
+        "1353",
+        "2794",
+        "2705",
+        "2706",
+      ].includes(numericCode)
+    ) {
+      return "modernization";
     }
 
     // Generic/template issues
-    if (['2313', '2314', '2430'].includes(numericCode)) {
-      return 'generic-constraint';
+    if (["2313", "2314", "2430"].includes(numericCode)) {
+      return "generic-constraint";
     }
 
     // Syntax/parsing errors (1xxx codes)
     if (/^1\d{3}$/.test(numericCode)) {
-      return 'syntax-error';
+      return "syntax-error";
     }
 
     // Everything else is type-alias (type system issues)
-    return 'type-alias';
+    return "type-alias";
   }
 
   /**
@@ -341,11 +475,12 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    */
   private checkPatternViolations(
     targetPath: string,
-    options: Record<string, unknown>
+    options: Record<string, unknown>,
   ): Violation[] {
     const violations: Violation[] = [];
-    const includeAny = options['includeAny'] || this.config.options['includeAny'];
-    const strict = options['strict'] || this.config.options['strict'];
+    const includeAny =
+      options["includeAny"] || this.config.options["includeAny"];
+    const strict = options["strict"] || this.config.options["strict"];
     const searchPath = path.join(this.baseDir, targetPath);
 
     // Get search patterns based on configuration
@@ -359,29 +494,35 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       }
 
       try {
-        const result = spawnSync('rg', [
-          '--no-heading',
-          '--line-number',
-          '--glob', '*.ts',
-          '--glob', '*.tsx',
-          '-e', pattern,
-          searchPath
-        ], {
-          encoding: 'utf8',
-          signal: this.abortController?.signal
-        });
+        const result = spawnSync(
+          "rg",
+          [
+            "--no-heading",
+            "--line-number",
+            "--glob",
+            "*.ts",
+            "--glob",
+            "*.tsx",
+            "-e",
+            pattern,
+            searchPath,
+          ],
+          {
+            encoding: "utf8",
+            signal: this.abortController?.signal,
+          },
+        );
 
         if (result.error) {
           continue; // Skip pattern if ripgrep fails
         }
 
         // Process results
-        result.stdout.split('\n').forEach((line) => {
+        result.stdout.split("\n").forEach((line) => {
           if (line.trim()) {
             seen.add(line.trim());
           }
         });
-
       } catch {
         continue; // Skip pattern if ripgrep fails
       }
@@ -393,9 +534,9 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         break;
       }
 
-      const [filePath, lineString, ...rest] = entry.split(':');
-      const lineNumber = Number.parseInt(lineString || '0', 10);
-      const code = rest.join(':').trim();
+      const [filePath, lineString, ...rest] = entry.split(":");
+      const lineNumber = Number.parseInt(lineString || "0", 10);
+      const code = rest.join(":").trim();
 
       // Skip invalid entries
       if (!filePath || Number.isNaN(lineNumber) || !code) {
@@ -410,15 +551,17 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       const { category, severity } = this.categorizePatternViolation(code);
       const relativePath = path.relative(this.baseDir, filePath);
 
-      violations.push(this.createViolation(
-        relativePath,
-        lineNumber,
-        code,
-        category,
-        severity,
-        'pattern-check',
-        this.generatePatternViolationMessage(category, code)
-      ));
+      violations.push(
+        this.createViolation(
+          relativePath,
+          lineNumber,
+          code,
+          category,
+          severity,
+          "pattern-check",
+          this.generatePatternViolationMessage(category, code),
+        ),
+      );
     }
 
     return violations;
@@ -429,20 +572,15 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    */
   private getSearchPatterns(includeAny: boolean): string[] {
     const patterns = [
-      ':\\s*unknown\\b',
-      '=\\s*unknown\\b',
-      '<unknown>',
-      'as unknown',
-      'Record<string, unknown>'
+      ":\\s*unknown\\b",
+      "=\\s*unknown\\b",
+      "<unknown>",
+      "as unknown",
+      "Record<string, unknown>",
     ];
 
     if (includeAny) {
-      patterns.push(
-        ':\\s*any\\b',
-        '=\\s*any\\b',
-        '<any>',
-        'as any'
-      );
+      patterns.push(":\\s*any\\b", "=\\s*any\\b", "<any>", "as any");
     }
 
     return patterns;
@@ -454,7 +592,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   private shouldSkipViolation(
     code: string,
     filePath: string,
-    strict: boolean
+    strict: boolean,
   ): boolean {
     // Skip if already using BrandedUnknown
     if (/BrandedUnknown/.test(code)) {
@@ -479,25 +617,33 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    */
   private isLegitimateUsage(code: string, filePath: string): boolean {
     // TypeScript Declaration Files (.d.ts)
-    if (filePath.endsWith('.d.ts')) {
+    if (filePath.endsWith(".d.ts")) {
       return true;
     }
 
     // Type Guard Functions
-    if (/function\s+\w*(is|validate)\w*\s*\([^)]*value\s*:\s*unknown\s*\)/.test(code)) {
+    if (
+      /function\s+\w*(is|validate)\w*\s*\([^)]*value\s*:\s*unknown\s*\)/.test(
+        code,
+      )
+    ) {
       return true;
     }
 
     // Error Handling Patterns
-    if (/catch\s*\([^)]*error\s*:\s*unknown\s*\)/.test(code) ||
-        /error\s*instanceof\s+Error\s*\?/.test(code)) {
+    if (
+      /catch\s*\([^)]*error\s*:\s*unknown\s*\)/.test(code) ||
+      /error\s*instanceof\s+Error\s*\?/.test(code)
+    ) {
       return true;
     }
 
     // API Boundary Validation with Zod
-    if (/\.parse\(.*unknown.*\)/.test(code) ||
-        /schema\.parse\(/.test(code) ||
-        /validateSchema\(/.test(code)) {
+    if (
+      /\.parse\(.*unknown.*\)/.test(code) ||
+      /schema\.parse\(/.test(code) ||
+      /validateSchema\(/.test(code)
+    ) {
       return true;
     }
 
@@ -508,41 +654,41 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    * Categorize pattern-based violations (legacy functionality)
    */
   private categorizePatternViolation(code: string): {
-    category: ViolationCategory,
-    severity: ViolationSeverity
+    category: ViolationCategory;
+    severity: ViolationSeverity;
   } {
     // Explicit any usage (no-explicit-any equivalent)
     if (/:\s*any\s*([&),;=\]|}]|$)/.test(code)) {
-      return { category: 'no-explicit-any', severity: 'error' };
+      return { category: "no-explicit-any", severity: "error" };
     }
 
     // Type alias definitions
     if (/^(export\s+)?type\s+\w+.*=.*unknown/.test(code)) {
-      return { category: 'type-alias', severity: 'error' };
+      return { category: "type-alias", severity: "error" };
     }
 
     // Type annotations in parameters/variables (unknown)
     if (/:\s*unknown\s*([&),;=\]|}]|$)/.test(code)) {
-      return { category: 'annotation', severity: 'warn' };
+      return { category: "annotation", severity: "warn" };
     }
 
     // Type casting
     if (/(as\s+(unknown|any)|<(unknown|any)>)/.test(code)) {
-      return { category: 'cast', severity: 'warn' };
+      return { category: "cast", severity: "warn" };
     }
 
     // Record types
     if (/Record<.*,\s*(unknown|any)>/.test(code)) {
-      return { category: 'record-type', severity: 'info' };
+      return { category: "record-type", severity: "info" };
     }
 
     // References to unknown in expressions
     if (/\bunknown\b/.test(code)) {
-      return { category: 'unknown-reference', severity: 'info' };
+      return { category: "unknown-reference", severity: "info" };
     }
 
     // Default fallback
-    return { category: 'other', severity: 'info' };
+    return { category: "other", severity: "info" };
   }
 
   /**
@@ -550,30 +696,30 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
    */
   private generatePatternViolationMessage(
     category: ViolationCategory,
-    _code: string
+    _code: string,
   ): string {
     switch (category) {
-    case 'no-explicit-any': {
-      return 'Explicit any type usage - replace with specific type or branded unknown';
-    }
-    case 'type-alias': {
-      return 'Type alias uses unknown/any - consider defining proper interface';
-    }
-    case 'annotation': {
-      return 'Parameter/variable uses unknown - consider specific typing or branded unknown';
-    }
-    case 'cast': {
-      return 'Type casting to unknown/any - consider type guards or validation';
-    }
-    case 'record-type': {
-      return 'Record type uses unknown - consider specific value types or branded unknown';
-    }
-    case 'unknown-reference': {
-      return 'Reference to unknown type - verify if proper typing is possible';
-    }
-    default: {
-      return 'Type system violation detected - review for proper typing';
-    }
+      case "no-explicit-any": {
+        return "Explicit any type usage - replace with specific type or branded unknown";
+      }
+      case "type-alias": {
+        return "Type alias uses unknown/any - consider defining proper interface";
+      }
+      case "annotation": {
+        return "Parameter/variable uses unknown - consider specific typing or branded unknown";
+      }
+      case "cast": {
+        return "Type casting to unknown/any - consider type guards or validation";
+      }
+      case "record-type": {
+        return "Record type uses unknown - consider specific value types or branded unknown";
+      }
+      case "unknown-reference": {
+        return "Reference to unknown type - verify if proper typing is possible";
+      }
+      default: {
+        return "Type system violation detected - review for proper typing";
+      }
     }
   }
 
@@ -583,30 +729,30 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   protected override generateFixSuggestion(
     category: ViolationCategory,
     rule?: string,
-    _code?: string
+    _code?: string,
   ): string | undefined {
     // For TypeScript compiler errors, let the compiler message speak for itself
-    if (rule?.startsWith('TS')) {
-      return 'Refer to TypeScript error message for specific fix guidance';
+    if (rule?.startsWith("TS")) {
+      return "Refer to TypeScript error message for specific fix guidance";
     }
 
     // For pattern violations (legacy functionality)
     switch (category) {
-    case 'type-alias': {
-      return 'Define a proper interface based on the actual data structure';
-    }
-    case 'annotation': {
-      return 'Add specific type annotation based on expected value type';
-    }
-    case 'cast': {
-      return 'Use Zod validation with schema.parse() instead of type casting';
-    }
-    case 'record-type': {
-      return 'Replace Record<string, unknown> with specific property types';
-    }
-    default: {
-      return 'Review TypeScript configuration and error message for guidance';
-    }
+      case "type-alias": {
+        return "Define a proper interface based on the actual data structure";
+      }
+      case "annotation": {
+        return "Add specific type annotation based on expected value type";
+      }
+      case "cast": {
+        return "Use Zod validation with schema.parse() instead of type casting";
+      }
+      case "record-type": {
+        return "Replace Record<string, unknown> with specific property types";
+      }
+      default: {
+        return "Review TypeScript configuration and error message for guidance";
+      }
     }
   }
 }

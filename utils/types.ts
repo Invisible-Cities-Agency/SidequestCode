@@ -3,12 +3,12 @@
  * For code quality that Reddit can't criticize
  */
 
-import type { Simplify } from 'type-fest';
+import type { Simplify } from "type-fest";
 
 /**
  * Clean deduplication strategy enum
  */
-type DeduplicationStrategy = 'exact' | 'similar' | 'location';
+type DeduplicationStrategy = "exact" | "similar" | "location";
 
 /**
  * Simplified CLI flags interface
@@ -93,4 +93,3 @@ export type OrchestratorConfigInput = Simplify<{
     failOnCrossover: boolean;
   };
 }>;
-

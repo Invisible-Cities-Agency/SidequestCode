@@ -36,43 +36,43 @@ export interface Violation {
  */
 export type ViolationCategory =
   // TypeScript-related categories (tsc responsibility)
-  | 'type-alias'
-  | 'annotation'
-  | 'cast'
-  | 'record-type'
-  | 'generic-unknown'
-  | 'unknown-reference'
-  | 'branded-type'
-  | 'generic-constraint'
-  | 'module-resolution'  // Import/export issues
-  | 'unused-code'        // Unused variables/imports
-  | 'null-safety'        // Undefined/null safety issues
-  | 'inheritance'        // Override/inheritance issues
-  | 'index-access'       // Index signature access issues
-  | 'strict-config'      // exactOptionalPropertyTypes issues
+  | "type-alias"
+  | "annotation"
+  | "cast"
+  | "record-type"
+  | "generic-unknown"
+  | "unknown-reference"
+  | "branded-type"
+  | "generic-constraint"
+  | "module-resolution" // Import/export issues
+  | "unused-code" // Unused variables/imports
+  | "null-safety" // Undefined/null safety issues
+  | "inheritance" // Override/inheritance issues
+  | "index-access" // Index signature access issues
+  | "strict-config" // exactOptionalPropertyTypes issues
   // ESLint code quality categories (separation of concerns)
-  | 'code-quality'      // console.log, debugger statements
-  | 'style'             // prefer-const, no-var
-  | 'architecture'      // import restrictions, module structure
-  | 'modernization'     // prefer nullish coalescing, optional chaining
-  | 'unused-vars'       // unused variables and imports
-  | 'best-practices'    // code patterns and recommendations
+  | "code-quality" // console.log, debugger statements
+  | "style" // prefer-const, no-var
+  | "architecture" // import restrictions, module structure
+  | "modernization" // prefer nullish coalescing, optional chaining
+  | "unused-vars" // unused variables and imports
+  | "best-practices" // code patterns and recommendations
   // Legacy type-aware ESLint rules (moving to tsc)
-  | 'legacy-type-rule'  // explicit-function-return-type, etc.
-  | 'return-type'       // function return type annotations
-  | 'no-explicit-any'   // any type usage (handled by tsc now)
-  | 'other-eslint'      // other ESLint rules
+  | "legacy-type-rule" // explicit-function-return-type, etc.
+  | "return-type" // function return type annotations
+  | "no-explicit-any" // any type usage (handled by tsc now)
+  | "other-eslint" // other ESLint rules
   // Parsing/syntax categories
-  | 'syntax-error'
-  | 'parse-error'
-  | 'import-error'
+  | "syntax-error"
+  | "parse-error"
+  | "import-error"
   // Code quality categories
-  | 'complexity'
-  | 'maintainability'
-  | 'security'
-  | 'performance'
+  | "complexity"
+  | "maintainability"
+  | "security"
+  | "performance"
   // Generic fallback
-  | 'other';
+  | "other";
 
 /**
  * Configuration for crossover detection between ESLint and TypeScript
@@ -92,11 +92,11 @@ export interface CrossoverConfig {
  * Crossover warning data
  */
 export interface CrossoverWarning {
-  type: 'type-aware-rule' | 'duplicate-violation' | 'configuration-conflict';
+  type: "type-aware-rule" | "duplicate-violation" | "configuration-conflict";
   message: string;
   details: string;
   suggestion: string;
-  severity: 'warn' | 'error';
+  severity: "warn" | "error";
   affectedRules?: string[];
   affectedFiles?: string[];
 }
@@ -104,21 +104,21 @@ export interface CrossoverWarning {
 /**
  * Severity levels for prioritization
  */
-export type ViolationSeverity = 'error' | 'warn' | 'info';
+export type ViolationSeverity = "error" | "warn" | "info";
 
 /**
  * Source engines that can detect violations
  */
 export type ViolationSource =
-  | 'typescript'
-  | 'eslint'
-  | 'unused-exports'
-  | 'parser'
-  | 'complexity'
-  | 'zod-detection'
-  | 'security'
-  | 'performance'
-  | 'custom';
+  | "typescript"
+  | "eslint"
+  | "unused-exports"
+  | "parser"
+  | "complexity"
+  | "zod-detection"
+  | "security"
+  | "performance"
+  | "custom";
 
 /**
  * Configuration for audit engines
@@ -190,13 +190,13 @@ export interface ViolationSummary {
  * Watch mode event types
  */
 export type WatchEvent =
-  | 'file-changed'
-  | 'analysis-started'
-  | 'analysis-completed'
-  | 'violation-added'
-  | 'violation-removed'
-  | 'engine-failed'
-  | 'watch-stopped';
+  | "file-changed"
+  | "analysis-started"
+  | "analysis-completed"
+  | "violation-added"
+  | "violation-removed"
+  | "engine-failed"
+  | "watch-stopped";
 
 /**
  * Watch mode event data
@@ -215,54 +215,77 @@ export interface WatchEventData {
  */
 export function getCategoryLabel(category: ViolationCategory): string {
   switch (category) {
-  // TypeScript categories
-  case 'type-alias': { return 'Type Issues';
-  }
-  case 'annotation': { return 'Missing Types';
-  }
-  case 'cast': { return 'Type Casting';
-  }
-  case 'module-resolution': { return 'Import/Export';
-  }
-  case 'unused-code': { return 'Unused Code';
-  }
-  case 'null-safety': { return 'Null Safety';
-  }
-  case 'inheritance': { return 'Class/Override';
-  }
-  case 'index-access': { return 'Index Access';
-  }
-  case 'strict-config': { return 'Strict Config';
-  }
-  case 'syntax-error': { return 'Syntax Error';
-  }
+    // TypeScript categories
+    case "type-alias": {
+      return "Type Issues";
+    }
+    case "annotation": {
+      return "Missing Types";
+    }
+    case "cast": {
+      return "Type Casting";
+    }
+    case "module-resolution": {
+      return "Import/Export";
+    }
+    case "unused-code": {
+      return "Unused Code";
+    }
+    case "null-safety": {
+      return "Null Safety";
+    }
+    case "inheritance": {
+      return "Class/Override";
+    }
+    case "index-access": {
+      return "Index Access";
+    }
+    case "strict-config": {
+      return "Strict Config";
+    }
+    case "syntax-error": {
+      return "Syntax Error";
+    }
 
-  // ESLint categories
-  case 'code-quality': { return 'Code Quality';
-  }
-  case 'style': { return 'Code Style';
-  }
-  case 'architecture': { return 'Architecture';
-  }
-  case 'modernization': { return 'Modernization';
-  }
-  case 'unused-vars': { return 'Unused Variables';
-  }
+    // ESLint categories
+    case "code-quality": {
+      return "Code Quality";
+    }
+    case "style": {
+      return "Code Style";
+    }
+    case "architecture": {
+      return "Architecture";
+    }
+    case "modernization": {
+      return "Modernization";
+    }
+    case "unused-vars": {
+      return "Unused Variables";
+    }
 
-  // Other categories
-  case 'complexity': { return 'Complexity';
-  }
-  case 'maintainability': { return 'Maintainability';
-  }
-  case 'security': { return 'Security';
-  }
-  case 'parse-error': { return 'Parse Error';
-  }
-  case 'import-error': { return 'Import Error';
-  }
+    // Other categories
+    case "complexity": {
+      return "Complexity";
+    }
+    case "maintainability": {
+      return "Maintainability";
+    }
+    case "security": {
+      return "Security";
+    }
+    case "parse-error": {
+      return "Parse Error";
+    }
+    case "import-error": {
+      return "Import Error";
+    }
 
-  // Legacy/fallback
-  default: { return category.replaceAll('-', ' ').replaceAll(/\b\w/g, l => l.toUpperCase());
-  }
+    // Legacy/fallback
+    default: {
+      return category
+        .replaceAll("-", " ")
+        .replaceAll(/\b\w/g, (l) => l.toUpperCase());
+    }
   }
 }

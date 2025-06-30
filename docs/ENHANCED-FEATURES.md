@@ -5,16 +5,19 @@
 The Code Quality Orchestrator now includes a comprehensive SQLite + Kysely persistence layer that provides:
 
 ### ✅ **Persistent Violation Tracking**
+
 - Violations are stored in SQLite database across sessions
 - Historical context preserved between restarts
 - SHA-256 hashing for efficient deduplication
 
 ### ✅ **Burndown Analysis**
+
 - Track violation trends over time
 - 24-hour, weekly, and custom time range analysis
 - Progress metrics and projection capabilities
 
 ### ✅ **Enhanced Watch Mode**
+
 - Real-time updates with persistent baselines
 - Cross-session delta tracking
 - Performance metrics integration
@@ -22,6 +25,7 @@ The Code Quality Orchestrator now includes a comprehensive SQLite + Kysely persi
 ## 📊 New CLI Commands
 
 ### Watch Mode (Enhanced)
+
 ```bash
 npm run :watch              # Enhanced watch with persistence
 npm run watch:enhanced      # Watch with ESLint included
@@ -29,12 +33,14 @@ npm run legacy-watch        # Fallback to in-memory mode
 ```
 
 ### Analysis Commands
+
 ```bash
 npm run burndown            # Show historical burndown analysis
 npm run reset-session      # Reset session baseline
 ```
 
 ### Testing Commands
+
 ```bash
 npm run test:services       # Test service integration
 npm run test:database       # Test database functionality
@@ -43,12 +49,14 @@ npm run test:database       # Test database functionality
 ## 🎯 Key Improvements
 
 ### **Before (In-Memory Maps)**
+
 ```
 By Category (with deltas):
   ℹ️ 📝 record-type: 803 (= last, -3 total) [0s ago] ➡️📉
 ```
 
 ### **After (SQLite Persistence)**
+
 ```
 By Category (with historical context):
   ℹ️ 📝 record-type: 803 (5 files) - 📉 51% reduction from peak
@@ -59,13 +67,15 @@ By Category (with historical context):
 ## 🏗️ Architecture Features
 
 ### **5 Service Modules**
+
 - **StorageService**: Database operations with batch processing
 - **PollingService**: Rule execution scheduling
-- **AnalysisService**: Historical analysis and trends  
+- **AnalysisService**: Historical analysis and trends
 - **ViolationTracker**: Lifecycle management and deduplication
 - **OrchestratorService**: Main coordination service
 
 ### **Database Schema**
+
 - `violations` - Current violation state with lifecycle tracking
 - `rule_checks` - Execution history and performance metrics
 - `violation_history` - Delta tracking over time
@@ -74,6 +84,7 @@ By Category (with historical context):
 - `performance_metrics` - System performance data
 
 ### **Performance Optimizations**
+
 - Batch processing for 1200+ violations in ~200ms
 - Indexed queries for sub-second lookups
 - WAL mode SQLite for concurrent access
@@ -98,6 +109,7 @@ The enhanced system maintains **full backward compatibility**:
 ## 🧪 Testing
 
 All features are comprehensively tested:
+
 - 42+ SQLite integration tests passing
 - Service interface compliance testing
 - Cross-session persistence validation

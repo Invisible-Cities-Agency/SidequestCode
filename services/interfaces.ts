@@ -3,9 +3,7 @@
  * Defines contracts for module separation and clean architecture
  */
 
-import type {
-  Violation as OrchestratorViolation
-} from '../utils/violation-types.js';
+import type { Violation as OrchestratorViolation } from "../utils/violation-types.js";
 
 import type {
   Violation,
@@ -16,8 +14,8 @@ import type {
   NewRuleSchedule,
   DashboardData,
   ViolationQueryParameters,
-  HistoryQueryParameters
-} from '../database/types.js';
+  HistoryQueryParameters,
+} from "../database/types.js";
 
 // ============================================================================
 // Simple type definitions for missing types
@@ -25,7 +23,7 @@ import type {
 
 export interface RuleCheckResult {
   rule: string;
-  engine: 'typescript' | 'eslint';
+  engine: "typescript" | "eslint";
   checkId?: number;
   success: boolean;
   violationCount: number;
@@ -57,23 +55,31 @@ export interface IStorageService {
   resolveViolations(_hashes: string[]): Promise<number>;
 
   // Rule Check Management
-  startRuleCheck(_rule: string, _engine: 'typescript' | 'eslint'): Promise<number>;
+  startRuleCheck(
+    _rule: string,
+    _engine: "typescript" | "eslint",
+  ): Promise<number>;
   completeRuleCheck(
     _checkId: number,
     _violationsFound: number,
     _executionTimeMs: number,
     _filesChecked?: number,
-    _filesWithViolations?: number
+    _filesWithViolations?: number,
   ): Promise<void>;
   failRuleCheck(_checkId: number, _errorMessage: string): Promise<void>;
 
   // Historical Analysis
-  recordViolationDeltas(_checkId: number, _currentViolationHashes: string[]): Promise<{
+  recordViolationDeltas(
+    _checkId: number,
+    _currentViolationHashes: string[],
+  ): Promise<{
     added: number;
     removed: number;
     unchanged: number;
   }>;
-  getViolationHistory(_parameters?: HistoryQueryParameters): Promise<ViolationHistory[]>;
+  getViolationHistory(
+    _parameters?: HistoryQueryParameters,
+  ): Promise<ViolationHistory[]>;
 
   // Rule Scheduling
   upsertRuleSchedule(_schedule: NewRuleSchedule): Promise<number>;
@@ -83,7 +89,12 @@ export interface IStorageService {
   getDashboardData(): Promise<DashboardData>;
 
   // Performance and Maintenance
-  recordPerformanceMetric(_type: string, _value: number, _unit: string, _context?: string): Promise<void>;
+  recordPerformanceMetric(
+    _type: string,
+    _value: number,
+    _unit: string,
+    _context?: string,
+  ): Promise<void>;
   cleanupOldData(): Promise<any>;
   getStorageStats(): Promise<any>;
 }
@@ -101,12 +112,22 @@ export interface IPollingService {
   isRunning(): boolean;
 
   // Rule Scheduling
-  scheduleRule(_rule: string, _engine: 'typescript' | 'eslint', _frequencyMs?: number): Promise<void>;
-  unscheduleRule(_rule: string, _engine: 'typescript' | 'eslint'): Promise<void>;
+  scheduleRule(
+    _rule: string,
+    _engine: "typescript" | "eslint",
+    _frequencyMs?: number,
+  ): Promise<void>;
+  unscheduleRule(
+    _rule: string,
+    _engine: "typescript" | "eslint",
+  ): Promise<void>;
   getScheduledRules(): Promise<RuleSchedule[]>;
 
   // Execution Control
-  executeRule(_rule: string, _engine: 'typescript' | 'eslint'): Promise<RuleCheckResult>;
+  executeRule(
+    _rule: string,
+    _engine: "typescript" | "eslint",
+  ): Promise<RuleCheckResult>;
   executeNextRules(_maxConcurrent?: number): Promise<RuleCheckResult[]>;
 
   // Configuration
@@ -115,10 +136,22 @@ export interface IPollingService {
   enableAdaptivePolling(_enabled: boolean): void;
 
   // Events
-  on(_event: 'ruleStarted', _listener: (_rule: string, _engine: string) => void): void;
-  on(_event: 'ruleCompleted', _listener: (_result: RuleCheckResult) => void): void;
-  on(_event: 'ruleFailed', _listener: (_rule: string, _engine: string, _error: Error) => void): void;
-  on(_event: 'cycleCompleted', _listener: (_results: RuleCheckResult[]) => void): void;
+  on(
+    _event: "ruleStarted",
+    _listener: (_rule: string, _engine: string) => void,
+  ): void;
+  on(
+    _event: "ruleCompleted",
+    _listener: (_result: RuleCheckResult) => void,
+  ): void;
+  on(
+    _event: "ruleFailed",
+    _listener: (_rule: string, _engine: string, _error: Error) => void,
+  ): void;
+  on(
+    _event: "cycleCompleted",
+    _listener: (_results: RuleCheckResult[]) => void,
+  ): void;
 }
 
 /**
@@ -129,7 +162,7 @@ export interface IAnalysisService {
   // Delta Analysis
   computeViolationDeltas(
     _previousViolations: string[],
-    _currentViolations: string[]
+    _currentViolations: string[],
   ): {
     added: string[];
     removed: string[];
@@ -161,8 +194,12 @@ export interface IAnalysisService {
  */
 export interface IViolationTracker {
   // Violation Processing
-  processViolations(_violations: OrchestratorViolation[]): Promise<ProcessingResult>;
-  deduplicateViolations(_violations: OrchestratorViolation[]): OrchestratorViolation[];
+  processViolations(
+    _violations: OrchestratorViolation[],
+  ): Promise<ProcessingResult>;
+  deduplicateViolations(
+    _violations: OrchestratorViolation[],
+  ): OrchestratorViolation[];
 
   // Lifecycle Management
   markAsResolved(_violationHashes: string[]): Promise<number>;
@@ -171,12 +208,24 @@ export interface IViolationTracker {
 
   // Hash Management
   generateViolationHash(_violation: OrchestratorViolation): string;
-  validateViolationHash(_violation: OrchestratorViolation, _hash: string): boolean;
+  validateViolationHash(
+    _violation: OrchestratorViolation,
+    _hash: string,
+  ): boolean;
 
   // Filtering and Querying
-  filterViolationsByRule(_violations: OrchestratorViolation[], _ruleIds: string[]): OrchestratorViolation[];
-  filterViolationsBySeverity(_violations: OrchestratorViolation[], _severities: string[]): OrchestratorViolation[];
-  filterViolationsByFile(_violations: OrchestratorViolation[], _filePaths: string[]): OrchestratorViolation[];
+  filterViolationsByRule(
+    _violations: OrchestratorViolation[],
+    _ruleIds: string[],
+  ): OrchestratorViolation[];
+  filterViolationsBySeverity(
+    _violations: OrchestratorViolation[],
+    _severities: string[],
+  ): OrchestratorViolation[];
+  filterViolationsByFile(
+    _violations: OrchestratorViolation[],
+    _filePaths: string[],
+  ): OrchestratorViolation[];
 
   // Validation
   validateViolation(_violation: OrchestratorViolation): ValidationResult;
@@ -207,7 +256,10 @@ export interface IOrchestratorService {
   isWatchModeActive(): boolean;
 
   // Manual Operations
-  runSingleCheck(_rule: string, _engine: 'typescript' | 'eslint'): Promise<RuleCheckResult>;
+  runSingleCheck(
+    _rule: string,
+    _engine: "typescript" | "eslint",
+  ): Promise<RuleCheckResult>;
   runAllChecks(): Promise<RuleCheckResult[]>;
 
   // Configuration
@@ -247,13 +299,13 @@ export interface RulePerformanceAnalysis {
   avgViolationsFound: number;
   successRate: number;
   lastRun: string;
-  trend: 'improving' | 'stable' | 'degrading';
+  trend: "improving" | "stable" | "degrading";
 }
 
 export interface FileQualityTrend {
   filePath: string;
   violationCount: number;
-  trend: 'improving' | 'stable' | 'degrading';
+  trend: "improving" | "stable" | "degrading";
   categories: string[];
 }
 
