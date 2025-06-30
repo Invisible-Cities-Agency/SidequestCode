@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 # ✅ CORRECT for LLMs - Clean JSON output, no interaction
 npm run sidequest:report              # TypeScript violations only
-npm run sidequest:report:eslint       # Include ESLint violations
+npm run sidequest:precommit            # Clean CI/pre-commit validation
 npm run sidequest:report:strict       # Strict mode analysis
 
 # ❌ NEVER use these for LLMs - They require interaction
@@ -76,7 +76,7 @@ npm run test:ui           # Vitest UI interface
 ```bash
 # For AI/LLMs - JSON output without interactive prompts
 npm run sidequest:report              # TypeScript violations only
-npm run sidequest:report:eslint       # Include ESLint violations
+npm run sidequest:precommit            # Clean CI/pre-commit validation
 npm run sidequest:report:strict       # Strict mode analysis
 
 # For humans - interactive/visual modes
@@ -228,7 +228,7 @@ When running SideQuest on itself to fix violations:
 2. **With ESLint** (if needed):
 
    ```bash
-   npm run sidequest:report:eslint
+   npm run sidequest:precommit
    ```
 
 3. **Fix Patterns to Look For**:

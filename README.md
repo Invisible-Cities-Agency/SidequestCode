@@ -9,7 +9,7 @@ Configuration-agnostic TypeScript and ESLint orchestrator that respects your pro
 ```bash
 # RECOMMENDED FOR LLMS: Clean JSON output, no interactive prompts
 npm run sidequest:report             # TypeScript violations (JSON)
-npm run sidequest:report:eslint      # Include ESLint violations (JSON)
+npm run sidequest:precommit           # Clean CI/pre-commit validation (JSON)
 npm run sidequest:report:strict      # Strict mode analysis (JSON)
 ```
 
@@ -511,7 +511,7 @@ npm run sidequest:analyze
 ```bash
 # Use report commands - no interactive prompts
 npm run sidequest:report             # TypeScript only
-npm run sidequest:report:eslint      # Include ESLint
+npm run sidequest:precommit           # Clean CI/pre-commit validation
 npm run sidequest:report:strict      # Strict mode
 ```
 

@@ -21,7 +21,7 @@
     "sidequest:analyze:eslint": "tsx lib/cli.ts --include-eslint",
     "sidequest:analyze:strict": "tsx lib/cli.ts --strict",
     "sidequest:report": "tsx lib/cli.ts --verbose",
-    "sidequest:report:eslint": "tsx lib/cli.ts --verbose --include-eslint",
+    "sidequest:precommit": "tsx lib/cli.ts --verbose --no-persistence",
     "sidequest:report:strict": "tsx lib/cli.ts --verbose --strict",
     "sidequest:config": "tsx lib/cli.ts --config",
     "sidequest:config:show": "tsx lib/cli.ts --config show",

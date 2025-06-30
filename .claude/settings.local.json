@@ -32,7 +32,8 @@
       "Bash(mkdir:*)",
       "Bash(npm publish:*)",
       "Bash(npm ls:*)",
-      "Bash(npx husky init:*)"
+      "Bash(npx husky init:*)",
+      "Bash(echo \"Exit code: $?\")"
     ],
     "deny": []
   }

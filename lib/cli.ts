@@ -98,7 +98,7 @@ try {
     debugTerminal: false,
     dataDir: './data',
     generatePRD: false,
-    configAction: undefined,
+    configAction: undefined
   };
 }
 
@@ -115,7 +115,7 @@ function showAIContext(): void {
     "preferred_commands": {
       "analysis": [
         "npm run sidequest:report",            // TypeScript violations (non-interactive)
-        "npm run sidequest:report:eslint",     // Style violations (ESLint-only)
+        "npm run sidequest:precommit",         // Clean CI/pre-commit validation
         "npm run sidequest:report:strict"      // Strict mode for deep inference and edge cases
       ],
       "description": "These commands return clean, machine-readable JSON with no prompts. Use them to analyze codebases without side effects."
@@ -128,7 +128,7 @@ function showAIContext(): void {
     "workflow": {
       "step_1": "Run 'npm run sidequest:report' to catch TypeScript errors.",
       "step_2": "Resolve all TS compilation issues first – they block builds.",
-      "step_3": "Optionally run 'npm run sidequest:report:eslint' for style and lint rules.",
+      "step_3": "Optionally run 'npm run sidequest:precommit' for clean CI/pre-commit validation.",
       "step_4": "Validate with 'npm run typecheck' and 'npm run test'."
     }
   },
@@ -204,7 +204,7 @@ npm run sidequest:config             # Manage preferences
 ### For LLMs/Automation (JSON Output)
 \`\`\`bash
 npm run sidequest:report             # TypeScript violations only
-npm run sidequest:report:eslint      # Include ESLint analysis
+npm run sidequest:precommit            # Clean CI/pre-commit validation
 npm run sidequest:ai-context         # Full LLM guidance
 \`\`\`
 
@@ -220,7 +220,7 @@ npm run sidequest:ai-context         # Full LLM guidance
 | Command | Purpose | Output | Speed |
 |---------|---------|---------|--------|
 | \`sidequest:report\` | TypeScript compilation errors | JSON | ⚡ Fast |
-| \`sidequest:report:eslint\` | Style + type violations | JSON | 🐌 Thorough |
+| \`sidequest:precommit\` | Clean CI/pre-commit check | JSON | 🐌 Thorough |
 | \`sidequest:start\` | Real-time monitoring | Interactive | 🔄 Continuous |
 
 ## 🔧 Type Safety Best Practices
@@ -281,7 +281,7 @@ COMMON COMMANDS:
 
 FOR LLMS/AI ASSISTANTS (Machine-Readable JSON):
   npm run sidequest:report             Clean JSON output, no interactive prompts
-  npm run sidequest:report:eslint      Include ESLint violations (JSON)
+  npm run sidequest:precommit           Clean validation for CI/pre-commit hooks (JSON)
   npm run sidequest:report:strict      Strict mode analysis (JSON)
 
 OTHER COMMANDS:
@@ -1011,9 +1011,8 @@ ${colors.secondary}Common commands:${colors.reset}
     !process.env['npm_lifecycle_event'] &&
     !process.env['npm_lifecycle_script']
   ) {
-    const isLikelyLLM = [...arguments_].some(
-      (argument) =>
-        argument.includes('--verbose')
+    const isLikelyLLM = [...arguments_].some((argument) =>
+      argument.includes('--verbose')
     );
 
     if (isLikelyLLM) {

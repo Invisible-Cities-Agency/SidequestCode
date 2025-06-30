@@ -5,7 +5,7 @@ echo "🎨 Formatting and fixing staged files..."
 npx lint-staged
 
 echo "🔍 Running SideQuest quality check..."
-npm run sidequest:report:eslint
+npm run sidequest:precommit
 
 echo "🧪 Running test suite..."
 npm test
