@@ -62,6 +62,34 @@ import {
 // Static imports for better testability
 import { writeFile } from "node:fs/promises";
 
+/**
+ * Detect if current project uses pnpm
+ */
+function detectPnpmProject(): boolean {
+  try {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    
+    // Check for pnpm-lock.yaml in current directory and parent directories
+    let currentDir = process.cwd();
+    while (currentDir !== path.dirname(currentDir)) {
+      if (fs.existsSync(path.join(currentDir, "pnpm-lock.yaml"))) {
+        return true;
+      }
+      currentDir = path.dirname(currentDir);
+    }
+    
+    // Check user agent (if available)
+    if (process.env.npm_config_user_agent?.includes("pnpm")) {
+      return true;
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 const arguments_ = process.argv.slice(2);
 
 // Validate environment variables for security
@@ -901,7 +929,8 @@ async function handleInstallShortcuts(): Promise<void> {
     // Get the package installation directory
     const currentModuleUrl = import.meta.url;
     const currentDirectory = path.dirname(fileURLToPath(currentModuleUrl));
-    const packageRoot = path.join(currentDirectory, "..");
+    // In published package: dist/lib/cli.js -> go up twice to package root
+    const packageRoot = path.join(currentDirectory, "..", "..");
     const postinstallScript = path.join(
       packageRoot,
       "scripts",
@@ -1046,21 +1075,34 @@ ${colors.info}Note:${colors.reset} npm doesn't support flags after script names.
       scriptName.startsWith("sidequest") &&
       !scriptName.includes(":")
     ) {
+      const isPnpm = detectPnpmProject();
+      const packageManager = isPnpm ? "pnpm" : "npm";
+      const runCommand = isPnpm ? "" : "run ";
+      
       console.log(`${colors.error}❌ Script Not Found${colors.reset}
 
-The command "${colors.error}npm run ${scriptName}${colors.reset}" doesn't exist.
+The command "${colors.error}${packageManager} ${runCommand}${scriptName}${colors.reset}" doesn't exist.
 
-${colors.info}Are you a human?${colors.reset}
-  ${colors.success}npm run sidequest:help${colors.reset}               # Standard help
-  ${colors.success}npm run sidequest:help:markdown${colors.reset}      # Formatted documentation
+${isPnpm ? `${colors.warning}🔧 pnpm Setup Required${colors.reset}
+SideQuest shortcuts need to be installed for pnpm projects:
+  ${colors.success}npx sidequest-cqo --install-shortcuts${colors.reset}
+
+After installation, you can use:
+  ${colors.success}pnpm sidequest:help${colors.reset}                    # No "run" needed!
+  ${colors.success}pnpm sidequest:watch${colors.reset}                   # Direct commands
+  ${colors.success}pnpm sidequest:report${colors.reset}                  # Clean analysis
+
+` : ""}${colors.info}Are you a human?${colors.reset}
+  ${colors.success}${packageManager} ${runCommand}sidequest:help${colors.reset}               # Standard help
+  ${colors.success}${packageManager} ${runCommand}sidequest:help:markdown${colors.reset}      # Formatted documentation
 
 ${colors.info}Are you an LLM?${colors.reset}
-  ${colors.success}npm run sidequest:ai-context${colors.reset}         # Full machine-structured context
+  ${colors.success}${packageManager} ${runCommand}sidequest:ai-context${colors.reset}         # Full machine-structured context
 
 ${colors.secondary}Common commands:${colors.reset}
-  ${colors.success}npm run sidequest:start${colors.reset}              # Watch mode (humans)
-  ${colors.success}npm run sidequest:report${colors.reset}             # Analysis (LLMs)
-  ${colors.success}npm run sidequest:config${colors.reset}             # Configuration
+  ${colors.success}${packageManager} ${runCommand}sidequest:start${colors.reset}              # Watch mode (humans)
+  ${colors.success}${packageManager} ${runCommand}sidequest:report${colors.reset}             # Analysis (LLMs)
+  ${colors.success}${packageManager} ${runCommand}sidequest:config${colors.reset}             # Configuration
 `);
       process.exit(0);
     }
