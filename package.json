@@ -1,6 +1,6 @@
 {
   "name": "@invisiblecities/sidequest-cqo",
-  "version": "0.1.0-alpha.7",
+  "version": "0.1.0-alpha.8",
   "description": "I need a description that retains the heart of what the thing does but doesn't sound like LLM shill (emoji spam, over excitement, direct quotes of my description without segue, etc)",
   "type": "module",
   "main": "dist/lib/cli.js",
