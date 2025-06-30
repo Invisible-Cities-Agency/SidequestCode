@@ -173,6 +173,12 @@ beta-*.tgz
 .local/
 local-*/
 
+# Test scripts and temporary debugging files
+test-*-hang.js
+test-*-quick.js
+debug-*.js
+*-test-*.js
+
 # Private Files
 ROADMAP.md
 docs/ROADMAP.md

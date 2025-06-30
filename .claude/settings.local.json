@@ -46,7 +46,8 @@
       "Bash(gh run view:*)",
       "Bash(printf \"Starting watch mode test...\\n\")",
       "Bash(git tag:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(env)"
     ],
     "deny": []
   }
