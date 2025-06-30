@@ -55,7 +55,7 @@ import { CodeQualityOrchestrator } from './orchestrator.js';
 
 // Parse command line arguments with Zod validation for security
 import {
-  safeCLIArgsParse as safeCLIArgumentsParse,
+  safeCLIArgumentsParse,
   safeEnvironmentAccess
 } from '../utils/validation-schemas.js';
 

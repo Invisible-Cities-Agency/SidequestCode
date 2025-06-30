@@ -36,7 +36,9 @@
       "Bash(echo \"Exit code: $?\")",
       "Bash(git push:*)",
       "Bash(npm view:*)",
-      "Bash(npm dist-tag:*)"
+      "Bash(npm dist-tag:*)",
+      "Bash(cat:*)",
+      "Bash(npm version:*)"
     ],
     "deny": []
   }

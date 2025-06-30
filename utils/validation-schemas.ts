@@ -280,7 +280,7 @@ export function safeEnvironmentAccess(): ValidatedEnvironment {
  * Safe CLI arguments parsing with validation
  * Validates command-line arguments to prevent injection
  */
-export function safeCLIArgsParse(arguments_: string[]): ValidatedCLIFlags {
+export function safeCLIArgumentsParse(arguments_: string[]): ValidatedCLIFlags {
   // Extract flags from command line arguments
   const flags = {
     help: arguments_.includes('--help') || arguments_.includes('-h'),
