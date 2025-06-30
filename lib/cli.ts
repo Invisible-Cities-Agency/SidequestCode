@@ -26,7 +26,7 @@
  * ```
  *
  * @author SideQuest
- * @version 0.1.0-alpha.2
+ * @version Dynamically loaded from package.json
  */
 
 import {
@@ -60,7 +60,25 @@ import {
 } from "../utils/validation-schemas.js";
 
 // Static imports for better testability
-import { writeFile } from "node:fs/promises";
+import { writeFile, readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+/**
+ * Get the current package version from package.json
+ */
+async function getPackageVersion(): Promise<string> {
+  try {
+    const currentDir = dirname(fileURLToPath(import.meta.url));
+    const packageJsonPath = join(currentDir, "..", "package.json");
+    const packageJsonContent = await readFile(packageJsonPath, "utf8");
+    const packageJson = JSON.parse(packageJsonContent);
+    return packageJson.version;
+  } catch {
+    // Fallback if package.json can't be read
+    return "0.1.0-alpha.x";
+  }
+}
 
 /**
  * Detect if current project uses pnpm
@@ -194,7 +212,7 @@ function showAIContext(): void {
     }
   },
   "watch_mode": {
-    "command": "npm run sidequest:start",
+    "command": "npm run sidequest:watch",
     "usage": "Enables real-time feedback during dev.",
     "note": "Use for iterative workflows. Avoid with LLMs unless batching changes with a human in the loop."
   },
@@ -217,8 +235,9 @@ function showAIContext(): void {
 /**
  * Show markdown-formatted help for documentation and human readability
  */
-function showMarkdownHelp(): void {
-  console.log(`# SideQuest Code Quality Orchestrator
+async function showMarkdownHelp(): Promise<void> {
+  const version = await getPackageVersion();
+  console.log(`# SideQuest Code Quality Orchestrator v${version}
 
 Configuration-agnostic TypeScript and ESLint analysis that respects your project setup.
 
@@ -226,7 +245,7 @@ Configuration-agnostic TypeScript and ESLint analysis that respects your project
 
 ### For Humans (Interactive)
 \`\`\`bash
-npm run sidequest:start              # Real-time watch mode
+npm run sidequest:watch              # Real-time watch mode
 npm run sidequest:config             # Manage preferences
 \`\`\`
 
@@ -297,9 +316,10 @@ function showQuickHelp(): void {
 /**
  * Display help information
  */
-function showHelp(): void {
+async function showHelp(): Promise<void> {
+  const version = await getPackageVersion();
   console.log(`
-📊 SideQuest Code Quality Orchestrator
+📊 SideQuest Code Quality Orchestrator v${version}
 Configuration-agnostic TypeScript and ESLint analysis that respects your project setup
 
 COMMON COMMANDS:
@@ -1048,10 +1068,9 @@ function interceptCommonErrors(): void {
 It looks like you tried: ${colors.error}npm run sidequest --watch${colors.reset}
 
 Try one of these instead:
-  ${colors.success}npm run sidequest:start${colors.reset}              # Start watching (recommended)
-  ${colors.success}npm run sidequest:watch:dark${colors.reset}         # Force dark theme
-  ${colors.success}npm run sidequest:watch:light${colors.reset}        # Force light theme
+  ${colors.success}npm run sidequest:watch${colors.reset}              # Start watching (recommended)
   ${colors.success}npm run sidequest:watch:eslint${colors.reset}       # Include ESLint
+  ${colors.success}npm run sidequest:watch:strict${colors.reset}       # Strict mode analysis
 
 ${colors.info}Note:${colors.reset} npm doesn't support flags after script names. Use the specific script instead.
 `);
@@ -1093,6 +1112,7 @@ After installation, you can use:
   ${colors.success}pnpm sidequest:help${colors.reset}                    # No "run" needed!
   ${colors.success}pnpm sidequest:watch${colors.reset}                   # Direct commands
   ${colors.success}pnpm sidequest:report${colors.reset}                  # Clean analysis
+  ${colors.success}pnpm sidequest:ai-context${colors.reset}              # LLM guidance
 
 `
     : ""
@@ -1104,7 +1124,7 @@ ${colors.info}Are you an LLM?${colors.reset}
   ${colors.success}${packageManager} ${runCommand}sidequest:ai-context${colors.reset}         # Full machine-structured context
 
 ${colors.secondary}Common commands:${colors.reset}
-  ${colors.success}${packageManager} ${runCommand}sidequest:start${colors.reset}              # Watch mode (humans)
+  ${colors.success}${packageManager} ${runCommand}sidequest:watch${colors.reset}              # Watch mode (humans)
   ${colors.success}${packageManager} ${runCommand}sidequest:report${colors.reset}             # Analysis (LLMs)
   ${colors.success}${packageManager} ${runCommand}sidequest:config${colors.reset}             # Configuration
 `);
@@ -1151,12 +1171,12 @@ async function main(): Promise<void> {
   interceptCommonErrors();
 
   if (flags.help) {
-    showHelp();
+    await showHelp();
     process.exit(0);
   }
 
   if (flags.helpMarkdown) {
-    showMarkdownHelp();
+    await showMarkdownHelp();
     process.exit(0);
   }
 

@@ -46,6 +46,7 @@ logs
 # Runtime data
 quality.db*
 cqo-*.db
+data/
 
 # IDE and editor files
 .vscode/

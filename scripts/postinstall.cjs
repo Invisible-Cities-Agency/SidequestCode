@@ -173,10 +173,11 @@ try {
             : `${pm} run`;
 
     const scripts = {
-      "sidequest:report": "sidequest-cqo --verbose",
-      "sidequest:watch": "sidequest-cqo --watch",
-      "sidequest:config": "sidequest-cqo --config",
-      "sidequest:help": "sidequest-cqo --help",
+      "sidequest:report": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --verbose; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
+      "sidequest:watch": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --watch; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
+      "sidequest:config": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --config; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
+      "sidequest:help": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --help; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
+      "sidequest:ai-context": "if [ \"$VERCEL\" != \"1\" ]; then sidequest-cqo --ai-context; else echo 'Skipping Sidequest (a node dev tool) in the Vercel environment'; fi",
     };
 
     log(`📦 Existing scripts: ${Object.keys(pkg.scripts).join(", ")}`);
@@ -303,12 +304,14 @@ ${nextCommand}
 - \`pnpm sidequest:watch\` - Real-time watch mode  
 - \`pnpm sidequest:config\` - Configuration management
 - \`pnpm sidequest:help\` - Show help
+- \`pnpm sidequest:ai-context\` - LLM context & guidance
 
 ## Quick start after setup (no "run" needed!):
 \`\`\`bash
-pnpm sidequest:watch     # ✅ Direct command
-pnpm sidequest:report    # ✅ Direct command  
-pnpm sidequest:help      # ✅ Direct command
+pnpm sidequest:watch        # ✅ Direct command
+pnpm sidequest:report       # ✅ Direct command  
+pnpm sidequest:help         # ✅ Direct command
+pnpm sidequest:ai-context   # ✅ Direct command
 \`\`\`
 
 ## Why this is needed:
