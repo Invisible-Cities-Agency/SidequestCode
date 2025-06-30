@@ -174,7 +174,7 @@ try {
 }
 
 // Enable debug logging if --debug flag is set
-import { DebugLogger } from "../utils/debug-logger.js";
+import { DebugLogger, debugLog } from "../utils/debug-logger.js";
 if (flags.debug) {
   DebugLogger.enable();
   DebugLogger.debug("CLI", "Debug mode enabled via --debug flag");
@@ -1022,19 +1022,27 @@ ${[...new Set(violations.map((v) => v.file))]
  */
 async function checkAndRunFirstTimeSetup(): Promise<boolean> {
   try {
+    debugLog("CLI", "Importing InteractiveSetup module");
     const { InteractiveSetup } = await import(
       "../services/interactive-setup.js"
     );
+    debugLog("CLI", "InteractiveSetup module imported successfully");
 
+    debugLog("CLI", "Checking if setup should run", { dataDir: flags.dataDir });
     if (InteractiveSetup.shouldRunSetup(flags.dataDir)) {
+      debugLog("CLI", "Setup is required, starting interactive setup");
       const colors = getColorScheme();
       const setup = new InteractiveSetup(colors, flags.dataDir);
+      debugLog("CLI", "Running interactive setup");
       await setup.runSetup();
+      debugLog("CLI", "Interactive setup completed");
       return true; // Setup was run
     }
 
+    debugLog("CLI", "Setup not required, continuing");
     return false; // No setup needed
   } catch (error) {
+    debugLog("CLI", "Error during setup check", error);
     console.warn("[Setup] Could not run first-time setup:", error);
     return false;
   }
@@ -1335,14 +1343,25 @@ async function main(): Promise<void> {
   // Check for first-run setup (smart detection)
   // Always run setup check unless in automation mode (verbose flag indicates LLM/automation)
   if (!flags.verbose) {
+    debugLog("CLI", "Checking for first-time setup requirement");
     const needsSetup = await checkAndRunFirstTimeSetup();
+    debugLog("CLI", "Setup check completed", { needsSetup });
     if (needsSetup) {
+      debugLog(
+        "CLI",
+        "Setup was required and completed, exiting for user to retry",
+      );
       // Setup was run, exit to let user try again with their preferences
       console.log(
         `\n${getColorScheme().info}Now try: ${getColorScheme().bold}npm run sidequest:start${getColorScheme().reset}`,
       );
       process.exit(0);
     }
+  } else {
+    debugLog(
+      "CLI",
+      "Skipping setup check due to verbose mode (automation detected)",
+    );
   }
 
   // Show terminal debug info if requested
@@ -1367,9 +1386,14 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  debugLog("CLI", "Getting color scheme");
   const colors = getColorScheme();
+  debugLog("CLI", "Color scheme obtained");
 
   // Determine which system to use
+  debugLog("CLI", "Determining persistence system", {
+    usePersistence: flags.usePersistence,
+  });
   const usePersistence = flags.usePersistence;
 
   if (usePersistence) {
