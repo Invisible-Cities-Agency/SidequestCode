@@ -1,6 +1,6 @@
 {
   "name": "sidequest-cqo",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "🤖🧑‍💻 Human-AI partnership code quality orchestrator optimized for the reality that AI moves faster than developers can track ripple effects • 🔄 Real-time systems view reveals how every TypeScript type change breaks 3 ESLint rules (and vice versa) • ⚡ Built-in :ai-context command gets LLMs up to speed instantly on your codebase health • 🎯 Multi-engine coordination shows cascading violation effects across your entire system as they happen • 📊 Live monitoring solves the major pain point: seeing code quality impact of every change in real-time • 🧠 Systematic improvement tracking (fix 250+ violations systematically vs hunting individual errors) • 📋 Clean JSON output for CI, LLMs, and automated workflows",
   "type": "module",
   "main": "dist/lib/cli.js",
@@ -10,19 +10,19 @@
     "cqo": "dist/lib/cli.js"
   },
   "scripts": {
-    "prepare": "echo 'Skipping build for now'",
+    "prepare": "husky",
     "build": "tsc",
     "dev": "tsx lib/cli.ts",
-    "sidequest": "tsx lib/cli.ts --verbose --skip-setup",
+    "sidequest": "tsx lib/cli.ts --verbose",
     "sidequest:watch": "tsx lib/cli.ts --watch",
     "sidequest:watch:eslint": "tsx lib/cli.ts --watch --include-eslint",
     "sidequest:watch:strict": "tsx lib/cli.ts --watch --strict",
     "sidequest:analyze": "tsx lib/cli.ts",
     "sidequest:analyze:eslint": "tsx lib/cli.ts --include-eslint",
     "sidequest:analyze:strict": "tsx lib/cli.ts --strict",
-    "sidequest:report": "tsx lib/cli.ts --verbose --skip-setup",
-    "sidequest:report:eslint": "tsx lib/cli.ts --verbose --skip-setup --include-eslint",
-    "sidequest:report:strict": "tsx lib/cli.ts --verbose --skip-setup --strict",
+    "sidequest:report": "tsx lib/cli.ts --verbose",
+    "sidequest:report:eslint": "tsx lib/cli.ts --verbose --include-eslint",
+    "sidequest:report:strict": "tsx lib/cli.ts --verbose --strict",
     "sidequest:config": "tsx lib/cli.ts --config",
     "sidequest:config:show": "tsx lib/cli.ts --config show",
     "sidequest:config:edit": "tsx lib/cli.ts --config edit",
@@ -87,7 +87,11 @@
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
-  "os": ["darwin", "linux", "win32"],
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
   "files": [
     "dist/",
     "README.md",
@@ -108,6 +112,8 @@
     "@vitest/ui": "^1.6.0",
     "eslint": "^8.57.0",
     "eslint-plugin-unicorn": "^55.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "prettier": "^3.3.0",
     "ts-unused-exports": "^11.0.1",
     "tsx": "^4.20.0",
@@ -126,5 +132,14 @@
   "funding": {
     "type": "organization",
     "url": "https://github.com/sponsors/Invisible-Cities-Agency"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }

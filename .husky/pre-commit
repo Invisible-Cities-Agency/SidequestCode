@@ -1,0 +1,13 @@
+#!/bin/sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🎨 Formatting and fixing staged files..."
+npx lint-staged
+
+echo "🔍 Running SideQuest quality check..."
+npm run sidequest:report:eslint
+
+echo "🧪 Running test suite..."
+npm test
+
+echo "✅ Pre-commit checks passed!"

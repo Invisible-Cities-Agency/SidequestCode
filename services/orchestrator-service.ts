@@ -3,7 +3,7 @@
  * Coordinates all services and provides unified interface
  */
 
-import { EventEmitter } from "node:events";
+import { EventEmitter } from 'node:events';
 import type {
   IOrchestratorService,
   IStorageService,
@@ -14,12 +14,12 @@ import type {
   OrchestratorConfig,
   HealthCheckResult,
   SystemStats,
-  RuleCheckResult,
-} from "./interfaces.js";
-import { ConfigManager } from "./config-manager.js";
-import { getPollingService } from "./polling-service.js";
-import { getAnalysisService } from "./analysis-service.js";
-import { getViolationTracker } from "./violation-tracker.js";
+  RuleCheckResult
+} from './interfaces.js';
+import { ConfigManager } from './config-manager.js';
+import { getPollingService } from './polling-service.js';
+import { getAnalysisService } from './analysis-service.js';
+import { getViolationTracker } from './violation-tracker.js';
 
 // ============================================================================
 // Main Orchestrator Service Implementation
@@ -52,11 +52,11 @@ export class OrchestratorService
 
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log("[OrchestratorService] Already initialized");
+      console.log('[OrchestratorService] Already initialized');
       return;
     }
 
-    console.log("[OrchestratorService] Initializing services...");
+    console.log('[OrchestratorService] Initializing services...');
 
     try {
       // Initialize all services through config manager
@@ -69,41 +69,41 @@ export class OrchestratorService
       this.violationTracker = getViolationTracker(this.storageService);
 
       // Set up event forwarding from polling service
-      this.pollingService.on("ruleStarted", (ruleId, engine) => {
-        this.emit("ruleStarted", ruleId, engine);
+      this.pollingService.on('ruleStarted', (ruleId, engine) => {
+        this.emit('ruleStarted', ruleId, engine);
       });
 
-      this.pollingService.on("ruleCompleted", (result) => {
-        this.emit("ruleCompleted", result);
+      this.pollingService.on('ruleCompleted', (result) => {
+        this.emit('ruleCompleted', result);
       });
 
-      this.pollingService.on("ruleFailed", (ruleId, engine, error) => {
-        this.emit("ruleFailed", ruleId, engine, error);
+      this.pollingService.on('ruleFailed', (ruleId, engine, error) => {
+        this.emit('ruleFailed', ruleId, engine, error);
       });
 
-      this.pollingService.on("cycleCompleted", (results) => {
-        this.emit("cycleCompleted", results);
+      this.pollingService.on('cycleCompleted', (results) => {
+        this.emit('cycleCompleted', results);
       });
 
       this.initialized = true;
       console.log(
-        "[OrchestratorService] Initialization completed successfully",
+        '[OrchestratorService] Initialization completed successfully'
       );
-      this.emit("initialized");
+      this.emit('initialized');
     } catch (error) {
-      console.error("[OrchestratorService] Initialization failed:", error);
-      this.emit("initializationFailed", error);
+      console.error('[OrchestratorService] Initialization failed:', error);
+      this.emit('initializationFailed', error);
       throw error;
     }
   }
 
   async shutdown(): Promise<void> {
     if (!this.initialized) {
-      console.log("[OrchestratorService] Not initialized, nothing to shutdown");
+      console.log('[OrchestratorService] Not initialized, nothing to shutdown');
       return;
     }
 
-    console.log("[OrchestratorService] Shutting down...");
+    console.log('[OrchestratorService] Shutting down...');
 
     try {
       // Stop watch mode if active
@@ -120,11 +120,11 @@ export class OrchestratorService
       await this.configManager.shutdown();
 
       this.initialized = false;
-      console.log("[OrchestratorService] Shutdown completed");
-      this.emit("shutdown");
+      console.log('[OrchestratorService] Shutdown completed');
+      this.emit('shutdown');
     } catch (error) {
-      console.error("[OrchestratorService] Shutdown error:", error);
-      this.emit("shutdownError", error);
+      console.error('[OrchestratorService] Shutdown error:', error);
+      this.emit('shutdownError', error);
       throw error;
     }
   }
@@ -168,7 +168,7 @@ export class OrchestratorService
     this.ensureInitialized();
 
     if (this.watchModeActive) {
-      console.log("[OrchestratorService] Watch mode already active");
+      console.log('[OrchestratorService] Watch mode already active');
       return;
     }
 
@@ -196,35 +196,35 @@ export class OrchestratorService
     }
 
     console.log(
-      "[OrchestratorService] Starting watch mode with options:",
-      watchOptions,
+      '[OrchestratorService] Starting watch mode with options:',
+      watchOptions
     );
 
     // Start polling service
     await this.pollingService!.start();
 
     // Set up watch mode interval
-    this.watchModeInterval = setInterval(async () => {
+    this.watchModeInterval = setInterval(async() => {
       try {
         await this.executeWatchCycle(watchOptions);
       } catch (error) {
-        console.error("[OrchestratorService] Watch cycle error:", error);
-        this.emit("watchError", error);
+        console.error('[OrchestratorService] Watch cycle error:', error);
+        this.emit('watchError', error);
       }
     }, watchOptions.intervalMs);
 
     this.watchModeActive = true;
-    console.log("[OrchestratorService] Watch mode started");
-    this.emit("watchModeStarted", watchOptions);
+    console.log('[OrchestratorService] Watch mode started');
+    this.emit('watchModeStarted', watchOptions);
   }
 
   async stopWatchMode(): Promise<void> {
     if (!this.watchModeActive) {
-      console.log("[OrchestratorService] Watch mode not active");
+      console.log('[OrchestratorService] Watch mode not active');
       return;
     }
 
-    console.log("[OrchestratorService] Stopping watch mode...");
+    console.log('[OrchestratorService] Stopping watch mode...');
 
     // Stop watch interval
     if (this.watchModeInterval) {
@@ -238,8 +238,8 @@ export class OrchestratorService
     }
 
     this.watchModeActive = false;
-    console.log("[OrchestratorService] Watch mode stopped");
-    this.emit("watchModeStopped");
+    console.log('[OrchestratorService] Watch mode stopped');
+    this.emit('watchModeStopped');
   }
 
   isWatchModeActive(): boolean {
@@ -252,27 +252,27 @@ export class OrchestratorService
 
   async runSingleCheck(
     rule: string,
-    engine: "typescript" | "eslint",
+    engine: 'typescript' | 'eslint'
   ): Promise<RuleCheckResult> {
     this.ensureInitialized();
 
     console.log(
-      `[OrchestratorService] Running single check: ${rule} (${engine})`,
+      `[OrchestratorService] Running single check: ${rule} (${engine})`
     );
     const result = await this.pollingService!.executeRule(rule, engine);
 
-    this.emit("singleCheckCompleted", result);
+    this.emit('singleCheckCompleted', result);
     return result;
   }
 
   async runAllChecks(): Promise<RuleCheckResult[]> {
     this.ensureInitialized();
 
-    console.log("[OrchestratorService] Running all scheduled checks...");
+    console.log('[OrchestratorService] Running all scheduled checks...');
     const results = await this.pollingService!.executeNextRules(100); // Large number to get all
 
     console.log(`[OrchestratorService] Completed ${results.length} checks`);
-    this.emit("allChecksCompleted", results);
+    this.emit('allChecksCompleted', results);
     return results;
   }
 
@@ -281,9 +281,9 @@ export class OrchestratorService
   // ========================================================================
 
   async updateConfiguration(
-    config: Partial<OrchestratorConfig>,
+    config: Partial<OrchestratorConfig>
   ): Promise<void> {
-    console.log("[OrchestratorService] Updating configuration...");
+    console.log('[OrchestratorService] Updating configuration...');
 
     // Update config manager
     this.configManager.updateConfig(config);
@@ -291,7 +291,7 @@ export class OrchestratorService
     // If already initialized, may need to reinitialize services
     if (this.initialized) {
       console.log(
-        "[OrchestratorService] Restarting services with new configuration...",
+        '[OrchestratorService] Restarting services with new configuration...'
       );
       const wasWatchActive = this.watchModeActive;
 
@@ -307,7 +307,7 @@ export class OrchestratorService
       }
     }
 
-    this.emit("configurationUpdated", config);
+    this.emit('configurationUpdated', config);
   }
 
   getConfiguration(): OrchestratorConfig {
@@ -317,22 +317,22 @@ export class OrchestratorService
       database: {
         path: config.database.path,
         enableWAL: config.database.enableWAL || false,
-        maxHistoryDays: config.database.maxHistoryDays || 30,
+        maxHistoryDays: config.database.maxHistoryDays || 30
       },
       polling: {
         defaultFrequencyMs: config.scheduling.defaultFrequencyMs || 30_000,
         maxConcurrentChecks: config.scheduling.maxConcurrentChecks || 3,
-        adaptivePolling: config.scheduling.adaptivePolling || true,
+        adaptivePolling: config.scheduling.adaptivePolling || true
       },
       watch: {
         intervalMs: config.watch.intervalMs || 3000,
         debounceMs: config.watch.debounceMs || 500,
-        autoCleanup: config.watch.autoCleanup || true,
+        autoCleanup: config.watch.autoCleanup || true
       },
       performance: {
         batchSize: config.performance.batchSize || 100,
-        enableMetrics: config.monitoring.enablePerformanceMetrics || true,
-      },
+        enableMetrics: config.monitoring.enablePerformanceMetrics || true
+      }
     };
   }
 
@@ -347,9 +347,9 @@ export class OrchestratorService
         storage: false,
         polling: false,
         analysis: false,
-        tracker: false,
+        tracker: false
       },
-      errors: [],
+      errors: []
     };
 
     try {
@@ -358,7 +358,7 @@ export class OrchestratorService
       result.services.storage = configHealth.storageService;
 
       if (!configHealth.overall) {
-        result.errors.push("Config manager health check failed");
+        result.errors.push('Config manager health check failed');
       }
 
       // Check individual services if initialized
@@ -376,7 +376,7 @@ export class OrchestratorService
           result.errors.push(`Storage service error: ${error}`);
         }
       } else {
-        result.errors.push("Services not initialized");
+        result.errors.push('Services not initialized');
       }
 
       // Overall health
@@ -401,7 +401,7 @@ export class OrchestratorService
       activeChecks: this.pollingService
         ? (this.pollingService as any).activeChecks?.size || 0
         : 0,
-      watchMode: this.watchModeActive,
+      watchMode: this.watchModeActive
     };
   }
 
@@ -411,7 +411,7 @@ export class OrchestratorService
 
   private ensureInitialized(): void {
     if (!this.initialized) {
-      throw new Error("OrchestratorService must be initialized before use");
+      throw new Error('OrchestratorService must be initialized before use');
     }
   }
 
@@ -420,7 +420,7 @@ export class OrchestratorService
 
     // Execute next batch of rules
     const results = await this.pollingService!.executeNextRules(
-      options.maxConcurrentChecks,
+      options.maxConcurrentChecks
     );
 
     // Perform cleanup if enabled
@@ -430,13 +430,13 @@ export class OrchestratorService
         const cleanupResult = await this.storageService!.cleanupOldData();
         if (!this.silent) {
           console.log(
-            "[OrchestratorService] Auto-cleanup completed:",
-            cleanupResult,
+            '[OrchestratorService] Auto-cleanup completed:',
+            cleanupResult
           );
         }
       } catch (error) {
         if (!this.silent) {
-          console.error("[OrchestratorService] Auto-cleanup failed:", error);
+          console.error('[OrchestratorService] Auto-cleanup failed:', error);
         }
       }
     }
@@ -445,16 +445,16 @@ export class OrchestratorService
 
     // Record watch cycle metrics
     await this.storageService!.recordPerformanceMetric(
-      "watch_cycle",
+      'watch_cycle',
       executionTime,
-      "ms",
-      `rules: ${results.length}`,
+      'ms',
+      `rules: ${results.length}`
     );
 
-    this.emit("watchCycle", {
+    this.emit('watchCycle', {
       executionTime,
       rulesExecuted: results.length,
-      results,
+      results
     });
   }
 }
@@ -469,7 +469,7 @@ let orchestratorServiceInstance: OrchestratorService | undefined;
  * Get or create orchestrator service instance
  */
 export function getOrchestratorService(
-  configManager?: ConfigManager,
+  configManager?: ConfigManager
 ): OrchestratorService {
   if (!orchestratorServiceInstance) {
     orchestratorServiceInstance = new OrchestratorService(configManager);
@@ -494,10 +494,10 @@ export function resetOrchestratorService(): void {
  * Create a fully configured orchestrator service for a specific environment
  */
 export async function createOrchestratorService(
-  environment: "development" | "test" | "production" = "development",
+  environment: 'development' | 'test' | 'production' = 'development',
   customConfig?: Partial<
-    import("./config-manager.js").OrchestratorServiceConfig
-  >,
+    import('./config-manager.js').OrchestratorServiceConfig
+  >
 ): Promise<OrchestratorService> {
   const configManager = ConfigManager.createEnvironmentConfig(environment);
 

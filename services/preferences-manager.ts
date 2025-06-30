@@ -56,9 +56,9 @@
  * @version 1.0.0
  */
 
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as os from "node:os";
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 
 /**
  * Complete user preferences schema with comprehensive settings
@@ -70,7 +70,7 @@ interface UserPreferences {
   schemaVersion: string;
   preferences: {
     analysis: {
-      defaultMode: "errors-only" | "warnings-and-errors" | "all";
+      defaultMode: 'errors-only' | 'warnings-and-errors' | 'all';
       strictMode: boolean;
       includePatternChecking: boolean;
     };
@@ -80,7 +80,7 @@ interface UserPreferences {
       showConfigurationHints: boolean;
     };
     display: {
-      colorScheme: "auto" | "light" | "dark";
+      colorScheme: 'auto' | 'light' | 'dark';
       verboseOutput: boolean;
       showProgressIndicators: boolean;
     };
@@ -95,10 +95,10 @@ interface UserPreferences {
     hasConfiguredSeparationOfConcerns: boolean;
     hasCompletedFirstRun: boolean;
     preferredEngine:
-      | "typescript-only"
-      | "eslint-only"
-      | "both-separate"
-      | "both-mixed";
+      | 'typescript-only'
+      | 'eslint-only'
+      | 'both-separate'
+      | 'both-mixed';
     lastConfigUpdate: string | null;
   };
 }
@@ -111,8 +111,8 @@ export class PreferencesManager {
   private constructor(dataDirectory?: string) {
     // Store preferences in user's data directory or project-specific location
     const baseDirectory =
-      dataDirectory || path.join(os.homedir(), ".sidequest-cqo");
-    this.preferencesPath = path.join(baseDirectory, "user-preferences.json");
+      dataDirectory || path.join(os.homedir(), '.sidequest-cqo');
+    this.preferencesPath = path.join(baseDirectory, 'user-preferences.json');
 
     // Ensure directory exists
     if (!fs.existsSync(baseDirectory)) {
@@ -135,7 +135,7 @@ export class PreferencesManager {
   private loadPreferences(): UserPreferences {
     try {
       if (fs.existsSync(this.preferencesPath)) {
-        const content = fs.readFileSync(this.preferencesPath, "utf8");
+        const content = fs.readFileSync(this.preferencesPath, 'utf8');
         const loaded = JSON.parse(content) as UserPreferences;
 
         // Validate and migrate if needed
@@ -154,36 +154,36 @@ export class PreferencesManager {
    */
   private getDefaultPreferences(): UserPreferences {
     return {
-      schemaVersion: "1.0.0",
+      schemaVersion: '1.0.0',
       preferences: {
         analysis: {
-          defaultMode: "errors-only", // Conservative default
+          defaultMode: 'errors-only', // Conservative default
           strictMode: false,
-          includePatternChecking: false,
+          includePatternChecking: false
         },
         warnings: {
           showTscEslintSeparationWarning: true, // Important best practice
           showPerformanceWarnings: true,
-          showConfigurationHints: true,
+          showConfigurationHints: true
         },
         display: {
-          colorScheme: "auto",
+          colorScheme: 'auto',
           verboseOutput: false,
-          showProgressIndicators: true,
+          showProgressIndicators: true
         },
         watch: {
           autoDetectConfigChanges: true,
           debounceMs: 500,
-          intervalMs: 3000,
-        },
+          intervalMs: 3000
+        }
       },
       userChoices: {
         hasSeenTscEslintWarning: false,
         hasConfiguredSeparationOfConcerns: false,
         hasCompletedFirstRun: false,
-        preferredEngine: "typescript-only", // Safe default
-        lastConfigUpdate: null,
-      },
+        preferredEngine: 'typescript-only', // Safe default
+        lastConfigUpdate: null
+      }
     };
   }
 
@@ -202,25 +202,25 @@ export class PreferencesManager {
         ...loaded.preferences,
         analysis: {
           ...defaults.preferences.analysis,
-          ...loaded.preferences?.analysis,
+          ...loaded.preferences?.analysis
         },
         warnings: {
           ...defaults.preferences.warnings,
-          ...loaded.preferences?.warnings,
+          ...loaded.preferences?.warnings
         },
         display: {
           ...defaults.preferences.display,
-          ...loaded.preferences?.display,
+          ...loaded.preferences?.display
         },
         watch: {
           ...defaults.preferences.watch,
-          ...loaded.preferences?.watch,
-        },
+          ...loaded.preferences?.watch
+        }
       },
       userChoices: {
         ...defaults.userChoices,
-        ...loaded.userChoices,
-      },
+        ...loaded.userChoices
+      }
     };
   }
 
@@ -231,7 +231,7 @@ export class PreferencesManager {
     try {
       this.preferences.userChoices.lastConfigUpdate = new Date().toISOString();
       const content = JSON.stringify(this.preferences, undefined, 2);
-      fs.writeFileSync(this.preferencesPath, content, "utf8");
+      fs.writeFileSync(this.preferencesPath, content, 'utf8');
     } catch (error) {
       console.warn(`[Preferences] Could not save preferences: ${error}`);
     }
@@ -251,8 +251,8 @@ export class PreferencesManager {
    * Show TypeScript/ESLint separation warning and get user choice
    */
   public showTscEslintSeparationWarning(): Promise<
-    "typescript-only" | "both-separate" | "both-mixed" | "disable-warning"
-  > {
+    'typescript-only' | 'both-separate' | 'both-mixed' | 'disable-warning'
+    > {
     console.log(`
 🔧 Configuration Best Practice Recommendation
 
@@ -280,13 +280,13 @@ Your choice will be saved and can be changed in preferences.
 
     // In a real implementation, this would use a proper prompt library
     // For now, we'll simulate the choice
-    const choice = "both-separate" as "both-separate" | "disable-warning"; // Default safe choice
+    const choice = 'both-separate' as 'both-separate' | 'disable-warning'; // Default safe choice
 
     this.preferences.userChoices.hasSeenTscEslintWarning = true;
     this.preferences.userChoices.preferredEngine =
-      choice === "disable-warning" ? "both-mixed" : choice;
+      choice === 'disable-warning' ? 'both-mixed' : choice;
 
-    if (choice === "disable-warning") {
+    if (choice === 'disable-warning') {
       this.preferences.preferences.warnings.showTscEslintSeparationWarning = false;
     }
 
@@ -297,7 +297,7 @@ Your choice will be saved and can be changed in preferences.
   /**
    * Get user's preferred analysis mode
    */
-  public getAnalysisMode(): "errors-only" | "warnings-and-errors" | "all" {
+  public getAnalysisMode(): 'errors-only' | 'warnings-and-errors' | 'all' {
     return this.preferences.preferences.analysis.defaultMode;
   }
 
@@ -311,20 +311,20 @@ Your choice will be saved and can be changed in preferences.
   /**
    * Get user's color scheme preference
    */
-  public getColorScheme(): "auto" | "light" | "dark" {
+  public getColorScheme(): 'auto' | 'light' | 'dark' {
     return this.preferences.preferences.display.colorScheme;
   }
 
   /**
    * Update user preference
    */
-  public updatePreference<K extends keyof UserPreferences["preferences"]>(
+  public updatePreference<K extends keyof UserPreferences['preferences']>(
     section: K,
-    updates: Partial<UserPreferences["preferences"][K]>,
+    updates: Partial<UserPreferences['preferences'][K]>
   ): void {
     this.preferences.preferences[section] = {
       ...this.preferences.preferences[section],
-      ...updates,
+      ...updates
     };
     this.savePreferences();
   }
@@ -347,9 +347,9 @@ Your choice will be saved and can be changed in preferences.
   /**
    * Update user choice/state
    */
-  public updateUserChoice<K extends keyof UserPreferences["userChoices"]>(
+  public updateUserChoice<K extends keyof UserPreferences['userChoices']>(
     key: K,
-    value: UserPreferences["userChoices"][K],
+    value: UserPreferences['userChoices'][K]
   ): void {
     this.preferences.userChoices[key] = value;
     this.savePreferences();
@@ -361,7 +361,7 @@ Your choice will be saved and can be changed in preferences.
   public hasSeparationOfConcerns(): boolean {
     return (
       this.preferences.userChoices.hasConfiguredSeparationOfConcerns ||
-      this.preferences.userChoices.preferredEngine === "both-separate"
+      this.preferences.userChoices.preferredEngine === 'both-separate'
     );
   }
 }

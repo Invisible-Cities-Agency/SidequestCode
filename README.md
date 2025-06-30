@@ -89,7 +89,7 @@ npx @sidequest/code-quality-orchestrator --help
 sidequest --watch
 
 # Skip setup for quick runs
-sidequest --watch --skip-setup
+sidequest --watch
 
 # Configuration management
 sidequest --config              # Show current preferences
@@ -170,7 +170,7 @@ sidequest --config edit
 sidequest --config reset
 
 # Skip first-run setup
-sidequest --watch --skip-setup
+sidequest --watch
 ```
 
 ### Configuration File
@@ -243,7 +243,7 @@ sidequest --path <dir>              # Target directory (default: app)
 sidequest --config                  # Show current preferences
 sidequest --config edit             # Edit preferences file
 sidequest --config reset            # Reset to defaults
-sidequest --skip-setup              # Skip first-run interactive setup
+# Setup is now automatically detected - no manual flags needed!
 ```
 
 ### Terminal & Display

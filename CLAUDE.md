@@ -162,7 +162,7 @@ The CLI supports extensive flags for different use cases:
 - `--watch` - Real-time monitoring mode
 - `--include-eslint` - Add ESLint analysis to TypeScript
 - `--verbose` - JSON output for automation/LLMs
-- `--skip-setup` - Bypass interactive first-run setup
+- Setup is now automatically detected based on existing preferences
 - `--config` - Configuration management commands
 
 ## Important Implementation Notes

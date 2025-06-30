@@ -6,11 +6,11 @@
  */
 
 // import * as path from "path";
-import { BaseAuditEngine } from "../engines/base-engine.js";
-import { TypeScriptAuditEngine } from "../engines/typescript-engine.js";
-import { ESLintAuditEngine } from "../engines/eslint-engine.js";
-import { UnusedExportsEngine } from "../engines/unused-exports-engine.js";
-import { ZodDetectionEngine } from "../engines/zod-detection-engine.js";
+import { BaseAuditEngine } from '../engines/base-engine.js';
+import { TypeScriptAuditEngine } from '../engines/typescript-engine.js';
+import { ESLintAuditEngine } from '../engines/eslint-engine.js';
+import { UnusedExportsEngine } from '../engines/unused-exports-engine.js';
+import { ZodDetectionEngine } from '../engines/zod-detection-engine.js';
 import type {
   Violation,
   EngineResult,
@@ -19,9 +19,9 @@ import type {
   EngineConfig,
   WatchEvent,
   WatchEventData,
-  CrossoverConfig,
-} from "../utils/violation-types.js";
-import { createCrossoverDetector } from "../utils/crossover-detector.js";
+  CrossoverConfig
+} from '../utils/violation-types.js';
+import { createCrossoverDetector } from '../utils/crossover-detector.js';
 
 /**
  * Configuration for the orchestrator
@@ -51,7 +51,7 @@ export interface OrchestratorConfig {
   /** Deduplication settings */
   deduplication?: {
     enabled: boolean;
-    strategy: "exact" | "similar" | "location";
+    strategy: 'exact' | 'similar' | 'location';
   };
   /** Crossover detection settings */
   crossover?: CrossoverConfig;
@@ -80,31 +80,31 @@ export class CodeQualityOrchestrator {
     // Initialize TypeScript engine
     if (this.config.engines.typescript?.enabled !== false) {
       const tsEngine = new TypeScriptAuditEngine(
-        this.config.engines.typescript as any,
+        this.config.engines.typescript as any
       );
-      this.engines.set("typescript", tsEngine);
+      this.engines.set('typescript', tsEngine);
     }
 
     // Initialize ESLint engine
     if (this.config.engines.eslint?.enabled !== false) {
       const eslintEngine = new ESLintAuditEngine(
-        this.config.engines.eslint as any,
+        this.config.engines.eslint as any
       );
-      this.engines.set("eslint", eslintEngine);
+      this.engines.set('eslint', eslintEngine);
     }
 
     // Initialize Unused Exports engine
     if (this.config.engines.unusedExports?.enabled !== false) {
       const unusedExportsEngine = new UnusedExportsEngine();
-      this.engines.set("unused-exports", unusedExportsEngine);
+      this.engines.set('unused-exports', unusedExportsEngine);
     }
 
     // Initialize Zod Detection engine
     if (this.config.engines.zodDetection?.enabled !== false) {
       const zodEngine = new ZodDetectionEngine(
-        this.config.engines.zodDetection as any,
+        this.config.engines.zodDetection as any
       );
-      this.engines.set("zod-detection", zodEngine);
+      this.engines.set('zod-detection', zodEngine);
     }
   }
 
@@ -115,20 +115,20 @@ export class CodeQualityOrchestrator {
     const startTime = Date.now();
     const engineResults: EngineResult[] = [];
 
-    this.emitEvent("analysis-started", { engines: [...this.engines.keys()] });
+    this.emitEvent('analysis-started', { engines: [...this.engines.keys()] });
 
     // Sort engines by priority
     const sortedEngines = [...this.engines.entries()].sort(
-      ([, a], [, b]) => a.getConfig().priority - b.getConfig().priority,
+      ([, a], [, b]) => a.getConfig().priority - b.getConfig().priority
     );
 
     // Execute engines in parallel (or series based on dependencies)
-    const enginePromises = sortedEngines.map(async ([name, engine]) => {
+    const enginePromises = sortedEngines.map(async([name, engine]) => {
       try {
         console.log(`[Orchestrator] Starting ${name} engine...`);
         const result = await engine.execute(this.config.targetPath);
         console.log(
-          `[Orchestrator] ${name} engine completed: ${result.violations.length} violations found`,
+          `[Orchestrator] ${name} engine completed: ${result.violations.length} violations found`
         );
         return result;
       } catch (error) {
@@ -139,7 +139,7 @@ export class CodeQualityOrchestrator {
           violations: [],
           executionTime: 0,
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: error instanceof Error ? error.message : String(error)
         };
       }
     });
@@ -161,7 +161,7 @@ export class CodeQualityOrchestrator {
       engineResults,
       totalExecutionTime,
       summary,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     };
 
     // Crossover detection and warnings
@@ -184,15 +184,15 @@ export class CodeQualityOrchestrator {
           crossoverDetector.hasCriticalIssues()
         ) {
           throw new Error(
-            "Critical crossover issues detected between ESLint and TypeScript engines",
+            'Critical crossover issues detected between ESLint and TypeScript engines'
           );
         }
       }
     }
 
-    this.emitEvent("analysis-completed", {
+    this.emitEvent('analysis-completed', {
       violationCount: deduplicatedViolations.length,
-      executionTime: totalExecutionTime,
+      executionTime: totalExecutionTime
     });
 
     return orchestratorResult;
@@ -203,7 +203,7 @@ export class CodeQualityOrchestrator {
    */
   async startWatch(): Promise<void> {
     if (this.watchMode) {
-      console.warn("[Orchestrator] Watch mode already active");
+      console.warn('[Orchestrator] Watch mode already active');
       return;
     }
 
@@ -216,19 +216,19 @@ export class CodeQualityOrchestrator {
     await this.analyze();
 
     // Set up periodic analysis
-    this.watchInterval = setInterval(async () => {
+    this.watchInterval = setInterval(async() => {
       try {
         await this.analyze();
       } catch (error) {
-        console.error("[Orchestrator] Watch mode analysis failed:", error);
+        console.error('[Orchestrator] Watch mode analysis failed:', error);
       }
     }, interval);
 
     // Handle graceful shutdown
-    process.on("SIGINT", () => {
+    process.on('SIGINT', () => {
       this.stopWatch();
-      process.stdout.write("\u001B[?25h"); // Show cursor
-      console.log("\n\n👋 Code Quality Orchestrator watch stopped.");
+      process.stdout.write('\u001B[?25h'); // Show cursor
+      console.log('\n\n👋 Code Quality Orchestrator watch stopped.');
       process.exit(0);
     });
   }
@@ -247,8 +247,8 @@ export class CodeQualityOrchestrator {
       this.watchInterval = undefined;
     }
 
-    this.emitEvent("watch-stopped", {});
-    console.log("[Orchestrator] Watch mode stopped");
+    this.emitEvent('watch-stopped', {});
+    console.log('[Orchestrator] Watch mode stopped');
   }
 
   /**
@@ -267,7 +267,7 @@ export class CodeQualityOrchestrator {
     return allViolations.sort((a, b) => {
       // Sort by source, then severity, then file, then line
       if (a.source !== b.source) {
-        return a.source === "typescript" ? -1 : 1;
+        return a.source === 'typescript' ? -1 : 1;
       }
 
       const severityOrder = { error: 0, warn: 1, info: 2 };
@@ -291,7 +291,7 @@ export class CodeQualityOrchestrator {
       return violations;
     }
 
-    const strategy = this.config.deduplication.strategy || "exact";
+    const strategy = this.config.deduplication.strategy || 'exact';
     const seen = new Set<string>();
     const deduplicated: Violation[] = [];
 
@@ -299,21 +299,21 @@ export class CodeQualityOrchestrator {
       let key: string;
 
       switch (strategy) {
-        case "exact": {
-          key = `${violation.file}:${violation.line}:${violation.code}:${violation.source}`;
-          break;
-        }
-        case "location": {
-          key = `${violation.file}:${violation.line}`;
-          break;
-        }
-        case "similar": {
-          key = `${violation.file}:${violation.category}:${violation.code.slice(0, 50)}`;
-          break;
-        }
-        default: {
-          key = `${violation.file}:${violation.line}:${violation.code}`;
-        }
+      case 'exact': {
+        key = `${violation.file}:${violation.line}:${violation.code}:${violation.source}`;
+        break;
+      }
+      case 'location': {
+        key = `${violation.file}:${violation.line}`;
+        break;
+      }
+      case 'similar': {
+        key = `${violation.file}:${violation.category}:${violation.code.slice(0, 50)}`;
+        break;
+      }
+      default: {
+        key = `${violation.file}:${violation.line}:${violation.code}`;
+      }
       }
 
       if (!seen.has(key)) {
@@ -335,16 +335,16 @@ export class CodeQualityOrchestrator {
       bySource: {
         typescript: 0,
         eslint: 0,
-        "unused-exports": 0,
-        "zod-detection": 0,
+        'unused-exports': 0,
+        'zod-detection': 0,
         parser: 0,
         complexity: 0,
         security: 0,
         performance: 0,
-        custom: 0,
+        custom: 0
       },
       byCategory: {} as Record<string, number>,
-      topFiles: [],
+      topFiles: []
     };
 
     const fileViolationCount = new Map<string, number>();
@@ -363,7 +363,7 @@ export class CodeQualityOrchestrator {
       // Count by file
       fileViolationCount.set(
         violation.file,
-        (fileViolationCount.get(violation.file) || 0) + 1,
+        (fileViolationCount.get(violation.file) || 0) + 1
       );
     }
 
@@ -393,7 +393,7 @@ export class CodeQualityOrchestrator {
     const eventData: WatchEventData = {
       type,
       timestamp: new Date().toISOString(),
-      payload,
+      payload
     };
 
     const listeners = this.eventListeners.get(type) || [];
@@ -403,7 +403,7 @@ export class CodeQualityOrchestrator {
       } catch (error) {
         console.error(
           `[Orchestrator] Event listener error for ${type}:`,
-          error,
+          error
         );
       }
     });

@@ -8,13 +8,13 @@ import {
   SqliteDialect,
   FileMigrationProvider,
   Migrator,
-  sql,
-} from "kysely";
-import Database from "better-sqlite3";
-import * as path from "node:path";
-import * as fs from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import type { DatabaseSchema, DatabaseConfig } from "./types.js";
+  sql
+} from 'kysely';
+import Database from 'better-sqlite3';
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import type { DatabaseSchema, DatabaseConfig } from './types.js';
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -33,7 +33,7 @@ export class DatabaseConnection {
    * Initialize database connection with configuration
    */
   static async initialize(
-    config: DatabaseConfig,
+    config: DatabaseConfig
   ): Promise<Kysely<DatabaseSchema>> {
     if (this.instance) {
       return this.instance;
@@ -51,13 +51,13 @@ export class DatabaseConnection {
 
     // Configure SQLite pragmas for performance
     const defaultPragmas = {
-      journal_mode: "WAL", // Write-Ahead Logging for better concurrency
-      synchronous: "NORMAL", // Good balance of safety and performance
+      journal_mode: 'WAL', // Write-Ahead Logging for better concurrency
+      synchronous: 'NORMAL', // Good balance of safety and performance
       cache_size: -64_000, // 64MB cache
-      foreign_keys: "ON", // Enable foreign key constraints
-      temp_store: "memory", // Store temp tables in memory
+      foreign_keys: 'ON', // Enable foreign key constraints
+      temp_store: 'memory', // Store temp tables in memory
       mmap_size: 134_217_728, // 128MB memory map
-      ...config.pragmas,
+      ...config.pragmas
     };
 
     // Apply pragmas
@@ -68,8 +68,8 @@ export class DatabaseConnection {
     // Create Kysely instance
     this.instance = new Kysely<DatabaseSchema>({
       dialect: new SqliteDialect({
-        database,
-      }),
+        database
+      })
     });
 
     console.log(`[Database] Connected to SQLite database: ${config.path}`);
@@ -88,7 +88,7 @@ export class DatabaseConnection {
   static getInstance(): Kysely<DatabaseSchema> {
     if (!this.instance) {
       throw new Error(
-        "Database not initialized. Call DatabaseConnection.initialize() first.",
+        'Database not initialized. Call DatabaseConnection.initialize() first.'
       );
     }
     return this.instance;
@@ -102,7 +102,7 @@ export class DatabaseConnection {
       await this.instance.destroy();
       this.instance = undefined;
       this.config = undefined;
-      console.log("[Database] Connection closed");
+      console.log('[Database] Connection closed');
     }
   }
 
@@ -111,43 +111,43 @@ export class DatabaseConnection {
    */
   private static async runMigrations(): Promise<void> {
     if (!this.instance || !this.config?.migrations?.path) {
-      throw new Error("Database or migration path not configured");
+      throw new Error('Database or migration path not configured');
     }
 
     const migrationProvider = new FileMigrationProvider({
-      fs: await import("node:fs/promises"),
-      path: await import("node:path"),
-      migrationFolder: this.config.migrations.path,
+      fs: await import('node:fs/promises'),
+      path: await import('node:path'),
+      migrationFolder: this.config.migrations.path
     });
 
     const migrator = new Migrator({
       db: this.instance,
-      provider: migrationProvider,
+      provider: migrationProvider
     });
 
     const { error, results } = await migrator.migrateToLatest();
 
     if (error) {
-      console.error("[Database] Migration failed:", error);
+      console.error('[Database] Migration failed:', error);
       throw error;
     }
 
     if (results) {
       results.forEach((result) => {
-        if (result.status === "Success") {
+        if (result.status === 'Success') {
           console.log(
-            `[Database] Migration "${result.migrationName}" executed successfully`,
+            `[Database] Migration "${result.migrationName}" executed successfully`
           );
         } else {
           console.error(
             `[Database] Migration "${result.migrationName}" failed with status:`,
-            result.status,
+            result.status
           );
         }
       });
     }
 
-    console.log("[Database] All migrations completed");
+    console.log('[Database] All migrations completed');
   }
 
   /**
@@ -155,40 +155,40 @@ export class DatabaseConnection {
    */
   private static async initializeSchema(): Promise<void> {
     if (!this.instance) {
-      throw new Error("Database not initialized");
+      throw new Error('Database not initialized');
     }
 
     try {
       if (!this.sqliteDatabase) {
-        throw new Error("SQLite database instance not available");
+        throw new Error('SQLite database instance not available');
       }
 
       // Check if schema is already initialized
       const tablesExist = this.sqliteDatabase
         .prepare(
-          "SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='violations'",
+          "SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name='violations'"
         )
         .get() as { count: number };
 
       if (tablesExist.count > 0) {
         console.log(
-          "[Database] Schema already exists, skipping initialization",
+          '[Database] Schema already exists, skipping initialization'
         );
         return;
       }
 
       // Read schema.sql
-      const schemaPath = path.join(__dirname, "schema.sql");
-      const schemaSQL = await fs.readFile(schemaPath, "utf8");
+      const schemaPath = path.join(__dirname, 'schema.sql');
+      const schemaSQL = await fs.readFile(schemaPath, 'utf8');
 
-      console.log("[Database] Initializing schema...");
+      console.log('[Database] Initializing schema...');
 
       // Use better-sqlite3's exec method which can handle multiple statements
       this.sqliteDatabase.exec(schemaSQL);
 
-      console.log("[Database] Schema initialized successfully");
+      console.log('[Database] Schema initialized successfully');
     } catch (error) {
-      console.error("[Database] Schema initialization failed:", error);
+      console.error('[Database] Schema initialization failed:', error);
       throw error;
     }
   }
@@ -204,14 +204,14 @@ export class DatabaseConnection {
 
       // Test basic query
       await this.instance
-        .selectFrom("violations")
-        .select("id")
+        .selectFrom('violations')
+        .select('id')
         .limit(1)
         .execute();
 
       return true;
     } catch (error) {
-      console.error("[Database] Health check failed:", error);
+      console.error('[Database] Health check failed:', error);
       return false;
     }
   }
@@ -226,7 +226,7 @@ export class DatabaseConnection {
     wal_size_mb: number;
   }> {
     if (!this.instance || !this.config) {
-      throw new Error("Database not initialized");
+      throw new Error('Database not initialized');
     }
 
     const database = this.instance;
@@ -234,13 +234,13 @@ export class DatabaseConnection {
     // Get table counts
     const [violationsResult, ruleChecksResult] = await Promise.all([
       database
-        .selectFrom("violations")
-        .select((eb) => eb.fn.count("id").as("count"))
+        .selectFrom('violations')
+        .select((eb) => eb.fn.count('id').as('count'))
         .executeTakeFirst(),
       database
-        .selectFrom("rule_checks")
-        .select((eb) => eb.fn.count("id").as("count"))
-        .executeTakeFirst(),
+        .selectFrom('rule_checks')
+        .select((eb) => eb.fn.count('id').as('count'))
+        .executeTakeFirst()
     ]);
 
     // Get file sizes
@@ -259,14 +259,14 @@ export class DatabaseConnection {
         // WAL file might not exist
       }
     } catch (error) {
-      console.warn("[Database] Could not get file size stats:", error);
+      console.warn('[Database] Could not get file size stats:', error);
     }
 
     return {
       violations_count: Number(violationsResult?.count || 0),
       rule_checks_count: Number(ruleChecksResult?.count || 0),
       database_size_mb: Math.round(databaseSizeMb * 100) / 100,
-      wal_size_mb: Math.round(walSizeMb * 100) / 100,
+      wal_size_mb: Math.round(walSizeMb * 100) / 100
     };
   }
 
@@ -275,10 +275,10 @@ export class DatabaseConnection {
    */
   static async vacuum(): Promise<void> {
     if (!this.instance) {
-      throw new Error("Database not initialized");
+      throw new Error('Database not initialized');
     }
 
-    console.log("[Database] Starting VACUUM operation...");
+    console.log('[Database] Starting VACUUM operation...');
     const startTime = Date.now();
 
     await sql`VACUUM`.execute(this.instance);
@@ -292,12 +292,12 @@ export class DatabaseConnection {
    */
   static async analyze(): Promise<void> {
     if (!this.instance) {
-      throw new Error("Database not initialized");
+      throw new Error('Database not initialized');
     }
 
-    console.log("[Database] Running ANALYZE...");
+    console.log('[Database] Running ANALYZE...');
     await sql`ANALYZE`.execute(this.instance);
-    console.log("[Database] ANALYZE completed");
+    console.log('[Database] ANALYZE completed');
   }
 }
 
@@ -310,23 +310,23 @@ export class DatabaseConnection {
  */
 function createDefaultDatabaseConfig(databasePath?: string): DatabaseConfig {
   const defaultPath =
-    databasePath || path.join(process.cwd(), "data", "code-quality.db");
+    databasePath || path.join(process.cwd(), 'data', 'code-quality.db');
 
   return {
     path: defaultPath,
     enableWAL: true,
     pragmas: {
-      journal_mode: "WAL",
-      synchronous: "NORMAL",
+      journal_mode: 'WAL',
+      synchronous: 'NORMAL',
       cache_size: -64_000,
-      foreign_keys: "ON",
-      temp_store: "memory",
-      mmap_size: 134_217_728,
+      foreign_keys: 'ON',
+      temp_store: 'memory',
+      mmap_size: 134_217_728
     },
     migrations: {
       enabled: false, // Use direct schema initialization for now
-      path: path.join(__dirname, "migrations"),
-    },
+      path: path.join(__dirname, 'migrations')
+    }
   };
 }
 
@@ -334,11 +334,11 @@ function createDefaultDatabaseConfig(databasePath?: string): DatabaseConfig {
  * Initialize database with default configuration
  */
 export async function initializeDatabase(
-  config?: Partial<DatabaseConfig>,
+  config?: Partial<DatabaseConfig>
 ): Promise<Kysely<DatabaseSchema>> {
   const fullConfig = {
     ...createDefaultDatabaseConfig(),
-    ...config,
+    ...config
   };
 
   return await DatabaseConnection.initialize(fullConfig);
