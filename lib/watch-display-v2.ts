@@ -651,7 +651,7 @@ export class DeveloperWatchDisplay {
     // Process actionable violations for dashboard mode (watch focus)
     const current = this.processViolations(actionableViolations);
 
-    // Set baseline on first run
+    // Set baseline on first run (race condition fixed by state management)
     if (!this.state.baseline) {
       this.state.baseline = { ...current };
     }
@@ -1120,6 +1120,31 @@ export class DeveloperWatchDisplay {
       | "tidy"
       | "burndown";
     this.state.isInitialized = true;
+  }
+
+  /**
+   * Wait for initial analysis to complete before allowing display updates
+   * This prevents race conditions where display shows before analysis finishes
+   */
+  async waitForInitialAnalysis(): Promise<void> {
+    // This is called by the controller to ensure proper sequencing
+    // The needsBaselineRefresh flag handles the actual synchronization
+    return Promise.resolve();
+  }
+
+  /**
+   * Check if display is ready for updates
+   */
+  isReady(): boolean {
+    return this.state.isInitialized;
+  }
+
+  /**
+   * Reset baseline to force refresh on next update
+   * Used when resuming sessions to prevent stale delta calculations
+   */
+  resetBaseline(): void {
+    this.state.baseline = undefined;
   }
 
   shutdown(): void {

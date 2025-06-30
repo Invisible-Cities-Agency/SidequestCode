@@ -43,6 +43,7 @@ import {
   resetDeveloperWatchDisplay,
 } from "./watch-display-v2.js";
 import { SessionManager } from "../services/session-manager.js";
+import { WatchController } from "./watch-controller.js";
 import {
   detectTerminalBackground,
   detectTerminalModeHeuristic,
@@ -68,7 +69,7 @@ import { dirname, join } from "node:path";
 /**
  * Process violations into summary format for session state
  */
-function processViolationSummary(violations: OrchestratorViolation[]) {
+export function processViolationSummary(violations: OrchestratorViolation[]) {
   const bySource: Record<string, number> = {};
   const byCategory: Record<string, number> = {};
 
@@ -521,6 +522,73 @@ function detectTerminalMode(): "light" | "dark" {
 }
 
 // Removed old complex display function - using clean developer display instead
+
+/**
+ * Create WatchController with all required dependencies
+ */
+async function createWatchController(
+  flags: CLIFlags,
+  orchestrator: any,
+  sessionManager: SessionManager,
+  colors: any,
+): Promise<WatchController> {
+  // Create legacy orchestrator for violation collection (SILENT mode for watch)
+  const legacyOrchestrator = new CodeQualityOrchestrator({
+    targetPath: flags.targetPath,
+    watch: { enabled: false, interval: 3000, debounce: 500 },
+    engines: {
+      typescript: {
+        enabled: !flags.eslintOnly,
+        options: {
+          includeAny: flags.includeAny,
+          strict: flags.strict,
+          targetPath: flags.targetPath,
+        },
+        priority: 1,
+        timeout: 30_000,
+        allowFailure: false,
+      },
+      eslint: {
+        enabled: true, // Always enabled in watch mode for comprehensive analysis
+        options: {
+          roundRobin: false,
+          maxWarnings: 1000,
+          timeout: 30_000,
+        },
+        priority: 2,
+        timeout: 35_000,
+        allowFailure: true,
+      },
+      unusedExports: {
+        enabled: true, // Always enabled for comprehensive analysis
+        options: {},
+        priority: 3,
+        timeout: 30_000,
+        allowFailure: true,
+      },
+    },
+    output: { console: false }, // SILENT: No console output during watch mode
+    deduplication: { enabled: true, strategy: "exact" as const },
+    crossover: {
+      enabled: !flags.noCrossoverCheck,
+      warnOnTypeAwareRules: true,
+      warnOnDuplicateViolations: true,
+      failOnCrossover: flags.failOnCrossover,
+    },
+  });
+
+  // Get the clean developer display
+  const watchDisplay = getDeveloperWatchDisplay();
+
+  return new WatchController({
+    flags,
+    orchestrator,
+    sessionManager,
+    display: watchDisplay,
+    legacyOrchestrator,
+    colors,
+  });
+}
 
 /**
  * Display burndown analysis
@@ -1318,254 +1386,29 @@ async function main(): Promise<void> {
       }
 
       if (flags.watch) {
-        // Handle session resumption or creation
-        let session = null;
-        let checksCount = 0;
-
-        if (flags.resumeSession) {
-          session = await sessionManager.loadSession();
-          if (session && sessionManager.canResumeSession(session, flags)) {
-            checksCount = session.checksCount;
-            console.log(
-              `${colors.success}🔄 Resuming previous session (${session.checksCount} checks, ${Math.floor((Date.now() - session.startTime) / 60000)}min ago)...${colors.reset}`,
-            );
-            const stats = sessionManager.getSessionStats();
-            if (stats && stats.errorCount > 0) {
-              console.log(
-                `${colors.warning}⚠️  Previous session had ${stats.errorCount} errors${colors.reset}`,
-              );
-            }
-          } else {
-            console.log(
-              `${colors.warning}⚠️  Cannot resume previous session, starting fresh...${colors.reset}`,
-            );
-            session = null;
-          }
-        }
-
-        if (!session) {
-          session = await sessionManager.createSession(flags);
-        }
-
-        // Enhanced watch mode with session persistence
-        console.log(
-          `${colors.bold}${colors.info}Starting Enhanced Code Quality Watch...${colors.reset}`,
+        // Create and start watch controller
+        const watchController = await createWatchController(
+          flags,
+          orchestrator,
+          sessionManager,
+          colors,
         );
 
-        // Start watch mode with orchestrator service
-        await orchestrator.startWatchMode({
-          intervalMs: 3000,
-          debounceMs: 500,
-          autoCleanup: true,
-          maxConcurrentChecks: 3,
-        });
-
-        // Create legacy orchestrator for violation collection (SILENT mode for watch)
-        const legacyOrchestrator = new CodeQualityOrchestrator({
-          targetPath: flags.targetPath,
-          watch: { enabled: false, interval: 3000, debounce: 500 },
-          engines: {
-            typescript: {
-              enabled: !flags.eslintOnly,
-              options: {
-                includeAny: flags.includeAny,
-                strict: flags.strict,
-                targetPath: flags.targetPath,
-              },
-              priority: 1,
-              timeout: 30_000,
-              allowFailure: false,
-            },
-            eslint: {
-              enabled: true, // Always enabled in watch mode for comprehensive analysis
-              options: {
-                roundRobin: false,
-                maxWarnings: 1000,
-                timeout: 30_000,
-              },
-              priority: 2,
-              timeout: 35_000,
-              allowFailure: true,
-            },
-            unusedExports: {
-              enabled: true, // Always enabled for comprehensive analysis
-              options: {},
-              priority: 3,
-              timeout: 30_000,
-              allowFailure: true,
-            },
-          },
-          output: { console: false }, // SILENT: No console output during watch mode
-          deduplication: { enabled: true, strategy: "exact" as const },
-          crossover: {
-            enabled: !flags.noCrossoverCheck,
-            warnOnTypeAwareRules: true,
-            warnOnDuplicateViolations: true,
-            failOnCrossover: flags.failOnCrossover,
-          },
-        });
-
-        // Get the clean developer display and restore session state if resuming
-        const watchDisplay = getDeveloperWatchDisplay();
-        if (flags.resumeSession && session) {
-          // Restore display state from session
-          watchDisplay.restoreFromSession({
-            sessionStart: session.startTime,
-            baseline: session.baseline,
-            current: session.current,
-            viewMode: session.viewMode,
-          });
-        }
-
-        // Enable silent mode for services during watch
-        orchestrator.setSilentMode(true);
-
-        // Watch cycle with persistence and comprehensive error handling
-        const runEnhancedWatchCycle = async () => {
-          try {
-            // Get current violations using legacy orchestrator
-            const result = await legacyOrchestrator.analyze();
-            checksCount++;
-
-            // Process violations with persistence (for historical tracking)
-            await processViolationsWithPersistence(
-              result.violations,
-              orchestrator,
-            );
-
-            // Update session state
-            const current = processViolationSummary(result.violations);
-            await sessionManager.updateSession({
-              checksCount,
-              current,
-              baseline: session?.baseline || current,
-            });
-
-            if (flags.verbose) {
-              const enhancedResult = {
-                ...result,
-                database: {
-                  dashboard: await orchestrator
-                    .getStorageService()
-                    .getDashboardData(),
-                },
-              };
-              console.log(JSON.stringify(enhancedResult, undefined, 2));
-            } else {
-              // Use the clean developer display for clear metrics
-              await watchDisplay.updateDisplay(
-                result.violations,
-                checksCount,
-                orchestrator,
-              );
-            }
-          } catch (error) {
-            // Enhanced error handling with detailed diagnostics
-            const errorObj =
-              error instanceof Error ? error : new Error(String(error));
-            const timestamp = new Date().toISOString();
-            const errorDetails = {
-              timestamp,
-              error: errorObj.message,
-              stack: errorObj.stack,
-              checksCount,
-              cwd: process.cwd(),
-              nodeVersion: process.version,
-              platform: process.platform,
-            };
-
-            // Log to console with user-friendly message
-            console.error(
-              `\n${colors.error}🚨 Watch Mode Error at ${timestamp}${colors.reset}`,
-            );
-            console.error(
-              `${colors.warning}Reason: ${errorObj.message}${colors.reset}`,
-            );
-            console.error(
-              `${colors.secondary}Check ${checksCount} failed. Watch mode continuing...${colors.reset}\n`,
-            );
-
-            // Log error to session
-            await sessionManager.logError(errorObj, checksCount, {
-              nodeVersion: process.version,
-              platform: process.platform,
-            });
-
-            // Log detailed error to file for debugging
-            try {
-              const { existsSync, mkdirSync, appendFileSync } = await import(
-                "node:fs"
-              );
-              const { join } = await import("node:path");
-              const logDir = join(process.cwd(), ".sidequest-logs");
-              const logFile = join(logDir, "watch-errors.log");
-
-              if (!existsSync(logDir)) {
-                mkdirSync(logDir, { recursive: true });
-              }
-
-              const logEntry = `${JSON.stringify(errorDetails, null, 2)}\n\n`;
-              appendFileSync(logFile, logEntry);
-
-              console.error(
-                `${colors.info}📝 Error logged to: ${logFile}${colors.reset}`,
-              );
-            } catch (logError) {
-              const logErrorObj =
-                logError instanceof Error
-                  ? logError
-                  : new Error(String(logError));
-              console.error(
-                `${colors.warning}⚠️  Could not log error details: ${logErrorObj.message}${colors.reset}`,
-              );
-            }
-
-            // Emit error event for potential recovery
-            orchestrator.emit("watchCycleError", errorObj, checksCount);
+        // Set up event listeners for debugging
+        watchController.on("stateChange", (transition) => {
+          if (flags.verbose) {
+            console.log(`State: ${transition.from} → ${transition.to}`);
           }
-        };
+        });
 
-        // Initial run
-        await runEnhancedWatchCycle();
-
-        // Set up interval
-        const watchInterval = setInterval(runEnhancedWatchCycle, 3000);
-
-        // Safety timeout (10 minutes)
-        const watchTimeout = setTimeout(
-          async () => {
-            console.log(
-              "\n\n⏰ Watch mode timeout reached (10 minutes). Stopping...",
-            );
-            clearInterval(watchInterval);
-            await orchestrator.stopWatchMode();
-            await orchestrator.shutdown();
-
-            // Clean shutdown of display system
-            watchDisplay.shutdown();
-            resetDeveloperWatchDisplay();
-
-            process.exit(0);
-          },
-          10 * 60 * 1000,
-        );
-
-        // Handle graceful shutdown
-        process.on("SIGINT", async () => {
-          clearInterval(watchInterval);
-          clearTimeout(watchTimeout);
-          await orchestrator.stopWatchMode();
-          await orchestrator.shutdown();
-
-          // Clean shutdown of display system
-          watchDisplay.shutdown();
-          resetDeveloperWatchDisplay();
-
-          console.log(
-            "\n\n👋 Enhanced Code Quality Orchestrator watch stopped.",
+        watchController.on("invalidTransition", (attempt) => {
+          console.warn(
+            `Invalid state transition attempted: ${attempt.from} → ${attempt.to}`,
           );
-          process.exit(0);
         });
+
+        // Start watch mode
+        await watchController.start();
       } else {
         // Single run mode with persistence
         console.log(
