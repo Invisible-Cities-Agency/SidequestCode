@@ -1493,17 +1493,19 @@ async function main(): Promise<void> {
 
             // Log detailed error to file for debugging
             try {
-              const fs = require("node:fs");
-              const path = require("node:path");
-              const logDir = path.join(process.cwd(), ".sidequest-logs");
-              const logFile = path.join(logDir, "watch-errors.log");
+              const { existsSync, mkdirSync, appendFileSync } = await import(
+                "node:fs"
+              );
+              const { join } = await import("node:path");
+              const logDir = join(process.cwd(), ".sidequest-logs");
+              const logFile = join(logDir, "watch-errors.log");
 
-              if (!fs.existsSync(logDir)) {
-                fs.mkdirSync(logDir, { recursive: true });
+              if (!existsSync(logDir)) {
+                mkdirSync(logDir, { recursive: true });
               }
 
               const logEntry = `${JSON.stringify(errorDetails, null, 2)}\n\n`;
-              fs.appendFileSync(logFile, logEntry);
+              appendFileSync(logFile, logEntry);
 
               console.error(
                 `${colors.info}📝 Error logged to: ${logFile}${colors.reset}`,

@@ -148,9 +148,9 @@ export class SessionManager {
   async clearSession(): Promise<void> {
     this.currentSession = null;
     try {
-      const fs = require("node:fs");
-      if (fs.existsSync(this.sessionFile)) {
-        fs.unlinkSync(this.sessionFile);
+      const { existsSync, unlinkSync } = await import("node:fs");
+      if (existsSync(this.sessionFile)) {
+        unlinkSync(this.sessionFile);
       }
     } catch {
       // Ignore cleanup errors
@@ -226,13 +226,13 @@ export class SessionManager {
     }
 
     try {
-      const fs = require("node:fs");
-      const { dirname } = require("node:path");
+      const { existsSync, mkdirSync } = await import("node:fs");
+      const { dirname } = await import("node:path");
 
       // Ensure directory exists
       const dir = dirname(this.sessionFile);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
       }
 
       const content = JSON.stringify(this.currentSession, null, 2);
