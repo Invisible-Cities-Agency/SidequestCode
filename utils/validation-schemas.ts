@@ -40,6 +40,7 @@ export const CLIFlagsSchema = z
     resetSession: z.boolean().default(false),
     resumeSession: z.boolean().default(false),
     debugTerminal: z.boolean().default(false),
+    debug: z.boolean().default(false),
     dataDir: z
       .string()
       .regex(/^[\w./-]+$/, "Invalid data directory path")
@@ -309,6 +310,7 @@ export function safeCLIArgumentsParse(arguments_: string[]): ValidatedCLIFlags {
     resetSession: arguments_.includes("--reset-session"),
     resumeSession: arguments_.includes("--resume"),
     debugTerminal: arguments_.includes("--debug-terminal"),
+    debug: arguments_.includes("--debug"),
     dataDir: (() => {
       const dataDirectoryIndex = arguments_.indexOf("--data-dir");
       if (

@@ -29,6 +29,7 @@ import type {
   StorageServiceConfig,
 } from "../database/types.js";
 import type { Violation as OrchestratorViolation } from "../utils/violation-types.js";
+import { debugLog } from "../utils/debug-logger.js";
 
 // ============================================================================
 // Storage Service Class
@@ -206,7 +207,11 @@ export class StorageService {
     // Order by most recent first
     query = query.orderBy("last_seen_at", "desc");
 
-    return await query.execute();
+    const results = await query.execute();
+    debugLog("StorageService", "Retrieved violations", {
+      count: results.length,
+    });
+    return results;
   }
 
   /**

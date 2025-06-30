@@ -13,6 +13,7 @@ import type { CodeQualityOrchestrator } from "./orchestrator.js";
 import type { Violation as OrchestratorViolation } from "../utils/violation-types.js";
 import { WatchStateManager } from "../services/watch-state-manager.js";
 import { processViolationSummary } from "./cli.js";
+import { debugLog } from "../utils/debug-logger.js";
 
 export interface WatchControllerConfig {
   flags: CLIFlags;
@@ -61,10 +62,11 @@ export class WatchController extends EventEmitter {
       this.config;
 
     // Pre-flight checks
-    console.log("[WatchController] Starting pre-flight checks...");
-    console.log(`[WatchController] Working directory: ${process.cwd()}`);
-    console.log(`[WatchController] Node version: ${process.version}`);
-    console.log(`[WatchController] Platform: ${process.platform}`);
+    debugLog("WatchController", "Starting pre-flight checks...");
+    debugLog("WatchController", `Working directory: ${process.cwd()}`);
+    debugLog("WatchController", `Node version: ${process.version}`);
+    debugLog("WatchController", `Platform: ${process.platform}`);
+    debugLog("WatchController", "Flags configuration", flags);
 
     try {
       // Handle session restoration or creation
@@ -73,6 +75,11 @@ export class WatchController extends EventEmitter {
         session = await sessionManager.loadSession();
         if (session && sessionManager.canResumeSession(session, flags)) {
           this.stateManager.setSessionId(session.id);
+          debugLog("WatchController", "Resuming previous session", {
+            sessionId: session.id,
+            checksCount: session.checksCount,
+            minutesAgo: Math.floor((Date.now() - session.startTime) / 60000),
+          });
           console.log(
             `${colors.success}🔄 Resuming previous session (${session.checksCount} checks, ${Math.floor((Date.now() - session.startTime) / 60000)}min ago)...${colors.reset}`,
           );
@@ -85,6 +92,10 @@ export class WatchController extends EventEmitter {
             viewMode: session.viewMode,
           });
         } else {
+          debugLog(
+            "WatchController",
+            "Cannot resume previous session, starting fresh",
+          );
           console.log(
             `${colors.warning}⚠️  Cannot resume previous session, starting fresh...${colors.reset}`,
           );
@@ -93,11 +104,25 @@ export class WatchController extends EventEmitter {
       }
 
       if (!session) {
+        debugLog("WatchController", "Creating new session");
         session = await sessionManager.createSession(flags);
         this.stateManager.setSessionId(session.id);
+        debugLog("WatchController", "New session created", {
+          sessionId: session.id,
+        });
       }
 
       // Start orchestrator watch mode
+      debugLog(
+        "WatchController",
+        "Starting orchestrator watch mode with config",
+        {
+          intervalMs: 3000,
+          debounceMs: 500,
+          autoCleanup: true,
+          maxConcurrentChecks: 3,
+        },
+      );
       await orchestrator.startWatchMode({
         intervalMs: 3000,
         debounceMs: 500,
@@ -106,6 +131,7 @@ export class WatchController extends EventEmitter {
       });
 
       // Enable silent mode for services during watch
+      debugLog("WatchController", "Enabling silent mode for orchestrator");
       orchestrator.setSilentMode(true);
 
       console.log(
@@ -113,7 +139,7 @@ export class WatchController extends EventEmitter {
       );
 
       // Perform initial analysis before starting watch cycle
-      console.log("[WatchController] Starting initial analysis cycle...");
+      debugLog("WatchController", "Starting initial analysis cycle...");
       this.stateManager.startAnalysis();
 
       await Promise.race([
@@ -127,8 +153,9 @@ export class WatchController extends EventEmitter {
       ]);
 
       this.stateManager.completeAnalysis();
-      console.log(
-        "[WatchController] Initial analysis completed, starting watch cycle...",
+      debugLog(
+        "WatchController",
+        "Initial analysis completed, starting watch cycle...",
       );
 
       // Start watch cycle
@@ -163,10 +190,10 @@ export class WatchController extends EventEmitter {
       this.config;
 
     try {
-      console.log("[WatchController] Starting analysis cycle...");
+      debugLog("WatchController", "Starting analysis cycle...");
 
       // Get current violations using legacy orchestrator with timeout
-      console.log("[WatchController] Running legacy orchestrator analysis...");
+      debugLog("WatchController", "Running legacy orchestrator analysis...");
       const result = (await Promise.race([
         legacyOrchestrator.analyze(),
         new Promise((_, reject) =>
@@ -176,31 +203,35 @@ export class WatchController extends EventEmitter {
           ),
         ),
       ])) as any;
-      console.log(
-        `[WatchController] Analysis completed, found ${result.violations?.length || 0} violations`,
+      debugLog(
+        "WatchController",
+        `Analysis completed, found ${result.violations?.length || 0} violations`,
       );
 
       const checksCount = this.stateManager.getChecksCount() + 1;
 
       // Process violations with persistence (for historical tracking)
-      console.log(
-        "[WatchController] Processing violations with persistence...",
-      );
+      debugLog("WatchController", "Processing violations with persistence...");
       await this.processViolationsWithPersistence(result.violations);
+      debugLog("WatchController", "Violations processed with persistence");
 
       // Update session state
-      console.log("[WatchController] Updating session state...");
+      debugLog("WatchController", "Updating session state...");
       const current = processViolationSummary(result.violations);
       await sessionManager.updateSession({
         checksCount,
         current,
         baseline: undefined, // Let display manage baseline
       });
-      console.log("[WatchController] Session state updated");
+      debugLog("WatchController", "Session state updated", {
+        checksCount,
+        violationTotal: current.total,
+      });
 
       if (flags.verbose) {
-        console.log(
-          "[WatchController] Getting dashboard data for verbose output...",
+        debugLog(
+          "WatchController",
+          "Getting dashboard data for verbose output...",
         );
         const enhancedResult = {
           ...result,

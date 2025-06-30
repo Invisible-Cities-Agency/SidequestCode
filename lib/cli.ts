@@ -165,11 +165,23 @@ try {
     resetSession: false,
     resumeSession: false,
     debugTerminal: false,
+    debug: false,
     dataDir: "./data",
     generatePRD: false,
     installShortcuts: false,
     configAction: undefined,
   };
+}
+
+// Enable debug logging if --debug flag is set
+import { DebugLogger } from "../utils/debug-logger.js";
+if (flags.debug) {
+  DebugLogger.enable();
+  DebugLogger.debug("CLI", "Debug mode enabled via --debug flag");
+  DebugLogger.debug("CLI", "Command line arguments", {
+    args: arguments_,
+    flags,
+  });
 }
 
 // Color scheme is now handled via keyboard shortcuts in watch mode (Ctrl+D)

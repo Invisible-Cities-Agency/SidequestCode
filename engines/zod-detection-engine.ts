@@ -14,6 +14,7 @@ import {
   PackageJsonSchema,
   type ValidatedPackageJson,
 } from "../utils/validation-schemas.js";
+import { debugLog, warnLog, errorLog } from "../utils/debug-logger.js";
 
 interface ZodUsage {
   schemaDefinitions: Array<{ file: string; line: number; name: string }>;
@@ -73,18 +74,33 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     const violations: Violation[] = [];
 
     try {
+      debugLog("ZodDetection", "Starting Zod analysis", {
+        targetPath,
+        options: _options,
+      });
+
       // Check if Zod is installed
       const hasZod = await this.hasZodDependency();
       if (!hasZod) {
+        debugLog(
+          "ZodDetection",
+          "Zod not detected in project - skipping analysis",
+        );
         console.log(
           "[Zod Detection] Zod not detected in project - skipping analysis",
         );
         return [];
       }
 
+      debugLog("ZodDetection", "Zod detected, analyzing usage patterns...");
       console.log("[Zod Detection] Analyzing Zod usage patterns...");
 
       const zodUsage = this.analyzeZodUsage(targetPath);
+      debugLog("ZodDetection", "Zod usage analysis complete", {
+        schemas: zodUsage.schemaDefinitions.length,
+        parseUsages: zodUsage.parseUsages.length,
+        safeParsUsages: zodUsage.safeParsUsages.length,
+      });
 
       // Detect unused schemas
       const unusedSchemas = this.findUnusedSchemas(zodUsage);
@@ -113,10 +129,18 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         violations.push(...coverageSuggestions);
       }
 
+      debugLog("ZodDetection", "Analysis complete", {
+        totalViolations: violations.length,
+      });
       return violations;
     } catch (error: any) {
+      errorLog("ZodDetection", "Analysis failed", error);
       console.error("[Zod Detection] Analysis failed:", error);
       if (this.config.allowFailure) {
+        warnLog(
+          "ZodDetection",
+          "Analysis failed but continuing due to allowFailure setting",
+        );
         console.warn(
           "[Zod Detection] Analysis failed but continuing due to allowFailure setting",
         );
@@ -129,6 +153,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
   private async hasZodDependency(): Promise<boolean> {
     try {
       const cwd = process.cwd();
+      debugLog("ZodDetection", `Checking for Zod dependency in: ${cwd}`);
       console.log(`[Zod Detection] Checking for Zod dependency in: ${cwd}`);
 
       let packageJsonData: any;
@@ -137,14 +162,23 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       try {
         const fs = await import("node:fs/promises");
         const packageJsonPath = `${cwd}/package.json`;
+        debugLog(
+          "ZodDetection",
+          `Reading package.json from: ${packageJsonPath}`,
+        );
         console.log(
           `[Zod Detection] Reading package.json from: ${packageJsonPath}`,
         );
 
         const packageJsonContent = await fs.readFile(packageJsonPath, "utf8");
         packageJsonData = JSON.parse(packageJsonContent);
+        debugLog("ZodDetection", "Successfully read package.json via fs");
         console.log(`[Zod Detection] Successfully read package.json via fs`);
       } catch (fsError: any) {
+        debugLog(
+          "ZodDetection",
+          `fs.readFile failed: ${fsError.message}, trying import()`,
+        );
         console.log(
           `[Zod Detection] fs.readFile failed: ${fsError.message}, trying import()`,
         );
@@ -152,6 +186,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         // Fallback to import approach
         const packageJsonModule = await import(`${cwd}/package.json`);
         packageJsonData = packageJsonModule.default || packageJsonModule;
+        debugLog("ZodDetection", "Successfully read package.json via import()");
         console.log(
           `[Zod Detection] Successfully read package.json via import()`,
         );
@@ -160,18 +195,28 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       // Validate package.json structure with Zod for security
       const packageJson: ValidatedPackageJson =
         PackageJsonSchema.parse(packageJsonData);
+      debugLog("ZodDetection", "package.json structure validated successfully");
       console.log("[Security] package.json structure validated successfully");
 
       const hasZodInDeps = !!packageJson.dependencies?.["zod"];
       const hasZodInDevDeps = !!packageJson.devDependencies?.["zod"];
       const hasZod = hasZodInDeps || hasZodInDevDeps;
 
+      debugLog("ZodDetection", "Dependency check results", {
+        dependencies: hasZodInDeps,
+        devDependencies: hasZodInDevDeps,
+        detected: hasZod,
+        zodVersion:
+          packageJson.dependencies?.["zod"] ||
+          packageJson.devDependencies?.["zod"],
+      });
       console.log(`[Zod Detection] Zod in dependencies: ${hasZodInDeps}`);
       console.log(`[Zod Detection] Zod in devDependencies: ${hasZodInDevDeps}`);
       console.log(`[Zod Detection] Zod detected: ${hasZod}`);
 
       return hasZod;
     } catch (error: any) {
+      errorLog("ZodDetection", "Could not validate package.json", error);
       console.warn(
         "[Zod Detection] Could not validate package.json:",
         error.message,
@@ -182,6 +227,8 @@ export class ZodDetectionEngine extends BaseAuditEngine {
   }
 
   private analyzeZodUsage(baseDirectory: string): ZodUsage {
+    debugLog("ZodDetection", "Starting Zod usage analysis", { baseDirectory });
+
     const usage: ZodUsage = {
       schemaDefinitions: [],
       parseUsages: [],
@@ -189,6 +236,10 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     };
 
     // Find schema definitions (z.object, z.string, z.array, etc.)
+    debugLog(
+      "ZodDetection",
+      "Searching for Zod schema definitions with ripgrep",
+    );
     const schemaResult = spawnSync(
       "rg",
       [
@@ -203,6 +254,15 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         cwd: baseDirectory,
       },
     );
+
+    debugLog("ZodDetection", "Schema definition search result", {
+      exitCode: schemaResult.status,
+      hasStdout: !!schemaResult.stdout,
+      hasStderr: !!schemaResult.stderr,
+      stdoutLines: schemaResult.stdout
+        ? schemaResult.stdout.split("\n").length
+        : 0,
+    });
 
     if (schemaResult.stdout) {
       for (const line of schemaResult.stdout.split("\n")) {
@@ -226,6 +286,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     }
 
     // Find .parse() usages - but only for Zod schemas, not JSON.parse() etc.
+    debugLog("ZodDetection", "Searching for .parse() usages with ripgrep");
     const parseResult = spawnSync(
       "rg",
       [
@@ -240,6 +301,15 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         cwd: baseDirectory,
       },
     );
+
+    debugLog("ZodDetection", "Parse usage search result", {
+      exitCode: parseResult.status,
+      hasStdout: !!parseResult.stdout,
+      hasStderr: !!parseResult.stderr,
+      stdoutLines: parseResult.stdout
+        ? parseResult.stdout.split("\n").length
+        : 0,
+    });
 
     if (parseResult.stdout) {
       for (const line of parseResult.stdout.split("\n")) {
@@ -268,6 +338,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     }
 
     // Find .safeParse() usages
+    debugLog("ZodDetection", "Searching for .safeParse() usages with ripgrep");
     const safeParseResult = spawnSync(
       "rg",
       ["--type", "ts", "--line-number", String.raw`\.safeParse\(`, "."],
@@ -276,6 +347,15 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         cwd: baseDirectory,
       },
     );
+
+    debugLog("ZodDetection", "SafeParse usage search result", {
+      exitCode: safeParseResult.status,
+      hasStdout: !!safeParseResult.stdout,
+      hasStderr: !!safeParseResult.stderr,
+      stdoutLines: safeParseResult.stdout
+        ? safeParseResult.stdout.split("\n").length
+        : 0,
+    });
 
     if (safeParseResult.stdout) {
       for (const line of safeParseResult.stdout.split("\n")) {
@@ -299,6 +379,10 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     }
 
     // Find safeJsonParse() utility function usages - CRITICAL FIX for missed detections
+    debugLog(
+      "ZodDetection",
+      "Searching for safeJsonParse() usages with ripgrep",
+    );
     const safeJsonParseResult = spawnSync(
       "rg",
       ["--type", "ts", "--line-number", String.raw`safeJsonParse\(`, "."],
@@ -307,6 +391,15 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         cwd: baseDirectory,
       },
     );
+
+    debugLog("ZodDetection", "SafeJsonParse usage search result", {
+      exitCode: safeJsonParseResult.status,
+      hasStdout: !!safeJsonParseResult.stdout,
+      hasStderr: !!safeJsonParseResult.stderr,
+      stdoutLines: safeJsonParseResult.stdout
+        ? safeJsonParseResult.stdout.split("\n").length
+        : 0,
+    });
 
     if (safeJsonParseResult.stdout) {
       for (const line of safeJsonParseResult.stdout.split("\n")) {
@@ -332,6 +425,12 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         }
       }
     }
+
+    debugLog("ZodDetection", "Zod usage analysis complete", {
+      schemaDefinitions: usage.schemaDefinitions.length,
+      parseUsages: usage.parseUsages.length,
+      safeParsUsages: usage.safeParsUsages.length,
+    });
 
     return usage;
   }
