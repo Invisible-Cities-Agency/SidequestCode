@@ -39,10 +39,13 @@ export class WatchController extends EventEmitter {
 
   constructor(config: WatchControllerConfig) {
     super();
+    debugLog("WatchController", "Constructor started");
     this.config = config;
+    debugLog("WatchController", "Config assigned");
     this.stateManager = new WatchStateManager(null, {
       flags: config.flags as Record<string, unknown>,
     });
+    debugLog("WatchController", "State manager created");
 
     // Forward state manager events
     this.stateManager.on("stateChange", (transition) => {
@@ -52,6 +55,7 @@ export class WatchController extends EventEmitter {
     this.stateManager.on("invalidTransition", (attempt) => {
       this.emit("invalidTransition", attempt);
     });
+    debugLog("WatchController", "Constructor completed successfully");
   }
 
   /**

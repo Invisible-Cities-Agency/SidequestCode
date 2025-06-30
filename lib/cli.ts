@@ -545,7 +545,10 @@ async function createWatchController(
   sessionManager: SessionManager,
   colors: any,
 ): Promise<WatchController> {
+  debugLog("CLI", "Starting createWatchController...");
+
   // Create legacy orchestrator for violation collection (SILENT mode for watch)
+  debugLog("CLI", "Creating legacy orchestrator for watch mode...");
   const legacyOrchestrator = new CodeQualityOrchestrator({
     targetPath: flags.targetPath,
     watch: { enabled: false, interval: 3000, debounce: 500 },
@@ -589,10 +592,14 @@ async function createWatchController(
       failOnCrossover: flags.failOnCrossover,
     },
   });
+  debugLog("CLI", "Legacy orchestrator created successfully");
 
   // Get the clean developer display
+  debugLog("CLI", "Getting developer watch display...");
   const watchDisplay = getDeveloperWatchDisplay();
+  debugLog("CLI", "Watch display obtained");
 
+  debugLog("CLI", "Creating WatchController instance...");
   return new WatchController({
     flags,
     orchestrator,
@@ -1442,13 +1449,17 @@ async function main(): Promise<void> {
       }
 
       if (flags.watch) {
+        debugLog("CLI", "Starting watch mode setup...");
+
         // Create and start watch controller
+        debugLog("CLI", "About to create watch controller...");
         const watchController = await createWatchController(
           flags,
           orchestrator,
           sessionManager,
           colors,
         );
+        debugLog("CLI", "Watch controller created successfully");
 
         // Set up event listeners for debugging
         watchController.on("stateChange", (transition) => {
