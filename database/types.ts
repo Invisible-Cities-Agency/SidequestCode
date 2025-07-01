@@ -196,6 +196,6 @@ export interface DashboardData {
   recent_history: ViolationHistory[];
   active_violations: number;
   total_files_affected: number;
-  last_check_time: string | null;
-  next_scheduled_check: string | null;
+  last_check_time: string | null | undefined;
+  next_scheduled_check: string | null | undefined;
 }

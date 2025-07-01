@@ -117,7 +117,7 @@ interface UserPreferences {
       | 'eslint-only'
       | 'both-separate'
       | 'both-mixed';
-    lastConfigUpdate: string | null;
+    lastConfigUpdate: string | null | undefined;
   };
 }
 

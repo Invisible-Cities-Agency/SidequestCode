@@ -54,13 +54,20 @@ export class UnusedExportsEngine extends BaseAuditEngine {
       }
 
       return this.parseUnusedExportsOutput(stdout);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // ts-unused-exports exits with code 1 when it finds unused exports, this is expected
-      if (error.code === 1 && error.stdout) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 1 &&
+        'stdout' in error &&
+        error.stdout
+      ) {
         console.log(
           '[UnusedExportsEngine] Found unused exports, processing results...'
         );
-        return this.parseUnusedExportsOutput(error.stdout);
+        return this.parseUnusedExportsOutput(error.stdout as string);
       }
 
       console.error('[UnusedExportsEngine] Unexpected error:', error);

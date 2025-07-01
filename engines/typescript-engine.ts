@@ -405,10 +405,12 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       console.log(`[TypeScript Engine] Target: ${configSummary.target}`);
 
       // TODO: Store configSummary in database for watch mode access
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.warn(
         '[TypeScript Engine] Could not validate TypeScript config:',
-        error.message
+        errorMessage
       );
       console.warn(
         '[TypeScript Engine] Continuing with default configuration...'

@@ -77,14 +77,22 @@ export class ViolationTracker implements IViolationTracker {
           `[ViolationTracker] Storing ${validated.length} validated violations to database`
         );
       }
-      const storeResult = await this.storageService.storeViolations(validated);
-      inserted = storeResult.inserted;
-      updated = storeResult.updated;
-      errors.push(...storeResult.errors);
-      if (!this.silent) {
-        console.log(
-          `[ViolationTracker] Storage result: inserted=${inserted}, updated=${updated}, errors=${storeResult.errors.length}`
-        );
+      try {
+        const storeResult =
+          await this.storageService.storeViolations(validated);
+        inserted = storeResult.inserted;
+        updated = storeResult.updated;
+        errors.push(...storeResult.errors);
+        if (!this.silent) {
+          console.log(
+            `[ViolationTracker] Storage result: inserted=${inserted}, updated=${updated}, errors=${storeResult.errors.length}`
+          );
+        }
+      } catch (error) {
+        errors.push(`Storage operation failed: ${error}`);
+        if (!this.silent) {
+          console.warn('[ViolationTracker] Storage operation failed:', error);
+        }
       }
     } else {
       if (!this.silent) {
@@ -97,12 +105,22 @@ export class ViolationTracker implements IViolationTracker {
     const executionTime = performance.now() - startTime;
 
     // Record performance metric
-    await this.storageService.recordPerformanceMetric(
-      'violation_processing',
-      executionTime,
-      'ms',
-      `processed: ${violations.length}, validated: ${validated.length}`
-    );
+    try {
+      await this.storageService.recordPerformanceMetric(
+        'violation_processing',
+        executionTime,
+        'ms',
+        `processed: ${violations.length}, validated: ${validated.length}`
+      );
+    } catch (error) {
+      // Don't fail the entire operation if metrics recording fails
+      if (!this.silent) {
+        console.warn(
+          '[ViolationTracker] Failed to record performance metric:',
+          error
+        );
+      }
+    }
 
     const result: ProcessingResult = {
       processed: violations.length,
@@ -262,23 +280,43 @@ export class ViolationTracker implements IViolationTracker {
     const warnings: string[] = [];
 
     // Required field validation
-    if (!violation.file || violation.file.trim().length === 0) {
+    if (
+      !violation.file ||
+      typeof violation.file !== 'string' ||
+      violation.file.trim().length === 0
+    ) {
       errors.push('File path is required');
     }
 
-    if (!violation.message || violation.message.trim().length === 0) {
+    if (
+      !violation.message ||
+      typeof violation.message !== 'string' ||
+      violation.message.trim().length === 0
+    ) {
       errors.push('Message is required');
     }
 
-    if (!violation.category || violation.category.trim().length === 0) {
+    if (
+      !violation.category ||
+      typeof violation.category !== 'string' ||
+      violation.category.trim().length === 0
+    ) {
       errors.push('Category is required');
     }
 
-    if (!violation.severity || violation.severity.trim().length === 0) {
+    if (
+      !violation.severity ||
+      typeof violation.severity !== 'string' ||
+      violation.severity.trim().length === 0
+    ) {
       errors.push('Severity is required');
     }
 
-    if (!violation.source || violation.source.trim().length === 0) {
+    if (
+      !violation.source ||
+      typeof violation.source !== 'string' ||
+      violation.source.trim().length === 0
+    ) {
       errors.push('Source is required');
     }
 

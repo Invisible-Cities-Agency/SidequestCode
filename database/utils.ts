@@ -18,12 +18,16 @@ import type { NewViolation, ViolationDelta } from "./types.js";
  */
 export function generateViolationHash(violation: {
   file_path: string;
-  line_number?: number | null;
-  rule_id?: string | null;
+  line_number?: number | null | undefined;
+  rule_id?: string | null | undefined;
   message: string;
 }): string {
   // Normalize the message to make it more stable
-  const normalizedMessage = violation.message
+  const messageStr =
+    typeof violation.message === "string"
+      ? violation.message
+      : String(violation.message || "");
+  const normalizedMessage = messageStr
     .replaceAll(/line \d+/g, "line X") // Replace specific line numbers in messages
     .replaceAll(/\d+:\d+/g, "X:Y") // Replace line:column references
     .trim();

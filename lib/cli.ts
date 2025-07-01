@@ -48,6 +48,8 @@ import {
 } from './terminal-detector.js';
 import { isESLintCategory } from '../shared/constants.js';
 import type { CLIFlags } from '../utils/types.js';
+import type { ColorScheme } from '../shared/types.js';
+import type { RuleFrequencyRecommendation } from '../services/interfaces.js';
 
 // Import unified orchestrator and configuration bridge
 import { UnifiedOrchestrator } from '../services/unified-orchestrator.js';
@@ -145,8 +147,9 @@ try {
   if (validatedEnvironment.DEBUG) {
     console.log('[Security] CLI arguments validated successfully');
   }
-} catch (error: any) {
-  console.error(`[Security Error] ${error.message}`);
+} catch (error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`[Security Error] ${errorMessage}`);
   console.error('Falling back to safe defaults...');
   // Use safe default flags if validation fails
   flags = {
@@ -556,7 +559,7 @@ TROUBLESHOOTING:
 /**
  * Get color scheme for terminal output with light/dark mode support
  */
-function getColorScheme() {
+function getColorScheme(): ColorScheme {
   const colorMode =
     validatedEnvironment.TERM_COLOR_MODE || detectTerminalMode();
 
@@ -565,6 +568,7 @@ function getColorScheme() {
       // Light mode: Replicate macOS Terminal "Man Page" theme colors
       reset: '\u001B[0m',
       bold: '\u001B[1m',
+      dim: '\u001B[2m',
       primary: '\u001B[30m', // Black text (Man Page style)
       secondary: '\u001B[90m', // Dark gray
       info: '\u001B[34m', // Deep blue
@@ -572,12 +576,14 @@ function getColorScheme() {
       warning: '\u001B[33m', // Amber/brown
       error: '\u001B[31m', // Deep red
       muted: '\u001B[37m', // Medium gray
+      accent: '\u001B[36m', // Cyan
       header: '\u001B[35m' // Purple (Man Page style)
     }
     : {
       // Dark mode: Replicate macOS Terminal "Pro" theme colors
       reset: '\u001B[0m',
       bold: '\u001B[1m',
+      dim: '\u001B[2m',
       primary: '\u001B[97m', // Bright white (Pro theme style)
       secondary: '\u001B[37m', // Light gray
       info: '\u001B[94m', // Bright blue (Pro theme blue)
@@ -585,6 +591,7 @@ function getColorScheme() {
       warning: '\u001B[93m', // Bright yellow (Pro theme yellow)
       error: '\u001B[91m', // Bright red (Pro theme red)
       muted: '\u001B[90m', // Dim gray
+      accent: '\u001B[95m', // Bright magenta
       header: '\u001B[96m' // Bright cyan (Pro theme cyan)
     };
 }
@@ -603,9 +610,9 @@ function detectTerminalMode(): 'light' | 'dark' {
  */
 async function createWatchController(
   flags: CLIFlags,
-  orchestrator: any,
+  orchestrator: UnifiedOrchestrator,
   sessionManager: SessionManager,
-  colors: any
+  colors: ColorScheme
 ): Promise<WatchController> {
   debugLog('CLI', 'Starting createWatchController...');
 
@@ -635,7 +642,9 @@ async function createWatchController(
 /**
  * Display burndown analysis
  */
-async function displayBurndownAnalysis(orchestrator: any): Promise<void> {
+async function displayBurndownAnalysis(
+  orchestrator: UnifiedOrchestrator
+): Promise<void> {
   const colors = getColorScheme();
 
   console.log(
@@ -682,13 +691,15 @@ async function displayBurndownAnalysis(orchestrator: any): Promise<void> {
       console.log(
         `\n${colors.warning}Rule Frequency Recommendations:${colors.reset}`
       );
-      recommendations.slice(0, 5).forEach((rec: any) => {
-        const currentFreq = Math.round(rec.currentFrequency / 1000);
-        const recommendedFreq = Math.round(rec.recommendedFrequency / 1000);
-        console.log(
-          `  ${colors.info}${rec.ruleId}:${colors.reset} ${currentFreq}s → ${recommendedFreq}s ${colors.secondary}(${rec.reasoning})${colors.reset}`
-        );
-      });
+      recommendations
+        .slice(0, 5)
+        .forEach((rec: RuleFrequencyRecommendation) => {
+          const currentFreq = Math.round(rec.currentFrequency / 1000);
+          const recommendedFreq = Math.round(rec.recommendedFrequency / 1000);
+          console.log(
+            `  ${colors.info}${rec.rule}:${colors.reset} ${currentFreq}s → ${recommendedFreq}s ${colors.secondary}(${rec.reasoning})${colors.reset}`
+          );
+        });
     }
   } catch (error) {
     console.log(
@@ -757,8 +768,8 @@ function displayConsoleResults(result: OrchestratorResult): void {
       const isESLint = isESLintCategory(category);
       const prefix = isESLint ? '🔍' : '📝';
       const severity =
-        violations.find((v: any) => v.category === category)?.severity ||
-        'info';
+        violations.find((v: OrchestratorViolation) => v.category === category)
+          ?.severity || 'info';
       const severityIcon =
         severity === 'error' ? '❌' : (severity === 'warn' ? '⚠️' : 'ℹ️');
 
@@ -777,7 +788,7 @@ function displayConsoleResults(result: OrchestratorResult): void {
  */
 function displayZodAnalysisSection(
   violations: OrchestratorViolation[],
-  colors: any
+  colors: ColorScheme
 ): void {
   console.log(`\n${colors.bold}${colors.header}🛡️ Zod Analysis${colors.reset}`);
 
@@ -1103,9 +1114,10 @@ async function handleInstallShortcuts(): Promise<void> {
       `${colors.success}✅ Shortcuts installation completed!${colors.reset}`
     );
     console.log(`${colors.info}💡 Try: pnpm run sidequest:help${colors.reset}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `${colors.error}❌ Failed to install shortcuts: ${error.message}${colors.reset}`
+      `${colors.error}❌ Failed to install shortcuts: ${errorMessage}${colors.reset}`
     );
     console.error(
       `${colors.warning}💡 You can add scripts manually to package.json:${colors.reset}`
@@ -1619,7 +1631,10 @@ async function main(): Promise<void> {
 }
 
 // Execute main function
-main().catch((error) => {
-  console.error('[CLI] Unexpected error:', error);
-  process.exit(1);
-});
+// Only run main() when this file is executed directly, not when imported
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('[CLI] Unexpected error:', error);
+    process.exit(1);
+  });
+}

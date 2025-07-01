@@ -8,7 +8,7 @@
  */
 
 import { BaseAuditEngine } from './base-engine.js';
-import type { Violation } from '../utils/violation-types.js';
+import type { Violation, EngineConfig } from '../utils/violation-types.js';
 import { spawnSync } from 'node:child_process';
 import {
   PackageJsonSchema,
@@ -22,13 +22,24 @@ interface ZodUsage {
   safeParsUsages: Array<{ file: string; line: number; schema: string }>;
 }
 
+interface ZodCoverage {
+  totalSchemas: number;
+  usedSchemas: number;
+  coveragePercentage: number;
+  parseCallsCount: number;
+  safeParseCallsCount: number;
+  validationCallsTotal: number;
+  hasUnsafeParseUsage: boolean;
+}
+
 export class ZodDetectionEngine extends BaseAuditEngine {
-  constructor(config: any = {}) {
+  constructor(config: Partial<EngineConfig> = {}) {
     super('Zod Detection', 'zod-detection', {
       enabled: true,
       priority: 3,
       timeout: 30_000,
       allowFailure: true,
+      options: {},
       ...config
     });
   }
@@ -70,7 +81,10 @@ export class ZodDetectionEngine extends BaseAuditEngine {
     return false;
   }
 
-  async analyze(targetPath: string, _options: any = {}): Promise<Violation[]> {
+  async analyze(
+    targetPath: string,
+    _options: Record<string, unknown> = {}
+  ): Promise<Violation[]> {
     const violations: Violation[] = [];
 
     try {
@@ -133,7 +147,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         totalViolations: violations.length
       });
       return violations;
-    } catch (error: any) {
+    } catch (error: unknown) {
       errorLog('ZodDetection', 'Analysis failed', error);
       console.error('[Zod Detection] Analysis failed:', error);
       if (this.config.allowFailure) {
@@ -156,7 +170,7 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       debugLog('ZodDetection', `Checking for Zod dependency in: ${cwd}`);
       console.log(`[Zod Detection] Checking for Zod dependency in: ${cwd}`);
 
-      let packageJsonData: any;
+      let packageJsonData: unknown;
 
       // Try file system approach first (more reliable)
       try {
@@ -174,13 +188,15 @@ export class ZodDetectionEngine extends BaseAuditEngine {
         packageJsonData = JSON.parse(packageJsonContent);
         debugLog('ZodDetection', 'Successfully read package.json via fs');
         console.log('[Zod Detection] Successfully read package.json via fs');
-      } catch (fsError: any) {
+      } catch (fsError: unknown) {
+        const errorMessage =
+          fsError instanceof Error ? fsError.message : String(fsError);
         debugLog(
           'ZodDetection',
-          `fs.readFile failed: ${fsError.message}, trying import()`
+          `fs.readFile failed: ${errorMessage}, trying import()`
         );
         console.log(
-          `[Zod Detection] fs.readFile failed: ${fsError.message}, trying import()`
+          `[Zod Detection] fs.readFile failed: ${errorMessage}, trying import()`
         );
 
         // Fallback to import approach
@@ -217,11 +233,13 @@ export class ZodDetectionEngine extends BaseAuditEngine {
       console.log(`[Zod Detection] Zod detected: ${hasZod}`);
 
       return hasZod;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       errorLog('ZodDetection', 'Could not validate package.json', error);
       console.warn(
         '[Zod Detection] Could not validate package.json:',
-        error.message
+        errorMessage
       );
       console.warn('[Zod Detection] Full error:', error);
       return false;
@@ -575,10 +593,31 @@ export class ZodDetectionEngine extends BaseAuditEngine {
   }
 
   /**
+   * Type guard to check if coverage object has the expected structure
+   */
+  private isValidCoverage(coverage: unknown): coverage is ZodCoverage {
+    return (
+      typeof coverage === 'object' &&
+      coverage !== null &&
+      'totalSchemas' in coverage &&
+      'usedSchemas' in coverage &&
+      'coveragePercentage' in coverage &&
+      'parseCallsCount' in coverage &&
+      'safeParseCallsCount' in coverage &&
+      'validationCallsTotal' in coverage &&
+      'hasUnsafeParseUsage' in coverage
+    );
+  }
+
+  /**
    * Generate coverage-based suggestions and violations
    */
-  private generateCoverageSuggestions(coverage: any): Violation[] {
+  private generateCoverageSuggestions(coverage: unknown): Violation[] {
     const suggestions: Violation[] = [];
+
+    if (!this.isValidCoverage(coverage)) {
+      return suggestions;
+    }
 
     // Only report coverage issues if there are actually Zod schemas defined
     if (coverage.totalSchemas === 0) {

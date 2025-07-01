@@ -16,7 +16,8 @@ export function detectTerminalBackground(): Promise<
     process.env['CI'] ||
     process.env['NODE_ENV'] === 'test'
   ) {
-    return Promise.resolve();
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    return Promise.resolve(undefined);
   }
 
   // Check if terminal supports OSC queries
@@ -34,7 +35,8 @@ export function detectTerminalBackground(): Promise<
     process.env['COLORTERM'] === 'truecolor';
 
   if (!supportsOSC) {
-    return Promise.resolve();
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    return Promise.resolve(undefined);
   }
 
   return new Promise((resolve) => {
@@ -43,7 +45,8 @@ export function detectTerminalBackground(): Promise<
     // Set up timeout (300ms should be enough, shorter for better UX)
     const timeout = setTimeout(() => {
       cleanup();
-      resolve();
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      resolve(undefined);
     }, 300);
 
     const cleanup = () => {
@@ -128,11 +131,13 @@ export function detectTerminalBackground(): Promise<
         process.stdout.write('\u001B]11;?\u001B\\');
       } else {
         cleanup();
-        resolve();
+        // eslint-disable-next-line unicorn/no-useless-undefined
+        resolve(undefined);
       }
     } catch {
       cleanup();
-      resolve();
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      resolve(undefined);
     }
   });
 }

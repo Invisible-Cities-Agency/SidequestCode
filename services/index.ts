@@ -14,17 +14,10 @@
 // ============================================================================
 
 // Only export what's actually used
-export { ConfigManager } from './config-manager.js';
 export { PreferencesManager } from './preferences-manager.js';
 
-// Export unified orchestrator components
-export {
-  UnifiedOrchestrator,
-  getUnifiedOrchestrator,
-  resetUnifiedOrchestrator,
-  createUnifiedOrchestrator,
-  createDefaultUnifiedConfig
-} from './unified-orchestrator.js';
+// Export only what's needed for resetAllServices
+export { resetUnifiedOrchestrator } from './unified-orchestrator.js';
 
 // Import classes for getter functions
 import { PreferencesManager } from './preferences-manager.js';

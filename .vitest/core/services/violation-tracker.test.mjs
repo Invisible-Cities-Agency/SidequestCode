@@ -90,9 +90,9 @@ describe('ViolationTracker', () => {
 
     test('should deduplicate violations before processing', async () => {
       const violations = [
-        createMockViolation({ file: '/test/file.ts', line: 10 }),
-        createMockViolation({ file: '/test/file.ts', line: 10 }), // Duplicate
-        createMockViolation({ file: '/test/file.ts', line: 20 })
+        createMockViolation({ file: '/test/file.ts', line: 10, rule: 'same-rule', message: 'same message' }),
+        createMockViolation({ file: '/test/file.ts', line: 10, rule: 'same-rule', message: 'same message' }), // Duplicate
+        createMockViolation({ file: '/test/file.ts', line: 20, rule: 'different-rule', message: 'different message' })
       ];
 
       const result = await violationTracker.processViolations(violations);
@@ -145,9 +145,9 @@ describe('ViolationTracker', () => {
   describe('Violation Deduplication', () => {
     test('should deduplicate identical violations', () => {
       const violations = [
-        createMockViolation({ file: '/test/file.ts', line: 10, message: 'error' }),
-        createMockViolation({ file: '/test/file.ts', line: 10, message: 'error' }),
-        createMockViolation({ file: '/test/file.ts', line: 20, message: 'error' })
+        createMockViolation({ file: '/test/file.ts', line: 10, message: 'error', rule: 'same-rule' }),
+        createMockViolation({ file: '/test/file.ts', line: 10, message: 'error', rule: 'same-rule' }),
+        createMockViolation({ file: '/test/file.ts', line: 20, message: 'different error', rule: 'different-rule' })
       ];
 
       const deduplicated = violationTracker.deduplicateViolations(violations);
@@ -157,9 +157,9 @@ describe('ViolationTracker', () => {
 
     test('should preserve different violations', () => {
       const violations = [
-        createMockViolation({ file: '/test/file1.ts' }),
-        createMockViolation({ file: '/test/file2.ts' }),
-        createMockViolation({ file: '/test/file1.ts', line: 20 })
+        createMockViolation({ file: '/test/file1.ts', rule: 'rule1', message: 'msg1' }),
+        createMockViolation({ file: '/test/file2.ts', rule: 'rule2', message: 'msg2' }),
+        createMockViolation({ file: '/test/file1.ts', line: 20, rule: 'rule3', message: 'msg3' })
       ];
 
       const deduplicated = violationTracker.deduplicateViolations(violations);
@@ -456,6 +456,8 @@ describe('ViolationTracker', () => {
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors.some(error => error.includes('Storage error'))).toBe(true);
+      expect(result.processed).toBe(1);
+      expect(result.inserted).toBe(0);
     });
 
     test('should handle performance metric recording errors', async () => {

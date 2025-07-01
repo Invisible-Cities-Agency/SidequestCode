@@ -758,10 +758,12 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         'ESLint output'
       );
       console.log('[Security] ESLint output validated successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.warn(
         '[ESLint Engine] Failed to parse and validate JSON output:',
-        error.message
+        errorMessage
       );
 
       // Try to extract partial JSON if output was truncated

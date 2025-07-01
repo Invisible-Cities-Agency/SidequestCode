@@ -6,6 +6,11 @@
 
 import { EventEmitter } from 'node:events';
 import type { CLIFlags } from '../utils/types.js';
+import type { ColorScheme } from '../shared/types.js';
+import type {
+  OrchestratorResult,
+  Violation as OrchestratorViolation
+} from '../utils/violation-types.js';
 // OrchestratorService import removed - using UnifiedOrchestrator only
 import type { SessionManager } from '../services/session-manager.js';
 import type { DeveloperWatchDisplay } from './watch-display-v2.js';
@@ -20,7 +25,7 @@ export interface WatchControllerConfig {
   sessionManager: SessionManager;
   display: DeveloperWatchDisplay;
   legacyOrchestrator: UnifiedOrchestrator; // Using unified orchestrator
-  colors: any; // Color scheme from cli.ts
+  colors: ColorScheme; // Color scheme from cli.ts
 }
 
 /**
@@ -146,7 +151,7 @@ export class WatchController extends EventEmitter {
       debugLog('WatchController', 'Starting initial analysis cycle...');
       this.stateManager.startAnalysis();
 
-      let initialAnalysisResult: any = undefined;
+      let initialAnalysisResult: OrchestratorResult | undefined = undefined;
       await Promise.race([
         this.runAnalysisCycle().then((result) => {
           initialAnalysisResult = result;
@@ -173,9 +178,12 @@ export class WatchController extends EventEmitter {
       if (this.stateManager.canUpdateDisplay()) {
         try {
           // Use the stored result from initial analysis instead of running again
-          if (initialAnalysisResult) {
+          if (initialAnalysisResult && 'violations' in initialAnalysisResult) {
+            const violations = (
+              initialAnalysisResult as { violations: OrchestratorViolation[] }
+            ).violations;
             await display.updateDisplay(
-              initialAnalysisResult.violations,
+              violations,
               this.stateManager.getChecksCount(),
               orchestrator
             );
@@ -415,7 +423,7 @@ export class WatchController extends EventEmitter {
   /**
    * Log error details to file system
    */
-  private async logErrorToFile(errorDetails: any): Promise<void> {
+  private async logErrorToFile(errorDetails: unknown): Promise<void> {
     const { colors } = this.config;
 
     try {

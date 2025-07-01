@@ -7,6 +7,7 @@ import {
   getCategoryLabel,
   type Violation as OrchestratorViolation
 } from '../utils/violation-types.js';
+import type { UnifiedOrchestrator } from '../services/unified-orchestrator.js';
 import { detectTerminalModeHeuristic } from './terminal-detector.js';
 import { ANSI_CODES, isESLintCategory } from '../shared/constants.js';
 import { replaceAll } from '../utils/node-compatibility.js';
@@ -64,7 +65,8 @@ export class DeveloperWatchDisplay {
       error: colorSet.ERROR,
       info: colorSet.INFO,
       muted: colorSet.MUTED,
-      accent: colorSet.ACCENT
+      accent: colorSet.ACCENT,
+      header: colorSet.PRIMARY // Use primary color for headers
     };
   }
 
@@ -668,7 +670,7 @@ export class DeveloperWatchDisplay {
   async updateDisplay(
     violations: OrchestratorViolation[],
     checksCount: number,
-    orchestrator?: any
+    orchestrator?: UnifiedOrchestrator
   ): Promise<void> {
     debugLog('WatchDisplay', 'updateDisplay called', {
       violationCount: violations.length,

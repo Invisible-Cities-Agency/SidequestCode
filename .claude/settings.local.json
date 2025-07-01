@@ -65,7 +65,8 @@
       "Bash(tm remove-task:*)",
       "Bash(tm show:*)",
       "Bash(tm create:*)",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

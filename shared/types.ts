@@ -19,6 +19,7 @@ export interface ColorScheme {
   readonly info: string;
   readonly muted: string;
   readonly accent: string;
+  readonly header: string;
 }
 
 export type TerminalMode = 'light' | 'dark';
