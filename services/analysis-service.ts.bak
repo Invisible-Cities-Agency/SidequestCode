@@ -280,9 +280,9 @@ export class AnalysisService implements IAnalysisService {
 
   recommendRuleFrequencies(): RuleFrequencyRecommendation[] {
     // const rulePerformance = await this.storageService.getRulePerformance();
-    const rulePerformance: unknown[] = []; // TODO: Implement getRulePerformance
+    const rulePerformance: any[] = []; // TODO: Implement getRulePerformance
 
-    return rulePerformance.map((rule: unknown) => {
+    return rulePerformance.map((rule: any) => {
       const currentFrequency = 30_000; // Default 30 seconds
       let recommendedFrequency = currentFrequency;
       let reasoning = 'No change recommended';
@@ -349,16 +349,16 @@ export class AnalysisService implements IAnalysisService {
 
   async generateRuleEfficiencyReport(): Promise<RuleEfficiencyReport> {
     // const rulePerformance = await this.storageService.getRulePerformance();
-    const rulePerformance: unknown[] = []; // TODO: Implement getRulePerformance
+    const rulePerformance: any[] = []; // TODO: Implement getRulePerformance
     const recommendations = await this.recommendRuleFrequencies();
 
     const totalRules = rulePerformance.length;
     const activeRules = rulePerformance.filter(
-      (rule: unknown) => rule.enabled
+      (rule: any) => rule.enabled
     ).length;
     const avgExecutionTime =
       rulePerformance.reduce(
-        (sum: number, rule: unknown) => sum + (rule.avg_execution_time_ms || 0),
+        (sum: any, rule: any) => sum + (rule.avg_execution_time_ms || 0),
         0
       ) / totalRules;
 
@@ -499,7 +499,7 @@ export class AnalysisService implements IAnalysisService {
 
     // Rule performance recommendations
     const slowRules = rulePerformance.filter(
-      (rule: unknown) => (rule.avgExecutionTime || 0) > 500
+      (rule: any) => (rule.avgExecutionTime || 0) > 500
     );
     if (slowRules.length > 0) {
       recommendations.push(

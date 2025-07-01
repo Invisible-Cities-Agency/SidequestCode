@@ -358,7 +358,7 @@ export class AnalysisService implements IAnalysisService {
     ).length;
     const avgExecutionTime =
       rulePerformance.reduce(
-        (sum: number, rule: unknown) => sum + (rule.avg_execution_time_ms || 0),
+        (sum: any, rule: any) => sum + (rule.avg_execution_time_ms || 0),
         0
       ) / totalRules;
 

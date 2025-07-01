@@ -11,6 +11,7 @@ describe('UnifiedOrchestrator - Basic Functionality', () => {
   
   beforeEach(() => {
     const mockConfig = {
+      targetPath: '/test/project',
       engines: {
         typescript: { enabled: true, priority: 1, timeout: 30000, allowFailure: false, options: {} },
         eslint: { enabled: true, priority: 2, timeout: 30000, allowFailure: false, options: {} },
@@ -19,7 +20,11 @@ describe('UnifiedOrchestrator - Basic Functionality', () => {
       },
       output: { console: false, json: undefined },
       deduplication: { enabled: true, strategy: 'exact' },
-      crossover: { enabled: false, warnOnTypeAwareRules: false, warnOnDuplicateViolations: false, failOnCrossover: false }
+      crossover: { enabled: false, warnOnTypeAwareRules: false, warnOnDuplicateViolations: false, failOnCrossover: false },
+      database: { path: './data/test.db', enableWAL: false, maxHistoryDays: 7 },
+      polling: { defaultFrequencyMs: 30_000, maxConcurrentChecks: 3, adaptivePolling: true },
+      watch: { intervalMs: 3000, debounceMs: 500, autoCleanup: true },
+      performance: { batchSize: 100, enableMetrics: true }
     };
 
     orchestrator = new UnifiedOrchestrator(mockConfig);
