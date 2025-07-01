@@ -5,6 +5,36 @@ All notable changes to the SideQuest Code Quality Orchestrator will be documente
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0-alpha.3] - 2025-07-01
+
+### Fixed
+
+- **🎯 Watch Mode Performance**: Resolved critical ESLint/Prettier configuration conflicts
+  - Fixed EPIPE error in TypeScript engine console output during piped operations
+  - Eliminated 8,639 ESLint style violation noise by implementing eslint-config-prettier
+  - Watch mode no longer hangs on analysis - now runs cleanly with 0 current violations
+  - Disabled conflicting style rules (indent, quotes, comma-dangle) that conflicted with Prettier
+- **⚡ ESLint Configuration Optimization**: Industry-standard style rule management
+  - Added eslint-config-prettier to automatically disable conflicting formatting rules
+  - Preserved unicorn ESLint rules for legitimate code quality suggestions (82 useful violations)
+  - Maintained actionable violation visibility (errors + warnings) without formatting noise
+  - Fixed stream handling in engines to prevent pipe errors during automation
+
+### Enhanced
+
+- **🔧 Development Workflow**: Improved watch mode reliability and performance
+  - Watch mode now properly displays actionable violations without overwhelming style noise
+  - Clean JSON output for automation-friendly commands (sidequest:report)
+  - Faster analysis cycles with reduced violation processing overhead
+  - Better separation between formatting (Prettier) and code quality (ESLint) concerns
+
+### Technical Details
+
+- Stream output protection: Added `process.stdout.writable` checks before console.log
+- ESLint configuration: Extended with "prettier" to disable conflicting rules
+- Violation filtering: Watch mode now shows meaningful violations instead of style conflicts
+- Performance improvement: Reduced violation processing from 8,639 to 82 relevant suggestions
+
 ## [0.2.0-alpha.2] - 2025-07-01
 
 ### Added

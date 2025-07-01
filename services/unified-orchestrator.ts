@@ -6,7 +6,7 @@
  * This replaces both legacy systems with a single, unified orchestrator.
  */
 
-import { EventEmitter } from 'node:events';
+import { EventEmitter } from "node:events";
 import type {
   IOrchestratorService,
   IStorageService,
@@ -17,20 +17,20 @@ import type {
   OrchestratorConfig,
   HealthCheckResult,
   SystemStats,
-  RuleCheckResult
-} from './interfaces.js';
-import { ConfigManager } from './config-manager.js';
-import { getPollingService } from './polling-service.js';
-import { getAnalysisService } from './analysis-service.js';
-import { getViolationTracker } from './violation-tracker.js';
+  RuleCheckResult,
+} from "./interfaces.js";
+import { ConfigManager } from "./config-manager.js";
+import { getPollingService } from "./polling-service.js";
+import { getAnalysisService } from "./analysis-service.js";
+import { getViolationTracker } from "./violation-tracker.js";
 
 // Import legacy orchestrator types and utilities
-import { BaseAuditEngine } from '../engines/base-engine.js';
-import { TypeScriptAuditEngine } from '../engines/typescript-engine.js';
-import { ESLintAuditEngine } from '../engines/eslint-engine.js';
-import { UnusedExportsEngine } from '../engines/unused-exports-engine.js';
-import { ZodDetectionEngine } from '../engines/zod-detection-engine.js';
-import { CodeArchaeologyEngine } from '../engines/code-archaeology-engine.js';
+import { BaseAuditEngine } from "../engines/base-engine.js";
+import { TypeScriptAuditEngine } from "../engines/typescript-engine.js";
+import { ESLintAuditEngine } from "../engines/eslint-engine.js";
+import { UnusedExportsEngine } from "../engines/unused-exports-engine.js";
+import { ZodDetectionEngine } from "../engines/zod-detection-engine.js";
+import { CodeArchaeologyEngine } from "../engines/code-archaeology-engine.js";
 import type {
   Violation,
   EngineResult,
@@ -39,9 +39,9 @@ import type {
   EngineConfig,
   WatchEvent,
   WatchEventData,
-  CrossoverConfig
-} from '../utils/violation-types.js';
-import { createCrossoverDetector } from '../utils/crossover-detector.js';
+  CrossoverConfig,
+} from "../utils/violation-types.js";
+import { createCrossoverDetector } from "../utils/crossover-detector.js";
 
 /**
  * Unified orchestrator configuration combining both systems
@@ -58,7 +58,7 @@ export interface UnifiedOrchestratorConfig {
   };
   deduplication?: {
     enabled: boolean;
-    strategy: 'exact' | 'similar' | 'location';
+    strategy: "exact" | "similar" | "location";
   };
   crossover?: CrossoverConfig;
   output?: {
@@ -153,7 +153,7 @@ export class UnifiedOrchestrator
 
   constructor(
     config: UnifiedOrchestratorConfig,
-    configManager?: ConfigManager
+    configManager?: ConfigManager,
   ) {
     super();
     this.unifiedConfig = config;
@@ -167,11 +167,11 @@ export class UnifiedOrchestrator
 
   async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log('[UnifiedOrchestrator] Already initialized');
+      console.log("[UnifiedOrchestrator] Already initialized");
       return;
     }
 
-    console.log('[UnifiedOrchestrator] Initializing services...');
+    console.log("[UnifiedOrchestrator] Initializing services...");
 
     try {
       // Initialize all services through config manager
@@ -184,41 +184,41 @@ export class UnifiedOrchestrator
       this.violationTracker = getViolationTracker(this.storageService);
 
       // Set up event forwarding from polling service
-      this.pollingService.on('ruleStarted', (ruleId, engine) => {
-        this.emit('ruleStarted', ruleId, engine);
+      this.pollingService.on("ruleStarted", (ruleId, engine) => {
+        this.emit("ruleStarted", ruleId, engine);
       });
 
-      this.pollingService.on('ruleCompleted', (result) => {
-        this.emit('ruleCompleted', result);
+      this.pollingService.on("ruleCompleted", (result) => {
+        this.emit("ruleCompleted", result);
       });
 
-      this.pollingService.on('ruleFailed', (ruleId, engine, error) => {
-        this.emit('ruleFailed', ruleId, engine, error);
+      this.pollingService.on("ruleFailed", (ruleId, engine, error) => {
+        this.emit("ruleFailed", ruleId, engine, error);
       });
 
-      this.pollingService.on('cycleCompleted', (results) => {
-        this.emit('cycleCompleted', results);
+      this.pollingService.on("cycleCompleted", (results) => {
+        this.emit("cycleCompleted", results);
       });
 
       this.initialized = true;
       console.log(
-        '[UnifiedOrchestrator] Initialization completed successfully'
+        "[UnifiedOrchestrator] Initialization completed successfully",
       );
-      this.emit('initialized');
+      this.emit("initialized");
     } catch (error) {
-      console.error('[UnifiedOrchestrator] Initialization failed:', error);
-      this.emit('initializationFailed', error);
+      console.error("[UnifiedOrchestrator] Initialization failed:", error);
+      this.emit("initializationFailed", error);
       throw error;
     }
   }
 
   async shutdown(): Promise<void> {
     if (!this.initialized) {
-      console.log('[UnifiedOrchestrator] Not initialized, nothing to shutdown');
+      console.log("[UnifiedOrchestrator] Not initialized, nothing to shutdown");
       return;
     }
 
-    console.log('[UnifiedOrchestrator] Shutting down...');
+    console.log("[UnifiedOrchestrator] Shutting down...");
 
     try {
       // Stop watch mode if active
@@ -235,11 +235,11 @@ export class UnifiedOrchestrator
       await this.configManager.shutdown();
 
       this.initialized = false;
-      console.log('[UnifiedOrchestrator] Shutdown completed');
-      this.emit('shutdown');
+      console.log("[UnifiedOrchestrator] Shutdown completed");
+      this.emit("shutdown");
     } catch (error) {
-      console.error('[UnifiedOrchestrator] Shutdown error:', error);
-      this.emit('shutdownError', error);
+      console.error("[UnifiedOrchestrator] Shutdown error:", error);
+      this.emit("shutdownError", error);
       throw error;
     }
   }
@@ -257,20 +257,20 @@ export class UnifiedOrchestrator
     const startTime = Date.now();
     const engineResults: EngineResult[] = [];
 
-    this.emitEvent('analysis-started', { engines: [...this.engines.keys()] });
+    this.emitEvent("analysis-started", { engines: [...this.engines.keys()] });
 
     // Sort engines by priority
     const sortedEngines = [...this.engines.entries()].sort(
-      ([, a], [, b]) => a.getConfig().priority - b.getConfig().priority
+      ([, a], [, b]) => a.getConfig().priority - b.getConfig().priority,
     );
 
     // Execute engines in parallel (or series based on dependencies)
-    const enginePromises = sortedEngines.map(async([name, engine]) => {
+    const enginePromises = sortedEngines.map(async ([name, engine]) => {
       try {
         console.log(`[UnifiedOrchestrator] Starting ${name} engine...`);
         const result = await engine.execute(analysisPath);
         console.log(
-          `[UnifiedOrchestrator] ${name} engine completed: ${result.violations.length} violations found`
+          `[UnifiedOrchestrator] ${name} engine completed: ${result.violations.length} violations found`,
         );
         return result;
       } catch (error) {
@@ -281,7 +281,7 @@ export class UnifiedOrchestrator
           violations: [],
           executionTime: 0,
           success: false,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         };
       }
     });
@@ -303,13 +303,13 @@ export class UnifiedOrchestrator
       engineResults,
       totalExecutionTime,
       summary,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // Crossover detection and warnings
     if (this.unifiedConfig.crossover?.enabled !== false) {
       const crossoverDetector = createCrossoverDetector(
-        this.unifiedConfig.crossover
+        this.unifiedConfig.crossover,
       );
       const crossoverWarnings = crossoverDetector.analyze(orchestratorResult);
 
@@ -328,7 +328,7 @@ export class UnifiedOrchestrator
           crossoverDetector.hasCriticalIssues()
         ) {
           throw new Error(
-            'Critical crossover issues detected between ESLint and TypeScript engines'
+            "Critical crossover issues detected between ESLint and TypeScript engines",
           );
         }
       }
@@ -339,13 +339,13 @@ export class UnifiedOrchestrator
       try {
         await this.persistAnalysisResults(orchestratorResult);
       } catch (error) {
-        console.warn('[UnifiedOrchestrator] Failed to persist results:', error);
+        console.warn("[UnifiedOrchestrator] Failed to persist results:", error);
       }
     }
 
-    this.emitEvent('analysis-completed', {
+    this.emitEvent("analysis-completed", {
       violationCount: deduplicatedViolations.length,
-      executionTime: totalExecutionTime
+      executionTime: totalExecutionTime,
     });
 
     return orchestratorResult;
@@ -362,39 +362,39 @@ export class UnifiedOrchestrator
     // Initialize TypeScript engine
     if (this.unifiedConfig.engines.typescript?.enabled !== false) {
       const tsEngine = new TypeScriptAuditEngine(
-        this.unifiedConfig.engines.typescript as any
+        this.unifiedConfig.engines.typescript as any,
       );
-      this.engines.set('typescript', tsEngine);
+      this.engines.set("typescript", tsEngine);
     }
 
     // Initialize ESLint engine
     if (this.unifiedConfig.engines.eslint?.enabled !== false) {
       const eslintEngine = new ESLintAuditEngine(
-        this.unifiedConfig.engines.eslint as any
+        this.unifiedConfig.engines.eslint as any,
       );
-      this.engines.set('eslint', eslintEngine);
+      this.engines.set("eslint", eslintEngine);
     }
 
     // Initialize Unused Exports engine
     if (this.unifiedConfig.engines.unusedExports?.enabled !== false) {
       const unusedExportsEngine = new UnusedExportsEngine();
-      this.engines.set('unused-exports', unusedExportsEngine);
+      this.engines.set("unused-exports", unusedExportsEngine);
     }
 
     // Initialize Zod Detection engine
     if (this.unifiedConfig.engines.zodDetection?.enabled !== false) {
       const zodEngine = new ZodDetectionEngine(
-        this.unifiedConfig.engines.zodDetection as any
+        this.unifiedConfig.engines.zodDetection as any,
       );
-      this.engines.set('zod-detection', zodEngine);
+      this.engines.set("zod-detection", zodEngine);
     }
 
     // Initialize Code Archaeology engine
     if (this.unifiedConfig.engines.archaeology?.enabled !== false) {
       const archaeologyEngine = new CodeArchaeologyEngine(
-        this.unifiedConfig.engines.archaeology as any
+        this.unifiedConfig.engines.archaeology as any,
       );
-      this.engines.set('archaeology', archaeologyEngine);
+      this.engines.set("archaeology", archaeologyEngine);
     }
   }
 
@@ -426,7 +426,7 @@ export class UnifiedOrchestrator
     this.ensureInitialized();
 
     if (this.watchModeActive) {
-      console.log('[UnifiedOrchestrator] Watch mode already active');
+      console.log("[UnifiedOrchestrator] Watch mode already active");
       return;
     }
 
@@ -439,12 +439,12 @@ export class UnifiedOrchestrator
           : options.autoCleanup,
       maxConcurrentChecks:
         options.maxConcurrentChecks ||
-        this.unifiedConfig.polling.maxConcurrentChecks
+        this.unifiedConfig.polling.maxConcurrentChecks,
     };
 
     console.log(
-      '[UnifiedOrchestrator] Starting watch mode with options:',
-      watchOptions
+      "[UnifiedOrchestrator] Starting watch mode with options:",
+      watchOptions,
     );
 
     // Start polling service
@@ -454,7 +454,7 @@ export class UnifiedOrchestrator
     await this.analyze();
 
     // Set up watch mode interval combining both legacy and enhanced approaches
-    this.watchModeInterval = setInterval(async() => {
+    this.watchModeInterval = setInterval(async () => {
       try {
         // Execute analysis (legacy approach)
         await this.analyze();
@@ -462,31 +462,31 @@ export class UnifiedOrchestrator
         // Execute service-based watch cycle (enhanced approach)
         await this.executeWatchCycle(watchOptions);
       } catch (error) {
-        console.error('[UnifiedOrchestrator] Watch cycle error:', error);
-        this.emit('watchError', error);
+        console.error("[UnifiedOrchestrator] Watch cycle error:", error);
+        this.emit("watchError", error);
       }
     }, watchOptions.intervalMs);
 
     // Handle graceful shutdown (from legacy orchestrator)
-    process.on('SIGINT', () => {
+    process.on("SIGINT", () => {
       this.stopWatchMode();
-      process.stdout.write('\u001B[?25h'); // Show cursor
-      console.log('\n\n👋 Unified Code Quality Orchestrator watch stopped.');
+      process.stdout.write("\u001B[?25h"); // Show cursor
+      console.log("\n\n👋 Unified Code Quality Orchestrator watch stopped.");
       process.exit(0);
     });
 
     this.watchModeActive = true;
-    console.log('[UnifiedOrchestrator] Watch mode started');
-    this.emit('watchModeStarted', watchOptions);
+    console.log("[UnifiedOrchestrator] Watch mode started");
+    this.emit("watchModeStarted", watchOptions);
   }
 
   async stopWatchMode(): Promise<void> {
     if (!this.watchModeActive) {
-      console.log('[UnifiedOrchestrator] Watch mode not active');
+      console.log("[UnifiedOrchestrator] Watch mode not active");
       return;
     }
 
-    console.log('[UnifiedOrchestrator] Stopping watch mode...');
+    console.log("[UnifiedOrchestrator] Stopping watch mode...");
 
     // Stop watch interval
     if (this.watchModeInterval) {
@@ -500,9 +500,9 @@ export class UnifiedOrchestrator
     }
 
     this.watchModeActive = false;
-    console.log('[UnifiedOrchestrator] Watch mode stopped');
-    this.emit('watchModeStopped');
-    this.emitEvent('watch-stopped', {});
+    console.log("[UnifiedOrchestrator] Watch mode stopped");
+    this.emit("watchModeStopped");
+    this.emitEvent("watch-stopped", {});
   }
 
   isWatchModeActive(): boolean {
@@ -546,27 +546,27 @@ export class UnifiedOrchestrator
 
   async runSingleCheck(
     rule: string,
-    engine: 'typescript' | 'eslint'
+    engine: "typescript" | "eslint",
   ): Promise<RuleCheckResult> {
     this.ensureInitialized();
 
     console.log(
-      `[UnifiedOrchestrator] Running single check: ${rule} (${engine})`
+      `[UnifiedOrchestrator] Running single check: ${rule} (${engine})`,
     );
     const result = await this.pollingService!.executeRule(rule, engine);
 
-    this.emit('singleCheckCompleted', result);
+    this.emit("singleCheckCompleted", result);
     return result;
   }
 
   async runAllChecks(): Promise<RuleCheckResult[]> {
     this.ensureInitialized();
 
-    console.log('[UnifiedOrchestrator] Running all scheduled checks...');
+    console.log("[UnifiedOrchestrator] Running all scheduled checks...");
     const results = await this.pollingService!.executeNextRules(100); // Large number to get all
 
     console.log(`[UnifiedOrchestrator] Completed ${results.length} checks`);
-    this.emit('allChecksCompleted', results);
+    this.emit("allChecksCompleted", results);
     return results;
   }
 
@@ -575,9 +575,9 @@ export class UnifiedOrchestrator
   // ========================================================================
 
   async updateConfiguration(
-    config: Partial<OrchestratorConfig>
+    config: Partial<OrchestratorConfig>,
   ): Promise<void> {
-    console.log('[UnifiedOrchestrator] Updating configuration...');
+    console.log("[UnifiedOrchestrator] Updating configuration...");
 
     // Update config manager
     this.configManager.updateConfig(config);
@@ -585,7 +585,7 @@ export class UnifiedOrchestrator
     // If already initialized, may need to reinitialize services
     if (this.initialized) {
       console.log(
-        '[UnifiedOrchestrator] Restarting services with new configuration...'
+        "[UnifiedOrchestrator] Restarting services with new configuration...",
       );
       const wasWatchActive = this.watchModeActive;
 
@@ -601,13 +601,13 @@ export class UnifiedOrchestrator
       }
     }
 
-    this.emit('configurationUpdated', config);
+    this.emit("configurationUpdated", config);
   }
 
   async updateUnifiedConfig(
-    config: Partial<UnifiedOrchestratorConfig>
+    config: Partial<UnifiedOrchestratorConfig>,
   ): Promise<void> {
-    console.log('[UnifiedOrchestrator] Updating unified configuration...');
+    console.log("[UnifiedOrchestrator] Updating unified configuration...");
 
     this.unifiedConfig = { ...this.unifiedConfig, ...config };
 
@@ -642,7 +642,7 @@ export class UnifiedOrchestrator
       await this.updateConfiguration(serviceConfig);
     }
 
-    this.emit('unifiedConfigurationUpdated', config);
+    this.emit("unifiedConfigurationUpdated", config);
   }
 
   getConfiguration(): OrchestratorConfig {
@@ -652,22 +652,22 @@ export class UnifiedOrchestrator
       database: {
         path: config.database.path,
         enableWAL: config.database.enableWAL || false,
-        maxHistoryDays: config.database.maxHistoryDays || 30
+        maxHistoryDays: config.database.maxHistoryDays || 30,
       },
       polling: {
         defaultFrequencyMs: config.scheduling.defaultFrequencyMs || 30_000,
         maxConcurrentChecks: config.scheduling.maxConcurrentChecks || 3,
-        adaptivePolling: config.scheduling.adaptivePolling || true
+        adaptivePolling: config.scheduling.adaptivePolling || true,
       },
       watch: {
         intervalMs: config.watch.intervalMs || 3000,
         debounceMs: config.watch.debounceMs || 500,
-        autoCleanup: config.watch.autoCleanup || true
+        autoCleanup: config.watch.autoCleanup || true,
       },
       performance: {
         batchSize: config.performance.batchSize || 100,
-        enableMetrics: config.monitoring.enablePerformanceMetrics || true
-      }
+        enableMetrics: config.monitoring.enablePerformanceMetrics || true,
+      },
     };
   }
 
@@ -686,9 +686,9 @@ export class UnifiedOrchestrator
         storage: false,
         polling: false,
         analysis: false,
-        tracker: false
+        tracker: false,
       },
-      errors: []
+      errors: [],
     };
 
     try {
@@ -697,7 +697,7 @@ export class UnifiedOrchestrator
       result.services.storage = configHealth.storageService;
 
       if (!configHealth.overall) {
-        result.errors.push('Config manager health check failed');
+        result.errors.push("Config manager health check failed");
       }
 
       // Check individual services if initialized
@@ -715,7 +715,7 @@ export class UnifiedOrchestrator
           result.errors.push(`Storage service error: ${error}`);
         }
       } else {
-        result.errors.push('Services not initialized');
+        result.errors.push("Services not initialized");
       }
 
       // Overall health
@@ -740,7 +740,7 @@ export class UnifiedOrchestrator
       activeChecks: this.pollingService
         ? (this.pollingService as any).activeChecks?.size || 0
         : 0,
-      watchMode: this.watchModeActive
+      watchMode: this.watchModeActive,
     };
   }
 
@@ -750,7 +750,7 @@ export class UnifiedOrchestrator
 
   addWatchEventListener(
     _event: WatchEvent,
-    _callback: (_data: WatchEventData) => void
+    _callback: (_data: WatchEventData) => void,
   ): void {
     if (!this.eventListeners.has(_event)) {
       this.eventListeners.set(_event, []);
@@ -762,7 +762,7 @@ export class UnifiedOrchestrator
     const eventData: WatchEventData = {
       type,
       timestamp: new Date().toISOString(),
-      payload
+      payload,
     };
 
     const listeners = this.eventListeners.get(type) || [];
@@ -772,7 +772,7 @@ export class UnifiedOrchestrator
       } catch (error) {
         console.error(
           `[UnifiedOrchestrator] Event listener error for ${type}:`,
-          error
+          error,
         );
       }
     });
@@ -784,7 +784,7 @@ export class UnifiedOrchestrator
 
   private ensureInitialized(): void {
     if (!this.initialized) {
-      throw new Error('UnifiedOrchestrator must be initialized before use');
+      throw new Error("UnifiedOrchestrator must be initialized before use");
     }
   }
 
@@ -793,7 +793,7 @@ export class UnifiedOrchestrator
 
     // Execute next batch of rules
     const results = await this.pollingService!.executeNextRules(
-      options.maxConcurrentChecks
+      options.maxConcurrentChecks,
     );
 
     // Perform cleanup if enabled
@@ -803,13 +803,13 @@ export class UnifiedOrchestrator
         const cleanupResult = await this.storageService!.cleanupOldData();
         if (!this.silent) {
           console.log(
-            '[UnifiedOrchestrator] Auto-cleanup completed:',
-            cleanupResult
+            "[UnifiedOrchestrator] Auto-cleanup completed:",
+            cleanupResult,
           );
         }
       } catch (error) {
         if (!this.silent) {
-          console.error('[UnifiedOrchestrator] Auto-cleanup failed:', error);
+          console.error("[UnifiedOrchestrator] Auto-cleanup failed:", error);
         }
       }
     }
@@ -818,16 +818,16 @@ export class UnifiedOrchestrator
 
     // Record watch cycle metrics
     await this.storageService!.recordPerformanceMetric(
-      'watch_cycle',
+      "watch_cycle",
       executionTime,
-      'ms',
-      `rules: ${results.length}`
+      "ms",
+      `rules: ${results.length}`,
     );
 
-    this.emit('watchCycle', {
+    this.emit("watchCycle", {
       executionTime,
       rulesExecuted: results.length,
-      results
+      results,
     });
   }
 
@@ -847,7 +847,7 @@ export class UnifiedOrchestrator
     return allViolations.sort((a, b) => {
       // Sort by source, then severity, then file, then line
       if (a.source !== b.source) {
-        return a.source === 'typescript' ? -1 : 1;
+        return a.source === "typescript" ? -1 : 1;
       }
 
       const severityOrder = { error: 0, warn: 1, info: 2 };
@@ -871,7 +871,7 @@ export class UnifiedOrchestrator
       return violations;
     }
 
-    const strategy = this.unifiedConfig.deduplication.strategy || 'exact';
+    const strategy = this.unifiedConfig.deduplication.strategy || "exact";
     const seen = new Set<string>();
     const deduplicated: Violation[] = [];
 
@@ -879,21 +879,21 @@ export class UnifiedOrchestrator
       let key: string;
 
       switch (strategy) {
-      case 'exact': {
-        key = `${violation.file}:${violation.line}:${violation.code}:${violation.source}`;
-        break;
-      }
-      case 'location': {
-        key = `${violation.file}:${violation.line}`;
-        break;
-      }
-      case 'similar': {
-        key = `${violation.file}:${violation.category}:${violation.code.slice(0, 50)}`;
-        break;
-      }
-      default: {
-        key = `${violation.file}:${violation.line}:${violation.code}`;
-      }
+        case "exact": {
+          key = `${violation.file}:${violation.line}:${violation.code}:${violation.source}`;
+          break;
+        }
+        case "location": {
+          key = `${violation.file}:${violation.line}`;
+          break;
+        }
+        case "similar": {
+          key = `${violation.file}:${violation.category}:${violation.code.slice(0, 50)}`;
+          break;
+        }
+        default: {
+          key = `${violation.file}:${violation.line}:${violation.code}`;
+        }
       }
 
       if (!seen.has(key)) {
@@ -915,17 +915,17 @@ export class UnifiedOrchestrator
       bySource: {
         typescript: 0,
         eslint: 0,
-        'unused-exports': 0,
-        'zod-detection': 0,
+        "unused-exports": 0,
+        "zod-detection": 0,
         parser: 0,
         complexity: 0,
         security: 0,
         performance: 0,
         archaeology: 0,
-        custom: 0
+        custom: 0,
       },
       byCategory: {} as Record<string, number>,
-      topFiles: []
+      topFiles: [],
     };
 
     const fileViolationCount = new Map<string, number>();
@@ -944,7 +944,7 @@ export class UnifiedOrchestrator
       // Count by file
       fileViolationCount.set(
         violation.file,
-        (fileViolationCount.get(violation.file) || 0) + 1
+        (fileViolationCount.get(violation.file) || 0) + 1,
       );
     }
 
@@ -961,7 +961,7 @@ export class UnifiedOrchestrator
    * Persist analysis results to storage service
    */
   private async persistAnalysisResults(
-    result: OrchestratorResult
+    result: OrchestratorResult,
   ): Promise<void> {
     if (!this.storageService || !this.violationTracker) {
       return;
@@ -973,15 +973,15 @@ export class UnifiedOrchestrator
 
       // Record performance metrics
       await this.storageService.recordPerformanceMetric(
-        'analysis_execution',
+        "analysis_execution",
         result.totalExecutionTime,
-        'ms',
-        `violations: ${result.violations.length}, engines: ${result.engineResults.length}`
+        "ms",
+        `violations: ${result.violations.length}, engines: ${result.engineResults.length}`,
       );
     } catch (error) {
       console.warn(
-        '[UnifiedOrchestrator] Failed to persist analysis results:',
-        error
+        "[UnifiedOrchestrator] Failed to persist analysis results:",
+        error,
       );
     }
   }
@@ -998,12 +998,12 @@ let unifiedOrchestratorInstance: UnifiedOrchestrator | undefined;
  */
 export function getUnifiedOrchestrator(
   config: UnifiedOrchestratorConfig,
-  configManager?: ConfigManager
+  configManager?: ConfigManager,
 ): UnifiedOrchestrator {
   if (!unifiedOrchestratorInstance) {
     unifiedOrchestratorInstance = new UnifiedOrchestrator(
       config,
-      configManager
+      configManager,
     );
   }
   return unifiedOrchestratorInstance;
@@ -1027,7 +1027,7 @@ export function resetUnifiedOrchestrator(): void {
  */
 export async function createUnifiedOrchestrator(
   config: UnifiedOrchestratorConfig,
-  environment: 'development' | 'test' | 'production' = 'development'
+  environment: "development" | "test" | "production" = "development",
 ): Promise<UnifiedOrchestrator> {
   const configManager = ConfigManager.createEnvironmentConfig(environment);
 
@@ -1041,7 +1041,7 @@ export async function createUnifiedOrchestrator(
  * Create default unified orchestrator configuration
  */
 export function createDefaultUnifiedConfig(
-  targetPath: string
+  targetPath: string,
 ): UnifiedOrchestratorConfig {
   return {
     // Analysis Configuration
@@ -1051,41 +1051,41 @@ export function createDefaultUnifiedConfig(
       eslint: { enabled: true, priority: 2, options: {} },
       unusedExports: { enabled: true, priority: 3, options: {} },
       zodDetection: { enabled: true, priority: 4, options: {} },
-      archaeology: { enabled: false, priority: 5, options: {} } // Disabled by default
+      archaeology: { enabled: false, priority: 5, options: {} }, // Disabled by default
     },
     deduplication: {
       enabled: true,
-      strategy: 'exact'
+      strategy: "exact",
     },
     crossover: {
       enabled: true,
       warnOnTypeAwareRules: true,
       warnOnDuplicateViolations: true,
-      failOnCrossover: false
+      failOnCrossover: false,
     },
     output: {
-      console: true
+      console: true,
     },
 
     // Service Configuration
     database: {
-      path: './data/violations.db',
+      path: "./data/violations.db",
       enableWAL: true,
-      maxHistoryDays: 30
+      maxHistoryDays: 30,
     },
     polling: {
       defaultFrequencyMs: 30_000,
       maxConcurrentChecks: 3,
-      adaptivePolling: true
+      adaptivePolling: true,
     },
     watch: {
       intervalMs: 3000,
       debounceMs: 500,
-      autoCleanup: true
+      autoCleanup: true,
     },
     performance: {
       batchSize: 100,
-      enableMetrics: true
-    }
+      enableMetrics: true,
+    },
   };
 }

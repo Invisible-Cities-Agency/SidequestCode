@@ -22,7 +22,7 @@ export interface ColorScheme {
   readonly header: string;
 }
 
-export type TerminalMode = 'light' | 'dark';
+export type TerminalMode = "light" | "dark";
 
 // ============================================================================
 // Display System Types
@@ -34,8 +34,8 @@ export interface WatchState {
   lastUpdate: number;
   baseline: ViolationSummary | undefined;
   current: ViolationSummary;
-  viewMode: 'dashboard' | 'tidy' | 'burndown';
-  currentViolations: import('../utils/violation-types.js').Violation[];
+  viewMode: "dashboard" | "tidy" | "burndown";
+  currentViolations: import("../utils/violation-types.js").Violation[];
 }
 
 export interface ViolationSummary {
@@ -78,8 +78,8 @@ export interface TerminalCapabilities {
 
 export interface ColorDetectionResult {
   readonly mode: TerminalMode;
-  readonly confidence: 'high' | 'medium' | 'low';
-  readonly method: 'osc' | 'heuristic' | 'fallback';
+  readonly confidence: "high" | "medium" | "low";
+  readonly method: "osc" | "heuristic" | "fallback";
   readonly backgroundColor?: string;
   readonly luminance?: number;
 }
@@ -92,7 +92,7 @@ export interface DisplayConfiguration {
   readonly maxCategories: number;
   readonly updateDebounceMs: number;
   readonly showTodayProgress: boolean;
-  readonly colorMode: TerminalMode | 'auto';
+  readonly colorMode: TerminalMode | "auto";
 }
 
 export interface ValidationConfiguration {
@@ -110,10 +110,10 @@ export class DisplayError extends Error {
   constructor(
     message: string,
     public readonly code: string, // eslint-disable-line no-unused-vars
-    public readonly context?: Record<string, unknown> // eslint-disable-line no-unused-vars
+    public readonly context?: Record<string, unknown>, // eslint-disable-line no-unused-vars
   ) {
     super(message);
-    this.name = 'DisplayError';
+    this.name = "DisplayError";
   }
 }
 
@@ -121,10 +121,10 @@ export class TerminalDetectionError extends Error {
   constructor(
     message: string,
     public readonly method: string, // eslint-disable-line no-unused-vars
-    public readonly originalError?: Error // eslint-disable-line no-unused-vars
+    public readonly originalError?: Error, // eslint-disable-line no-unused-vars
   ) {
     super(message);
-    this.name = 'TerminalDetectionError';
+    this.name = "TerminalDetectionError";
   }
 }
 
@@ -175,45 +175,45 @@ export type RequireField<T, K extends keyof T> = T & Required<Pick<T, K>>;
 // ============================================================================
 
 export function isColorScheme(object: unknown): object is ColorScheme {
-  if (typeof object !== 'object' || object === null) {
+  if (typeof object !== "object" || object === null) {
     return false;
   }
 
   const scheme = object as Record<string, unknown>;
   const requiredKeys: (keyof ColorScheme)[] = [
-    'reset',
-    'bold',
-    'dim',
-    'primary',
-    'secondary',
-    'success',
-    'warning',
-    'error',
-    'info',
-    'muted',
-    'accent'
+    "reset",
+    "bold",
+    "dim",
+    "primary",
+    "secondary",
+    "success",
+    "warning",
+    "error",
+    "info",
+    "muted",
+    "accent",
   ];
 
-  return requiredKeys.every((key) => typeof scheme[key] === 'string');
+  return requiredKeys.every((key) => typeof scheme[key] === "string");
 }
 
 export function isTerminalMode(value: string): value is TerminalMode {
-  return value === 'light' || value === 'dark';
+  return value === "light" || value === "dark";
 }
 
 export function isViolationSummary(
-  object: unknown
+  object: unknown,
 ): object is ViolationSummary {
-  if (typeof object !== 'object' || object === null) {
+  if (typeof object !== "object" || object === null) {
     return false;
   }
 
   const summary = object as Record<string, unknown>;
   return (
-    typeof summary['total'] === 'number' &&
-    typeof summary['bySource'] === 'object' &&
-    typeof summary['byCategory'] === 'object' &&
-    summary['bySource'] !== undefined &&
-    summary['byCategory'] !== undefined
+    typeof summary["total"] === "number" &&
+    typeof summary["bySource"] === "object" &&
+    typeof summary["byCategory"] === "object" &&
+    summary["bySource"] !== undefined &&
+    summary["byCategory"] !== undefined
   );
 }

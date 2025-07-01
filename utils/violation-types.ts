@@ -36,54 +36,54 @@ export interface Violation {
  */
 export type ViolationCategory =
   // TypeScript-related categories (tsc responsibility)
-  | 'type-alias'
-  | 'annotation'
-  | 'cast'
-  | 'record-type'
-  | 'generic-unknown'
-  | 'unknown-reference'
-  | 'branded-type'
-  | 'generic-constraint'
-  | 'module-resolution' // Import/export issues
-  | 'unused-code' // Unused variables/imports
-  | 'null-safety' // Undefined/null safety issues
-  | 'inheritance' // Override/inheritance issues
-  | 'index-access' // Index signature access issues
-  | 'strict-config' // exactOptionalPropertyTypes issues
+  | "type-alias"
+  | "annotation"
+  | "cast"
+  | "record-type"
+  | "generic-unknown"
+  | "unknown-reference"
+  | "branded-type"
+  | "generic-constraint"
+  | "module-resolution" // Import/export issues
+  | "unused-code" // Unused variables/imports
+  | "null-safety" // Undefined/null safety issues
+  | "inheritance" // Override/inheritance issues
+  | "index-access" // Index signature access issues
+  | "strict-config" // exactOptionalPropertyTypes issues
   // Setup and configuration issues
-  | 'setup-issue' // Tool configuration or installation problems
+  | "setup-issue" // Tool configuration or installation problems
   // ESLint code quality categories (separation of concerns)
-  | 'code-quality' // console.log, debugger statements
-  | 'style' // prefer-const, no-var
-  | 'architecture' // import restrictions, module structure
-  | 'modernization' // prefer nullish coalescing, optional chaining
-  | 'unused-vars' // unused variables and imports
-  | 'best-practices' // code patterns and recommendations
+  | "code-quality" // console.log, debugger statements
+  | "style" // prefer-const, no-var
+  | "architecture" // import restrictions, module structure
+  | "modernization" // prefer nullish coalescing, optional chaining
+  | "unused-vars" // unused variables and imports
+  | "best-practices" // code patterns and recommendations
   // Legacy type-aware ESLint rules (moving to tsc)
-  | 'legacy-type-rule' // explicit-function-return-type, etc.
-  | 'return-type' // function return type annotations
-  | 'no-explicit-any' // any type usage (handled by tsc now)
-  | 'other-eslint' // other ESLint rules
+  | "legacy-type-rule" // explicit-function-return-type, etc.
+  | "return-type" // function return type annotations
+  | "no-explicit-any" // any type usage (handled by tsc now)
+  | "other-eslint" // other ESLint rules
   // Custom TypeScript quality categories
-  | 'type-quality' // General TypeScript quality issues
-  | 'async-issues' // Floating promises and async/await issues
-  | 'custom-script-summary' // Summary from custom TypeScript scripts
+  | "type-quality" // General TypeScript quality issues
+  | "async-issues" // Floating promises and async/await issues
+  | "custom-script-summary" // Summary from custom TypeScript scripts
   // Parsing/syntax categories
-  | 'syntax-error'
-  | 'parse-error'
-  | 'import-error'
+  | "syntax-error"
+  | "parse-error"
+  | "import-error"
   // Code quality categories
-  | 'complexity'
-  | 'maintainability'
-  | 'security'
-  | 'performance'
+  | "complexity"
+  | "maintainability"
+  | "security"
+  | "performance"
   // Code archaeology categories
-  | 'dead-code' // Unused exports, unreachable code
-  | 'code-duplication' // Duplicate code blocks
-  | 'circular-dependency' // Circular import chains (future)
-  | 'architecture-violation' // Cross-layer imports, rule violations (future)
+  | "dead-code" // Unused exports, unreachable code
+  | "code-duplication" // Duplicate code blocks
+  | "circular-dependency" // Circular import chains (future)
+  | "architecture-violation" // Cross-layer imports, rule violations (future)
   // Generic fallback
-  | 'other';
+  | "other";
 
 /**
  * Configuration for crossover detection between ESLint and TypeScript
@@ -103,11 +103,11 @@ export interface CrossoverConfig {
  * Crossover warning data
  */
 export interface CrossoverWarning {
-  type: 'type-aware-rule' | 'duplicate-violation' | 'configuration-conflict';
+  type: "type-aware-rule" | "duplicate-violation" | "configuration-conflict";
   message: string;
   details: string;
   suggestion: string;
-  severity: 'warn' | 'error';
+  severity: "warn" | "error";
   affectedRules?: string[];
   affectedFiles?: string[];
 }
@@ -115,22 +115,22 @@ export interface CrossoverWarning {
 /**
  * Severity levels for prioritization
  */
-export type ViolationSeverity = 'error' | 'warn' | 'info';
+export type ViolationSeverity = "error" | "warn" | "info";
 
 /**
  * Source engines that can detect violations
  */
 export type ViolationSource =
-  | 'typescript'
-  | 'eslint'
-  | 'unused-exports'
-  | 'parser'
-  | 'complexity'
-  | 'zod-detection'
-  | 'security'
-  | 'performance'
-  | 'archaeology' // Code archaeology analysis
-  | 'custom';
+  | "typescript"
+  | "eslint"
+  | "unused-exports"
+  | "parser"
+  | "complexity"
+  | "zod-detection"
+  | "security"
+  | "performance"
+  | "archaeology" // Code archaeology analysis
+  | "custom";
 
 /**
  * Configuration for audit engines
@@ -202,13 +202,13 @@ export interface ViolationSummary {
  * Watch mode event types
  */
 export type WatchEvent =
-  | 'file-changed'
-  | 'analysis-started'
-  | 'analysis-completed'
-  | 'violation-added'
-  | 'violation-removed'
-  | 'engine-failed'
-  | 'watch-stopped';
+  | "file-changed"
+  | "analysis-started"
+  | "analysis-completed"
+  | "violation-added"
+  | "violation-removed"
+  | "engine-failed"
+  | "watch-stopped";
 
 /**
  * Watch mode event data
@@ -227,81 +227,81 @@ export interface WatchEventData {
  */
 export function getCategoryLabel(category: ViolationCategory): string {
   switch (category) {
-  // TypeScript categories
-  case 'type-alias': {
-    return 'Type Issues';
-  }
-  case 'annotation': {
-    return 'Missing Types';
-  }
-  case 'cast': {
-    return 'Type Casting';
-  }
-  case 'module-resolution': {
-    return 'Import/Export';
-  }
-  case 'unused-code': {
-    return 'Unused Code';
-  }
-  case 'null-safety': {
-    return 'Null Safety';
-  }
-  case 'inheritance': {
-    return 'Class/Override';
-  }
-  case 'index-access': {
-    return 'Index Access';
-  }
-  case 'strict-config': {
-    return 'Strict Config';
-  }
-  case 'syntax-error': {
-    return 'Syntax Error';
-  }
-  case 'setup-issue': {
-    return 'Setup/Config Issue';
-  }
+    // TypeScript categories
+    case "type-alias": {
+      return "Type Issues";
+    }
+    case "annotation": {
+      return "Missing Types";
+    }
+    case "cast": {
+      return "Type Casting";
+    }
+    case "module-resolution": {
+      return "Import/Export";
+    }
+    case "unused-code": {
+      return "Unused Code";
+    }
+    case "null-safety": {
+      return "Null Safety";
+    }
+    case "inheritance": {
+      return "Class/Override";
+    }
+    case "index-access": {
+      return "Index Access";
+    }
+    case "strict-config": {
+      return "Strict Config";
+    }
+    case "syntax-error": {
+      return "Syntax Error";
+    }
+    case "setup-issue": {
+      return "Setup/Config Issue";
+    }
 
-  // ESLint categories
-  case 'code-quality': {
-    return 'Code Quality';
-  }
-  case 'style': {
-    return 'Code Style';
-  }
-  case 'architecture': {
-    return 'Architecture';
-  }
-  case 'modernization': {
-    return 'Modernization';
-  }
-  case 'unused-vars': {
-    return 'Unused Variables';
-  }
+    // ESLint categories
+    case "code-quality": {
+      return "Code Quality";
+    }
+    case "style": {
+      return "Code Style";
+    }
+    case "architecture": {
+      return "Architecture";
+    }
+    case "modernization": {
+      return "Modernization";
+    }
+    case "unused-vars": {
+      return "Unused Variables";
+    }
 
-  // Other categories
-  case 'complexity': {
-    return 'Complexity';
-  }
-  case 'maintainability': {
-    return 'Maintainability';
-  }
-  case 'security': {
-    return 'Security';
-  }
-  case 'parse-error': {
-    return 'Parse Error';
-  }
-  case 'import-error': {
-    return 'Import Error';
-  }
+    // Other categories
+    case "complexity": {
+      return "Complexity";
+    }
+    case "maintainability": {
+      return "Maintainability";
+    }
+    case "security": {
+      return "Security";
+    }
+    case "parse-error": {
+      return "Parse Error";
+    }
+    case "import-error": {
+      return "Import Error";
+    }
 
-  // Legacy/fallback
-  default: {
-    return category
-      .replaceAll('-', ' ')
-      .replaceAll(/\b\w/g, (l) => l.toUpperCase());
-  }
+    // Legacy/fallback
+    default: {
+      return category
+        .replaceAll("-", " ")
+        .replaceAll(/\b\w/g, (l) => l.toUpperCase());
+    }
   }
 }
 
@@ -313,10 +313,10 @@ export function getCategoryLabel(category: ViolationCategory): string {
  * Dead code violation details for unused exports and unreachable code
  */
 export interface DeadCodeViolation extends Violation {
-  category: 'dead-code';
-  source: 'archaeology';
+  category: "dead-code";
+  source: "archaeology";
   /** Type of dead code detected */
-  deadCodeType: 'unused-export' | 'unreachable-code' | 'unused-import';
+  deadCodeType: "unused-export" | "unreachable-code" | "unused-import";
   /** Confidence level of detection (0-1) */
   confidence: number;
   /** Additional metadata for dead code analysis */
@@ -328,7 +328,7 @@ export interface DeadCodeViolation extends Violation {
     /** Whether this is re-exported from another module */
     isReExport?: boolean;
     /** Estimated impact of removal (low/medium/high) */
-    removalImpact: 'low' | 'medium' | 'high';
+    removalImpact: "low" | "medium" | "high";
   };
 }
 
@@ -336,8 +336,8 @@ export interface DeadCodeViolation extends Violation {
  * Code duplication violation details for duplicate code blocks
  */
 export interface CodeDuplicationViolation extends Violation {
-  category: 'code-duplication';
-  source: 'archaeology';
+  category: "code-duplication";
+  source: "archaeology";
   /** Similarity percentage (0-100) */
   similarity: number;
   /** Number of duplicated tokens */
@@ -347,17 +347,17 @@ export interface CodeDuplicationViolation extends Violation {
   /** Additional metadata for duplication analysis */
   metadata: {
     /** Type of duplication detected */
-    duplicationType: 'exact' | 'structural' | 'semantic';
+    duplicationType: "exact" | "structural" | "semantic";
     /** Lines range of the duplicate block */
     duplicateLines: { start: number; end: number };
     /** Suggested refactoring approach */
     refactoringApproach:
-      | 'extract-function'
-      | 'extract-constant'
-      | 'extract-module'
-      | 'pattern-matching';
+      | "extract-function"
+      | "extract-constant"
+      | "extract-module"
+      | "pattern-matching";
     /** Estimated effort to fix (low/medium/high) */
-    fixEffort: 'low' | 'medium' | 'high';
+    fixEffort: "low" | "medium" | "high";
   };
 }
 
@@ -429,22 +429,22 @@ export interface ArchaeologyReport {
 export interface ArchaeologyRecommendation {
   /** Type of recommendation */
   type:
-    | 'remove-dead-code'
-    | 'extract-duplicate'
-    | 'refactor-structure'
-    | 'improve-imports';
+    | "remove-dead-code"
+    | "extract-duplicate"
+    | "refactor-structure"
+    | "improve-imports";
   /** Description of the recommendation */
   description: string;
   /** Files affected by this recommendation */
   affectedFiles: string[];
   /** Estimated effort to implement */
-  effort: 'low' | 'medium' | 'high';
+  effort: "low" | "medium" | "high";
   /** Estimated impact on code quality */
-  impact: 'low' | 'medium' | 'high';
+  impact: "low" | "medium" | "high";
   /** Specific action steps */
   actionSteps: string[];
   /** Risk level of implementing this change */
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: "low" | "medium" | "high";
 }
 
 /**
@@ -468,7 +468,7 @@ export interface ArchaeologyRecommendation {
  */
 export interface ArchaeologyAnnotation {
   /** Type of exclusion */
-  type: 'permanent' | 'temporary';
+  type: "permanent" | "temporary";
   /** Human-readable reason for exclusion */
   reason: string;
   /** Version when annotation was added */

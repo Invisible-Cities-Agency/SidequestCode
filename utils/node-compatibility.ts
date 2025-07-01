@@ -11,21 +11,21 @@
 export function replaceAll(
   string_: string,
   searchValue: string | RegExp,
-  replaceValue: string
+  replaceValue: string,
 ): string {
-  if (typeof string_ !== 'string') {
-    throw new TypeError('First argument must be a string');
+  if (typeof string_ !== "string") {
+    throw new TypeError("First argument must be a string");
   }
 
   // Use native replaceAll if available (Node 15.0.0+)
-  if (typeof string_.replaceAll === 'function') {
+  if (typeof string_.replaceAll === "function") {
     return string_.replaceAll(searchValue, replaceValue);
   }
 
   // Fallback implementation for older versions
-  if (typeof searchValue === 'string') {
+  if (typeof searchValue === "string") {
     // Handle empty string edge case - native replaceAll inserts between every character
-    if (searchValue === '') {
+    if (searchValue === "") {
       return [...string_].join(replaceValue) + replaceValue;
     }
     // For string search values, use split-join approach
@@ -40,7 +40,7 @@ export function replaceAll(
     return string_.replace(globalRegex, replaceValue);
   }
 
-  throw new TypeError('searchValue must be a string or RegExp');
+  throw new TypeError("searchValue must be a string or RegExp");
 }
 
 /**
@@ -50,11 +50,11 @@ export function replaceAll(
  */
 export function arrayAt<T>(array: T[], index: number): T | undefined {
   if (!Array.isArray(array)) {
-    throw new TypeError('First argument must be an array');
+    throw new TypeError("First argument must be an array");
   }
 
   // Use native at() if available (Node 16.6.0+)
-  if (typeof array.at === 'function') {
+  if (typeof array.at === "function") {
     return array.at(index);
   }
 
@@ -77,8 +77,8 @@ export const NodeVersion = {
    * e.g., "18.17.1" becomes 18.17
    */
   getMajorMinor(): number {
-    const version = process.version.replace(/^v/, '');
-    const parts = version.split('.').map(Number);
+    const version = process.version.replace(/^v/, "");
+    const parts = version.split(".").map(Number);
     const major = parts[0] || 0;
     const minor = parts[1] || 0;
     return major + minor / 100;
@@ -88,9 +88,9 @@ export const NodeVersion = {
    * Get the major version number
    */
   getMajor(): number {
-    const version = process.version.replace(/^v/, '');
-    const firstPart = version.split('.')[0];
-    return Number.parseInt(firstPart || '0', 10);
+    const version = process.version.replace(/^v/, "");
+    const firstPart = version.split(".")[0];
+    return Number.parseInt(firstPart || "0", 10);
   },
 
   /**
@@ -101,7 +101,7 @@ export const NodeVersion = {
     arrayAt: (): boolean => NodeVersion.getMajorMinor() >= 16.6,
     nodePrefix: (): boolean => NodeVersion.getMajorMinor() >= 16,
     abortController: (): boolean => NodeVersion.getMajorMinor() >= 16,
-    structuredClone: (): boolean => NodeVersion.getMajorMinor() >= 17
+    structuredClone: (): boolean => NodeVersion.getMajorMinor() >= 17,
   },
 
   /**
@@ -123,24 +123,24 @@ export const NodeVersion = {
 
     if (major < 18) {
       warnings.push(
-        `Node.js ${process.version} is not supported. Please upgrade to Node.js 18+ LTS.`
+        `Node.js ${process.version} is not supported. Please upgrade to Node.js 18+ LTS.`,
       );
     }
 
     if (major === 18 && majorMinor < 18) {
       warnings.push(
-        `Node.js ${process.version} may have compatibility issues. Recommend Node.js 18.0.0+.`
+        `Node.js ${process.version} may have compatibility issues. Recommend Node.js 18.0.0+.`,
       );
     }
 
     if (!NodeVersion.isLTS()) {
       warnings.push(
-        `Node.js ${process.version} is not an LTS version. Consider using 18.x, 20.x, or 22.x LTS.`
+        `Node.js ${process.version} is not an LTS version. Consider using 18.x, 20.x, or 22.x LTS.`,
       );
     }
 
     return warnings;
-  }
+  },
 };
 
 /**
@@ -148,7 +148,7 @@ export const NodeVersion = {
  * Provides consistent behavior across Node versions
  */
 export async function safeDynamicImport<T = any>(
-  specifier: string
+  specifier: string,
 ): Promise<T> {
   try {
     return await import(specifier);
@@ -167,7 +167,7 @@ export function checkEnvironmentCompatibility(): {
   version: string;
   warnings: string[];
   recommendations: string[];
-  } {
+} {
   const version = process.version;
   const warnings = NodeVersion.getCompatibilityWarnings();
   const recommendations: string[] = [];
@@ -176,12 +176,12 @@ export function checkEnvironmentCompatibility(): {
   const major = NodeVersion.getMajor();
   if (major < 18) {
     recommendations.push(
-      'Upgrade to Node.js 18.x LTS or higher',
-      'Consider using Node Version Manager (nvm) for easy version switching'
+      "Upgrade to Node.js 18.x LTS or higher",
+      "Consider using Node Version Manager (nvm) for easy version switching",
     );
   } else if (major === 18) {
     recommendations.push(
-      'Consider upgrading to Node.js 20.x or 22.x LTS for latest features'
+      "Consider upgrading to Node.js 20.x or 22.x LTS for latest features",
     );
   }
 
@@ -189,6 +189,6 @@ export function checkEnvironmentCompatibility(): {
     compatible: warnings.length === 0,
     version,
     warnings,
-    recommendations
+    recommendations,
   };
 }

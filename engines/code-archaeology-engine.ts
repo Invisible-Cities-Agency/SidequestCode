@@ -6,7 +6,7 @@
  * Positions SideQuest as a technical debt relief system.
  */
 
-import { BaseAuditEngine } from './base-engine.js';
+import { BaseAuditEngine } from "./base-engine.js";
 import type {
   Violation,
   EngineConfig,
@@ -15,12 +15,12 @@ import type {
   CodeDuplicationViolation,
   ArchaeologyReport,
   ArchaeologyRecommendation,
-  ArchaeologyAnnotation
-} from '../utils/violation-types.js';
-import { spawn } from 'node:child_process';
-import path from 'node:path';
-import { readFile, unlink } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+  ArchaeologyAnnotation,
+} from "../utils/violation-types.js";
+import { spawn } from "node:child_process";
+import path from "node:path";
+import { readFile, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
 /**
  * Configuration interface for CodeArchaeologyEngine
@@ -53,7 +53,7 @@ export interface ArchaeologyEngineConfig extends EngineConfig {
  */
 export class CodeArchaeologyEngine extends BaseAuditEngine {
   constructor(config: ArchaeologyEngineConfig) {
-    super('CodeArchaeology', 'archaeology', config);
+    super("CodeArchaeology", "archaeology", config);
   }
 
   /**
@@ -63,10 +63,10 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
     file: string,
     line: number,
     code: string,
-    deadCodeType: 'unused-export' | 'unreachable-code' | 'unused-import',
+    deadCodeType: "unused-export" | "unreachable-code" | "unused-import",
     exportName?: string,
     importSource?: string,
-    confidence?: number
+    confidence?: number,
   ): DeadCodeViolation {
     // Calculate confidence based on export patterns and usage context
     const calculatedConfidence =
@@ -76,24 +76,24 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
       file,
       line,
       code,
-      'dead-code',
-      'warn',
+      "dead-code",
+      "warn",
       deadCodeType,
-      this.getDeadCodeMessage(deadCodeType, exportName, importSource)
+      this.getDeadCodeMessage(deadCodeType, exportName, importSource),
     );
 
     return {
       ...baseViolation,
-      category: 'dead-code',
-      source: 'archaeology',
+      category: "dead-code",
+      source: "archaeology",
       deadCodeType,
       confidence: calculatedConfidence,
       metadata: {
         ...(exportName && { exportName }),
         ...(importSource && { importSource }),
         isReExport: false, // Could be enhanced to detect re-exports
-        removalImpact: this.assessRemovalImpact(deadCodeType, exportName)
-      }
+        removalImpact: this.assessRemovalImpact(deadCodeType, exportName),
+      },
     };
   }
 
@@ -107,39 +107,39 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
     similarity: number,
     tokenCount: number,
     duplicateFiles: string[],
-    duplicateLines: { start: number; end: number }
+    duplicateLines: { start: number; end: number },
   ): CodeDuplicationViolation {
     const baseViolation = this.createViolation(
       file,
       line,
       code,
-      'code-duplication',
-      'info',
-      'code-duplication',
-      `This code is duplicated in ${duplicateFiles.join(', ')}. Consider extracting to a shared function.`
+      "code-duplication",
+      "info",
+      "code-duplication",
+      `This code is duplicated in ${duplicateFiles.join(", ")}. Consider extracting to a shared function.`,
     );
 
     return {
       ...baseViolation,
-      category: 'code-duplication',
-      source: 'archaeology',
+      category: "code-duplication",
+      source: "archaeology",
       similarity,
       tokenCount,
       duplicateFiles,
       metadata: {
         duplicationType:
           similarity >= 95
-            ? 'exact'
-            : (similarity >= 80
-              ? 'structural'
-              : 'semantic'),
+            ? "exact"
+            : similarity >= 80
+              ? "structural"
+              : "semantic",
         duplicateLines,
         refactoringApproach: this.suggestRefactoringApproach(
           tokenCount,
-          similarity
+          similarity,
         ),
-        fixEffort: this.assessFixEffort(tokenCount, duplicateFiles.length)
-      }
+        fixEffort: this.assessFixEffort(tokenCount, duplicateFiles.length),
+      },
     };
   }
 
@@ -147,23 +147,23 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Generate appropriate message for dead code violations
    */
   private getDeadCodeMessage(
-    type: 'unused-export' | 'unreachable-code' | 'unused-import',
+    type: "unused-export" | "unreachable-code" | "unused-import",
     exportName?: string,
-    importSource?: string
+    importSource?: string,
   ): string {
     switch (type) {
-    case 'unused-export': {
-      return `Unused export: ${exportName || 'unknown'}`;
-    }
-    case 'unreachable-code': {
-      return 'Unreachable code detected';
-    }
-    case 'unused-import': {
-      return `Unused import from: ${importSource || 'unknown'}`;
-    }
-    default: {
-      return 'Dead code detected';
-    }
+      case "unused-export": {
+        return `Unused export: ${exportName || "unknown"}`;
+      }
+      case "unreachable-code": {
+        return "Unreachable code detected";
+      }
+      case "unused-import": {
+        return `Unused import from: ${importSource || "unknown"}`;
+      }
+      default: {
+        return "Dead code detected";
+      }
     }
   }
 
@@ -171,64 +171,64 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Assess the impact of removing dead code
    */
   private assessRemovalImpact(
-    type: 'unused-export' | 'unreachable-code' | 'unused-import',
-    exportName?: string
-  ): 'low' | 'medium' | 'high' {
-    if (type === 'unused-import') {
-      return 'low';
+    type: "unused-export" | "unreachable-code" | "unused-import",
+    exportName?: string,
+  ): "low" | "medium" | "high" {
+    if (type === "unused-import") {
+      return "low";
     }
-    if (type === 'unreachable-code') {
-      return 'medium';
+    if (type === "unreachable-code") {
+      return "medium";
     }
 
     // Test-related exports are low impact
-    if (exportName?.includes('test') || exportName?.includes('Test')) {
-      return 'low';
+    if (exportName?.includes("test") || exportName?.includes("Test")) {
+      return "low";
     }
 
     // CLI command functions might be used dynamically - higher impact to remove
     const cliPatterns = [
-      'generate',
-      'handle',
-      'show',
-      'display',
-      'create',
-      'run'
+      "generate",
+      "handle",
+      "show",
+      "display",
+      "create",
+      "run",
     ];
     if (
       exportName &&
       cliPatterns.some((pattern) => exportName.toLowerCase().includes(pattern))
     ) {
-      return 'high';
+      return "high";
     }
 
     // Public API patterns (interfaces, types, configs) - higher impact
     const publicApiPatterns = [
-      'Config',
-      'Interface',
-      'Type',
-      'Schema',
-      'Options'
+      "Config",
+      "Interface",
+      "Type",
+      "Schema",
+      "Options",
     ];
     if (
       exportName &&
       publicApiPatterns.some((pattern) => exportName.includes(pattern))
     ) {
-      return 'high';
+      return "high";
     }
 
     // Utility functions that might be part of public API
-    const utilityPatterns = ['is', 'validate', 'check', 'get', 'create'];
+    const utilityPatterns = ["is", "validate", "check", "get", "create"];
     if (
       exportName &&
       utilityPatterns.some((pattern) =>
-        exportName.toLowerCase().startsWith(pattern)
+        exportName.toLowerCase().startsWith(pattern),
       )
     ) {
-      return 'medium';
+      return "medium";
     }
 
-    return 'medium'; // Default for unused exports
+    return "medium"; // Default for unused exports
   }
 
   /**
@@ -236,22 +236,22 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    */
   private suggestRefactoringApproach(
     tokenCount: number,
-    similarity: number
+    similarity: number,
   ):
-    | 'extract-function'
-    | 'extract-constant'
-    | 'extract-module'
-    | 'pattern-matching' {
+    | "extract-function"
+    | "extract-constant"
+    | "extract-module"
+    | "pattern-matching" {
     if (similarity >= 95 && tokenCount < 50) {
-      return 'extract-constant';
+      return "extract-constant";
     }
     if (similarity >= 95 && tokenCount < 200) {
-      return 'extract-function';
+      return "extract-function";
     }
     if (similarity >= 95) {
-      return 'extract-module';
+      return "extract-module";
     }
-    return 'pattern-matching';
+    return "pattern-matching";
   }
 
   /**
@@ -259,15 +259,15 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    */
   private assessFixEffort(
     tokenCount: number,
-    duplicateCount: number
-  ): 'low' | 'medium' | 'high' {
+    duplicateCount: number,
+  ): "low" | "medium" | "high" {
     if (tokenCount < 50 && duplicateCount <= 2) {
-      return 'low';
+      return "low";
     }
     if (tokenCount < 200 && duplicateCount <= 3) {
-      return 'medium';
+      return "medium";
     }
-    return 'high';
+    return "high";
   }
 
   /**
@@ -276,7 +276,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
   private async checkArchaeologyAnnotations(
     filePath: string,
     line: number,
-    _exportName?: string
+    _exportName?: string,
   ): Promise<{
     excluded: boolean;
     annotation?: ArchaeologyAnnotation;
@@ -284,25 +284,25 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
   }> {
     try {
       const fullPath = path.join(process.cwd(), filePath);
-      const content = await readFile(fullPath, 'utf8');
-      const lines = content.split('\n');
+      const content = await readFile(fullPath, "utf8");
+      const lines = content.split("\n");
 
       // Look for JSDoc comments in the 10 lines before the export
       const startLine = Math.max(0, line - 10);
       const endLine = Math.min(lines.length, line);
 
       let inJSDocument = false;
-      let jsdocContent = '';
+      let jsdocContent = "";
 
       for (let index = startLine; index < endLine; index++) {
-        const currentLine = lines[index]?.trim() || '';
+        const currentLine = lines[index]?.trim() || "";
 
-        if (currentLine.includes('/**')) {
+        if (currentLine.includes("/**")) {
           inJSDocument = true;
           jsdocContent = currentLine;
         } else if (inJSDocument) {
           jsdocContent += `\n${currentLine}`;
-          if (currentLine.includes('*/')) {
+          if (currentLine.includes("*/")) {
             inJSDocument = false;
 
             // Parse archaeology annotations from JSDoc
@@ -312,10 +312,10 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
               return {
                 excluded: true,
                 annotation,
-                shouldRecheck
+                shouldRecheck,
               };
             }
-            jsdocContent = '';
+            jsdocContent = "";
           }
         }
       }
@@ -331,18 +331,18 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Parse archaeology exclusion annotation from JSDoc content
    */
   private parseArchaeologyAnnotation(
-    jsdocContent: string
+    jsdocContent: string,
   ): ArchaeologyAnnotation | undefined {
     // Match: @archaeology-exclude permanent|temporary "reason"
     const excludeMatch = jsdocContent.match(
-      /@archaeology-exclude\s+(permanent|temporary)\s+"([^"]+)"/
+      /@archaeology-exclude\s+(permanent|temporary)\s+"([^"]+)"/,
     );
 
     if (!excludeMatch) {
       return undefined;
     }
 
-    const type = excludeMatch[1] as 'permanent' | 'temporary';
+    const type = excludeMatch[1] as "permanent" | "temporary";
     const reason = excludeMatch[2];
 
     if (!reason) {
@@ -352,14 +352,14 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
     // Extract optional fields
     const sinceMatch = jsdocContent.match(/@since\s+(\S+)/);
     const recheckMatch = jsdocContent.match(
-      /@archaeology-recheck-after\s+(\S+)/
+      /@archaeology-recheck-after\s+(\S+)/,
     );
     const authorMatch = jsdocContent.match(/@author\s+([^\n]+)/);
     const issueMatch = jsdocContent.match(/@is{2}ue\s+(\S+)/);
 
     const annotation: ArchaeologyAnnotation = {
       type,
-      reason
+      reason,
     };
 
     if (sinceMatch?.[1]) {
@@ -390,7 +390,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Check if a temporary annotation should trigger a recheck
    */
   private shouldRecheckAnnotation(annotation: ArchaeologyAnnotation): boolean {
-    if (annotation.type === 'permanent') {
+    if (annotation.type === "permanent") {
       return false;
     }
     if (!annotation.recheckAfter) {
@@ -412,7 +412,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
   private getCurrentVersion(): string | undefined {
     try {
       // This is a simplified version - in production might want to cache this
-      const packageJson = require(path.join(process.cwd(), 'package.json'));
+      const packageJson = require(path.join(process.cwd(), "package.json"));
       return packageJson.version;
     } catch {
       return undefined;
@@ -423,8 +423,8 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Simple version comparison (could be enhanced with semver library)
    */
   private compareVersions(version1: string, version2: string): number {
-    const v1Parts = version1.split('.').map(Number);
-    const v2Parts = version2.split('.').map(Number);
+    const v1Parts = version1.split(".").map(Number);
+    const v2Parts = version2.split(".").map(Number);
 
     for (
       let index = 0;
@@ -449,27 +449,27 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Calculate confidence score for dead code detection
    */
   private calculateDeadCodeConfidence(
-    type: 'unused-export' | 'unreachable-code' | 'unused-import',
+    type: "unused-export" | "unreachable-code" | "unused-import",
     exportName?: string,
-    filePath?: string
+    filePath?: string,
   ): number {
     let confidence = 0.9; // Base confidence
 
     // Different base confidence for different types
-    if (type === 'unused-import') {
+    if (type === "unused-import") {
       confidence = 0.95; // Higher confidence for unused imports
-    } else if (type === 'unreachable-code') {
+    } else if (type === "unreachable-code") {
       confidence = 0.85; // Medium confidence for unreachable code
     }
 
     // Lower confidence for potential CLI functions
     const cliPatterns = [
-      'generate',
-      'handle',
-      'show',
-      'display',
-      'create',
-      'run'
+      "generate",
+      "handle",
+      "show",
+      "display",
+      "create",
+      "run",
     ];
     if (
       exportName &&
@@ -480,12 +480,12 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
 
     // Lower confidence for public API patterns
     const publicApiPatterns = [
-      'Config',
-      'Interface',
-      'Type',
-      'Schema',
-      'Options',
-      'Error'
+      "Config",
+      "Interface",
+      "Type",
+      "Schema",
+      "Options",
+      "Error",
     ];
     if (
       exportName &&
@@ -497,26 +497,26 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
     // Lower confidence for service factory patterns
     if (
       exportName &&
-      (exportName.startsWith('get') || exportName.startsWith('create'))
+      (exportName.startsWith("get") || exportName.startsWith("create"))
     ) {
       confidence = 0.6; // Factory functions often used dynamically
     }
 
     // Higher confidence for obvious utility functions
-    if (exportName && exportName.startsWith('is') && exportName.length > 2) {
+    if (exportName && exportName.startsWith("is") && exportName.length > 2) {
       confidence = 0.95; // Boolean utility functions are usually straightforward
     }
 
     // Lower confidence for config files
-    if (filePath?.includes('config') || filePath?.includes('.config.')) {
+    if (filePath?.includes("config") || filePath?.includes(".config.")) {
       confidence = Math.min(confidence, 0.8); // Config files often have dynamic usage
     }
 
     // Higher confidence for test files
     if (
-      filePath?.includes('test') ||
-      filePath?.includes('.spec.') ||
-      filePath?.includes('.test.')
+      filePath?.includes("test") ||
+      filePath?.includes(".spec.") ||
+      filePath?.includes(".test.")
     ) {
       confidence = 0.95; // Test files are usually self-contained
     }
@@ -529,7 +529,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    */
   protected async analyze(
     targetPath: string,
-    _options: Record<string, unknown> = {}
+    _options: Record<string, unknown> = {},
   ): Promise<Violation[]> {
     const violations: Violation[] = [];
     const config = this.config as ArchaeologyEngineConfig;
@@ -556,22 +556,22 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
     try {
       const config = this.config as ArchaeologyEngineConfig;
       const tsPruneArguments = [
-        '--project',
-        path.join(targetPath, 'tsconfig.json')
+        "--project",
+        path.join(targetPath, "tsconfig.json"),
       ];
 
       // Add ignore patterns if configured
       if (config.options.deadCode?.ignorePatterns?.length) {
         tsPruneArguments.push(
-          '--ignore',
-          config.options.deadCode.ignorePatterns.join('|')
+          "--ignore",
+          config.options.deadCode.ignorePatterns.join("|"),
         );
       }
 
       const output = await this.runCommand(
-        'npx',
-        ['ts-prune', ...tsPruneArguments],
-        targetPath
+        "npx",
+        ["ts-prune", ...tsPruneArguments],
+        targetPath,
       );
       return await this.parseTsPruneOutput(output, targetPath);
     } catch (error) {
@@ -587,36 +587,36 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
     try {
       const config = this.config as ArchaeologyEngineConfig;
       const jscpdArguments = [
-        '--format',
-        'typescript,javascript',
-        '--reporters',
-        'json',
-        '--silent'
+        "--format",
+        "typescript,javascript",
+        "--reporters",
+        "json",
+        "--silent",
       ];
 
       // Configure thresholds
       if (config.options.duplication?.minLines) {
         jscpdArguments.push(
-          '--min-lines',
-          config.options.duplication.minLines.toString()
+          "--min-lines",
+          config.options.duplication.minLines.toString(),
         );
       }
       if (config.options.duplication?.minTokens) {
         jscpdArguments.push(
-          '--min-tokens',
-          config.options.duplication.minTokens.toString()
+          "--min-tokens",
+          config.options.duplication.minTokens.toString(),
         );
       }
 
       // Create temporary output file
       const outputFile = path.join(tmpdir(), `jscpd-${Date.now()}.json`);
-      jscpdArguments.push('--output', outputFile, targetPath);
+      jscpdArguments.push("--output", outputFile, targetPath);
 
-      await this.runCommand('npx', ['jscpd', ...jscpdArguments], targetPath);
+      await this.runCommand("npx", ["jscpd", ...jscpdArguments], targetPath);
 
       try {
-        const outputContent = await import('node:fs').then((fs) =>
-          fs.promises.readFile(outputFile, 'utf8')
+        const outputContent = await import("node:fs").then((fs) =>
+          fs.promises.readFile(outputFile, "utf8"),
         );
         const violations = this.parseJscpdOutput(outputContent, targetPath);
 
@@ -626,7 +626,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
         return violations;
       } catch (parseError) {
         console.warn(
-          `[CodeArchaeology] Failed to parse jscpd output: ${parseError}`
+          `[CodeArchaeology] Failed to parse jscpd output: ${parseError}`,
         );
         return [];
       }
@@ -641,16 +641,16 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    */
   private async parseTsPruneOutput(
     output: string,
-    targetPath: string
+    targetPath: string,
   ): Promise<Violation[]> {
     const violations: Violation[] = [];
     const lines = output
       .trim()
-      .split('\n')
+      .split("\n")
       .filter((line) => line.trim());
 
     // Process all lines in parallel to avoid blocking
-    const linePromises = lines.map(async(line) => {
+    const linePromises = lines.map(async (line) => {
       // ts-prune output format: "file:line - exportName (type)"
       const match = line.match(/^(.+):(\d+) - (.+?)( \(.*\))?$/);
       if (!match) {
@@ -672,12 +672,12 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
       const annotationCheck = await this.checkArchaeologyAnnotations(
         relativePath,
         Number.parseInt(lineNumber, 10),
-        exportName
+        exportName,
       );
 
       if (annotationCheck.excluded) {
         // Skip this violation if it's permanently excluded
-        if (annotationCheck.annotation?.type === 'permanent') {
+        if (annotationCheck.annotation?.type === "permanent") {
           return;
         }
 
@@ -691,10 +691,10 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
           relativePath,
           Number.parseInt(lineNumber, 10),
           `Unused export (recheck needed): ${exportName}`,
-          'unused-export',
+          "unused-export",
           exportName,
           undefined, // importSource
-          0.4 // Lower confidence due to temporary exclusion expiry
+          0.4, // Lower confidence due to temporary exclusion expiry
         );
       } else {
         // Normal processing for non-excluded items
@@ -702,15 +702,15 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
           relativePath,
           Number.parseInt(lineNumber, 10),
           `Unused export: ${exportName}`,
-          'unused-export',
-          exportName // confidence - will be calculated
+          "unused-export",
+          exportName, // confidence - will be calculated
         );
       }
     });
 
     const results = await Promise.all(linePromises);
     violations.push(
-      ...results.filter((v): v is DeadCodeViolation => v !== undefined)
+      ...results.filter((v): v is DeadCodeViolation => v !== undefined),
     );
 
     return violations;
@@ -752,9 +752,9 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
                   start: duplicate.firstFile?.start || 1,
                   end:
                     duplicate.firstFile?.end ||
-                    (duplicate.firstFile?.start || 1) + (duplicate.lines || 0)
-                }
-              )
+                    (duplicate.firstFile?.start || 1) + (duplicate.lines || 0),
+                },
+              ),
             );
           }
         }
@@ -773,26 +773,26 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
   private async runCommand(
     command: string,
     arguments_: string[],
-    cwd: string
+    cwd: string,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const child = spawn(command, arguments_, {
         cwd,
-        stdio: 'pipe'
+        stdio: "pipe",
       });
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      child.stdout?.on('data', (data) => {
+      child.stdout?.on("data", (data) => {
         stdout += data.toString();
       });
 
-      child.stderr?.on('data', (data) => {
+      child.stderr?.on("data", (data) => {
         stderr += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on("close", (code) => {
         if (code === 0) {
           resolve(stdout);
         } else {
@@ -800,17 +800,17 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
         }
       });
 
-      child.on('error', reject);
+      child.on("error", reject);
 
       // Handle abort signal
       if (this.abortController?.signal.aborted) {
         child.kill();
-        reject(new Error('Analysis was aborted'));
+        reject(new Error("Analysis was aborted"));
       }
 
-      this.abortController?.signal.addEventListener('abort', () => {
+      this.abortController?.signal.addEventListener("abort", () => {
         child.kill();
-        reject(new Error('Analysis was aborted'));
+        reject(new Error("Analysis was aborted"));
       });
     });
   }
@@ -821,23 +821,23 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
   protected override generateFixSuggestion(
     category: ViolationCategory,
     rule?: string,
-    _code?: string
+    _code?: string,
   ): string | undefined {
     switch (category) {
-    case 'dead-code': {
-      if (rule === 'unused-export') {
-        return "Remove the unused export or add it to an ignore pattern if it's part of a public API";
+      case "dead-code": {
+        if (rule === "unused-export") {
+          return "Remove the unused export or add it to an ignore pattern if it's part of a public API";
+        }
+        return "Remove the unused code to reduce bundle size and improve maintainability";
       }
-      return 'Remove the unused code to reduce bundle size and improve maintainability';
-    }
 
-    case 'code-duplication': {
-      return 'Extract duplicate code into a shared function, utility, or component to improve maintainability';
-    }
+      case "code-duplication": {
+        return "Extract duplicate code into a shared function, utility, or component to improve maintainability";
+      }
 
-    default: {
-      return undefined;
-    }
+      default: {
+        return undefined;
+      }
     }
   }
 
@@ -845,20 +845,20 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Generate comprehensive archaeology report
    */
   async generateArchaeologyReport(
-    targetPath: string
+    targetPath: string,
   ): Promise<ArchaeologyReport> {
     const violations = await this.analyze(targetPath);
 
     const deadCodeViolations = violations.filter(
-      (v) => v.category === 'dead-code'
+      (v) => v.category === "dead-code",
     );
     const duplicationViolations = violations.filter(
-      (v) => v.category === 'code-duplication'
+      (v) => v.category === "code-duplication",
     );
 
     const deadCodeFiles = [...new Set(deadCodeViolations.map((v) => v.file))];
     const duplicationFiles = [
-      ...new Set(duplicationViolations.map((v) => v.file))
+      ...new Set(duplicationViolations.map((v) => v.file)),
     ];
 
     // Calculate a simple technical debt score (0-100, lower is better)
@@ -880,7 +880,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
     // Generate recommendations
     const recommendations = this.generateRecommendations(
       deadCodeViolationsTyped,
-      duplicationViolationsTyped
+      duplicationViolationsTyped,
     );
 
     return {
@@ -889,42 +889,42 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
         deadCodeCount: deadCodeViolations.length,
         duplicationCount: duplicationViolations.length,
         filesAnalyzed: new Set([...deadCodeFiles, ...duplicationFiles]).size,
-        healthScore: Math.max(0, 100 - technicalDebtScore)
+        healthScore: Math.max(0, 100 - technicalDebtScore),
       },
       deadCode: {
         unusedExports: deadCodeViolationsTyped.filter(
-          (v) => v.deadCodeType === 'unused-export'
+          (v) => v.deadCodeType === "unused-export",
         ),
         unreachableCode: deadCodeViolationsTyped.filter(
-          (v) => v.deadCodeType === 'unreachable-code'
+          (v) => v.deadCodeType === "unreachable-code",
         ),
         unusedImports: deadCodeViolationsTyped.filter(
-          (v) => v.deadCodeType === 'unused-import'
+          (v) => v.deadCodeType === "unused-import",
         ),
-        totalDeadLines: deadCodeViolations.length // Simplified - could be enhanced
+        totalDeadLines: deadCodeViolations.length, // Simplified - could be enhanced
       },
       duplication: {
         exactDuplicates: duplicationViolationsTyped.filter(
-          (v) => v.metadata.duplicationType === 'exact'
+          (v) => v.metadata.duplicationType === "exact",
         ),
         structuralDuplicates: duplicationViolationsTyped.filter(
-          (v) => v.metadata.duplicationType === 'structural'
+          (v) => v.metadata.duplicationType === "structural",
         ),
         fileMetrics: this.calculateFileMetrics(duplicationViolationsTyped),
         overallDuplication:
           duplicationFiles.length > 0
             ? (totalDuplicatedLines / (duplicationFiles.length * 100)) * 100
-            : 0
+            : 0,
       },
       recommendations,
       technicalDebt: {
         estimatedFixTimeHours: this.estimateFixTime(
           deadCodeViolationsTyped,
-          duplicationViolationsTyped
+          duplicationViolationsTyped,
         ),
         complexityScore: Math.min(10, Math.floor(technicalDebtScore / 10)),
-        maintainabilityIndex: Math.max(0, 100 - technicalDebtScore)
-      }
+        maintainabilityIndex: Math.max(0, 100 - technicalDebtScore),
+      },
     };
   }
 
@@ -933,7 +933,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    */
   private generateRecommendations(
     deadCodeViolations: DeadCodeViolation[],
-    duplicationViolations: CodeDuplicationViolation[]
+    duplicationViolations: CodeDuplicationViolation[],
   ): {
     highPriority: ArchaeologyRecommendation[];
     mediumPriority: ArchaeologyRecommendation[];
@@ -943,70 +943,70 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
 
     // High-priority: Unused exports with high impact
     const highImpactDeadCode = deadCodeViolations.filter(
-      (v) => v.metadata.removalImpact === 'high'
+      (v) => v.metadata.removalImpact === "high",
     );
     if (highImpactDeadCode.length > 0) {
       recommendations.push({
-        type: 'remove-dead-code',
+        type: "remove-dead-code",
         description: `Remove ${highImpactDeadCode.length} high-impact unused exports`,
         affectedFiles: [...new Set(highImpactDeadCode.map((v) => v.file))],
-        effort: 'medium',
-        impact: 'high',
+        effort: "medium",
+        impact: "high",
         actionSteps: [
           "Review each unused export to ensure it's not part of a public API",
-          'Remove unused exports and update any related documentation',
-          'Run tests to ensure no hidden dependencies'
+          "Remove unused exports and update any related documentation",
+          "Run tests to ensure no hidden dependencies",
         ],
-        riskLevel: 'medium'
+        riskLevel: "medium",
       });
     }
 
     // Medium-priority: Exact duplicates
     const exactDuplicates = duplicationViolations.filter(
-      (v) => v.metadata.duplicationType === 'exact'
+      (v) => v.metadata.duplicationType === "exact",
     );
     if (exactDuplicates.length > 0) {
       recommendations.push({
-        type: 'extract-duplicate',
+        type: "extract-duplicate",
         description: `Extract ${exactDuplicates.length} exact code duplicates into shared utilities`,
         affectedFiles: [...new Set(exactDuplicates.map((v) => v.file))],
-        effort: 'medium',
-        impact: 'medium',
+        effort: "medium",
+        impact: "medium",
         actionSteps: [
-          'Identify the duplicated code patterns',
-          'Extract common code into utility functions',
-          'Update all occurrences to use the shared utilities',
-          'Add tests for the new shared utilities'
+          "Identify the duplicated code patterns",
+          "Extract common code into utility functions",
+          "Update all occurrences to use the shared utilities",
+          "Add tests for the new shared utilities",
         ],
-        riskLevel: 'low'
+        riskLevel: "low",
       });
     }
 
     // Low-priority: Unused imports
     const unusedImports = deadCodeViolations.filter(
-      (v) => v.deadCodeType === 'unused-import'
+      (v) => v.deadCodeType === "unused-import",
     );
     if (unusedImports.length > 0) {
       recommendations.push({
-        type: 'improve-imports',
+        type: "improve-imports",
         description: `Clean up ${unusedImports.length} unused imports`,
         affectedFiles: [...new Set(unusedImports.map((v) => v.file))],
-        effort: 'low',
-        impact: 'low',
+        effort: "low",
+        impact: "low",
         actionSteps: [
-          'Remove unused import statements',
-          'Run linter to catch any remaining issues',
-          'Update import organization if needed'
+          "Remove unused import statements",
+          "Run linter to catch any remaining issues",
+          "Update import organization if needed",
         ],
-        riskLevel: 'low'
+        riskLevel: "low",
       });
     }
 
     // Categorize by priority
     return {
-      highPriority: recommendations.filter((r) => r.impact === 'high'),
-      mediumPriority: recommendations.filter((r) => r.impact === 'medium'),
-      lowPriority: recommendations.filter((r) => r.impact === 'low')
+      highPriority: recommendations.filter((r) => r.impact === "high"),
+      mediumPriority: recommendations.filter((r) => r.impact === "medium"),
+      lowPriority: recommendations.filter((r) => r.impact === "low"),
     };
   }
 
@@ -1014,7 +1014,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    * Calculate file-level duplication metrics
    */
   private calculateFileMetrics(
-    duplicationViolations: CodeDuplicationViolation[]
+    duplicationViolations: CodeDuplicationViolation[],
   ): Record<
     string,
     { duplicatedLines: number; totalLines: number; percentage: number }
@@ -1030,7 +1030,7 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
         fileMetrics[file] = {
           duplicatedLines: 0,
           totalLines: 100,
-          percentage: 0
+          percentage: 0,
         }; // Simplified
       }
 
@@ -1052,43 +1052,43 @@ export class CodeArchaeologyEngine extends BaseAuditEngine {
    */
   private estimateFixTime(
     deadCodeViolations: DeadCodeViolation[],
-    duplicationViolations: CodeDuplicationViolation[]
+    duplicationViolations: CodeDuplicationViolation[],
   ): number {
     let totalHours = 0;
 
     // Dead code: 5 minutes per unused export, 15 minutes per unreachable code
     for (const violation of deadCodeViolations) {
       switch (violation.deadCodeType) {
-      case 'unused-export': {
-        totalHours += 0.1; // 6 minutes
-        break;
-      }
-      case 'unreachable-code': {
-        totalHours += 0.25; // 15 minutes
-        break;
-      }
-      case 'unused-import': {
-        totalHours += 0.05; // 3 minutes
-        break;
-      }
+        case "unused-export": {
+          totalHours += 0.1; // 6 minutes
+          break;
+        }
+        case "unreachable-code": {
+          totalHours += 0.25; // 15 minutes
+          break;
+        }
+        case "unused-import": {
+          totalHours += 0.05; // 3 minutes
+          break;
+        }
       }
     }
 
     // Duplication: Based on fix effort
     for (const violation of duplicationViolations) {
       switch (violation.metadata.fixEffort) {
-      case 'low': {
-        totalHours += 0.5; // 30 minutes
-        break;
-      }
-      case 'medium': {
-        totalHours += 1; // 1 hour
-        break;
-      }
-      case 'high': {
-        totalHours += 2; // 2 hours
-        break;
-      }
+        case "low": {
+          totalHours += 0.5; // 30 minutes
+          break;
+        }
+        case "medium": {
+          totalHours += 1; // 1 hour
+          break;
+        }
+        case "high": {
+          totalHours += 2; // 2 hours
+          break;
+        }
       }
     }
 

@@ -8,11 +8,11 @@ import type {
   IViolationTracker,
   IStorageService,
   ProcessingResult,
-  ValidationResult
-} from './interfaces.js';
+  ValidationResult,
+} from "./interfaces.js";
 
-import type { Violation as OrchestratorViolation } from '../utils/violation-types.js';
-import { generateViolationHash } from '../database/utils.js';
+import type { Violation as OrchestratorViolation } from "../utils/violation-types.js";
+import { generateViolationHash } from "../database/utils.js";
 
 // ============================================================================
 // Violation Tracker Implementation
@@ -37,13 +37,13 @@ export class ViolationTracker implements IViolationTracker {
   // ========================================================================
 
   async processViolations(
-    violations: OrchestratorViolation[]
+    violations: OrchestratorViolation[],
   ): Promise<ProcessingResult> {
     const startTime = performance.now();
 
     if (!this.silent) {
       console.log(
-        `[ViolationTracker] Processing ${violations.length} violations...`
+        `[ViolationTracker] Processing ${violations.length} violations...`,
       );
     }
     // Completely silent in silent mode - no debug logs during watch
@@ -62,7 +62,7 @@ export class ViolationTracker implements IViolationTracker {
         validated.push(this.sanitizeViolation(violation));
       } else {
         errors.push(
-          `Invalid violation in ${violation.file}:${violation.line} - ${validationResult.errors.join(', ')}`
+          `Invalid violation in ${violation.file}:${violation.line} - ${validationResult.errors.join(", ")}`,
         );
       }
     }
@@ -74,7 +74,7 @@ export class ViolationTracker implements IViolationTracker {
     if (validated.length > 0) {
       if (!this.silent) {
         console.log(
-          `[ViolationTracker] Storing ${validated.length} validated violations to database`
+          `[ViolationTracker] Storing ${validated.length} validated violations to database`,
         );
       }
       try {
@@ -85,19 +85,19 @@ export class ViolationTracker implements IViolationTracker {
         errors.push(...storeResult.errors);
         if (!this.silent) {
           console.log(
-            `[ViolationTracker] Storage result: inserted=${inserted}, updated=${updated}, errors=${storeResult.errors.length}`
+            `[ViolationTracker] Storage result: inserted=${inserted}, updated=${updated}, errors=${storeResult.errors.length}`,
           );
         }
       } catch (error) {
         errors.push(`Storage operation failed: ${error}`);
         if (!this.silent) {
-          console.warn('[ViolationTracker] Storage operation failed:', error);
+          console.warn("[ViolationTracker] Storage operation failed:", error);
         }
       }
     } else {
       if (!this.silent) {
         console.log(
-          `[ViolationTracker] No validated violations to store (original=${violations.length}, deduplicated=${deduplicated.length}, validated=${validated.length})`
+          `[ViolationTracker] No validated violations to store (original=${violations.length}, deduplicated=${deduplicated.length}, validated=${validated.length})`,
         );
       }
     }
@@ -107,17 +107,17 @@ export class ViolationTracker implements IViolationTracker {
     // Record performance metric
     try {
       await this.storageService.recordPerformanceMetric(
-        'violation_processing',
+        "violation_processing",
         executionTime,
-        'ms',
-        `processed: ${violations.length}, validated: ${validated.length}`
+        "ms",
+        `processed: ${violations.length}, validated: ${validated.length}`,
       );
     } catch (error) {
       // Don't fail the entire operation if metrics recording fails
       if (!this.silent) {
         console.warn(
-          '[ViolationTracker] Failed to record performance metric:',
-          error
+          "[ViolationTracker] Failed to record performance metric:",
+          error,
         );
       }
     }
@@ -127,20 +127,20 @@ export class ViolationTracker implements IViolationTracker {
       inserted,
       updated,
       deduplicated: deduplicatedCount,
-      errors
+      errors,
     };
 
     if (!this.silent) {
       console.log(
         `[ViolationTracker] Processing completed in ${Math.round(executionTime)}ms:`,
-        result
+        result,
       );
     }
     return result;
   }
 
   deduplicateViolations(
-    violations: OrchestratorViolation[]
+    violations: OrchestratorViolation[],
   ): OrchestratorViolation[] {
     const seenHashes = new Set<string>();
     const deduplicated: OrchestratorViolation[] = [];
@@ -163,7 +163,7 @@ export class ViolationTracker implements IViolationTracker {
 
   async markAsResolved(violationHashes: string[]): Promise<number> {
     console.log(
-      `[ViolationTracker] Marking ${violationHashes.length} violations as resolved`
+      `[ViolationTracker] Marking ${violationHashes.length} violations as resolved`,
     );
 
     return await this.storageService.resolveViolations(violationHashes);
@@ -171,27 +171,27 @@ export class ViolationTracker implements IViolationTracker {
 
   markAsIgnored(violationHashes: string[]): Promise<number> {
     console.log(
-      `[ViolationTracker] Marking ${violationHashes.length} violations as ignored`
+      `[ViolationTracker] Marking ${violationHashes.length} violations as ignored`,
     );
 
     // Note: StorageService doesn't have markAsIgnored method yet,
     // this would need to be implemented similarly to resolveViolations
     // For now, we'll log the operation
     console.log(
-      'markAsIgnored operation logged - implementation needed in StorageService'
+      "markAsIgnored operation logged - implementation needed in StorageService",
     );
     return Promise.resolve(violationHashes.length);
   }
 
   reactivateViolations(violationHashes: string[]): Promise<number> {
     console.log(
-      `[ViolationTracker] Reactivating ${violationHashes.length} violations`
+      `[ViolationTracker] Reactivating ${violationHashes.length} violations`,
     );
 
     // Note: StorageService doesn't have reactivateViolations method yet
     // This would need to be implemented to set status back to 'active'
     console.log(
-      'reactivateViolations operation logged - implementation needed in StorageService'
+      "reactivateViolations operation logged - implementation needed in StorageService",
     );
     return Promise.resolve(violationHashes.length);
   }
@@ -214,7 +214,7 @@ export class ViolationTracker implements IViolationTracker {
       file_path: violation.file,
       line_number: violation.line || undefined,
       rule_id: violation.rule || undefined,
-      message: violation.message || ''
+      message: violation.message || "",
     });
 
     // Cache the result
@@ -225,7 +225,7 @@ export class ViolationTracker implements IViolationTracker {
 
   validateViolationHash(
     violation: OrchestratorViolation,
-    hash: string
+    hash: string,
   ): boolean {
     const computedHash = this.generateViolationHash(violation);
     return computedHash === hash;
@@ -237,27 +237,27 @@ export class ViolationTracker implements IViolationTracker {
 
   filterViolationsByRule(
     violations: OrchestratorViolation[],
-    ruleIds: string[]
+    ruleIds: string[],
   ): OrchestratorViolation[] {
     const ruleSet = new Set(ruleIds);
     return violations.filter(
-      (violation) => violation.rule && ruleSet.has(violation.rule)
+      (violation) => violation.rule && ruleSet.has(violation.rule),
     );
   }
 
   filterViolationsBySeverity(
     violations: OrchestratorViolation[],
-    severities: string[]
+    severities: string[],
   ): OrchestratorViolation[] {
     const severitySet = new Set(severities);
     return violations.filter((violation) =>
-      severitySet.has(violation.severity)
+      severitySet.has(violation.severity),
     );
   }
 
   filterViolationsByFile(
     violations: OrchestratorViolation[],
-    filePaths: string[]
+    filePaths: string[],
   ): OrchestratorViolation[] {
     const fileSet = new Set(filePaths);
     return violations.filter((violation) => fileSet.has(violation.file));
@@ -282,42 +282,42 @@ export class ViolationTracker implements IViolationTracker {
     // Required field validation
     if (
       !violation.file ||
-      typeof violation.file !== 'string' ||
+      typeof violation.file !== "string" ||
       violation.file.trim().length === 0
     ) {
-      errors.push('File path is required');
+      errors.push("File path is required");
     }
 
     if (
       !violation.message ||
-      typeof violation.message !== 'string' ||
+      typeof violation.message !== "string" ||
       violation.message.trim().length === 0
     ) {
-      errors.push('Message is required');
+      errors.push("Message is required");
     }
 
     if (
       !violation.category ||
-      typeof violation.category !== 'string' ||
+      typeof violation.category !== "string" ||
       violation.category.trim().length === 0
     ) {
-      errors.push('Category is required');
+      errors.push("Category is required");
     }
 
     if (
       !violation.severity ||
-      typeof violation.severity !== 'string' ||
+      typeof violation.severity !== "string" ||
       violation.severity.trim().length === 0
     ) {
-      errors.push('Severity is required');
+      errors.push("Severity is required");
     }
 
     if (
       !violation.source ||
-      typeof violation.source !== 'string' ||
+      typeof violation.source !== "string" ||
       violation.source.trim().length === 0
     ) {
-      errors.push('Source is required');
+      errors.push("Source is required");
     }
 
     // Field format validation
@@ -325,46 +325,46 @@ export class ViolationTracker implements IViolationTracker {
       violation.line !== undefined &&
       (violation.line < 1 || !Number.isInteger(violation.line))
     ) {
-      errors.push('Line number must be a positive integer');
+      errors.push("Line number must be a positive integer");
     }
 
     if (
       violation.column !== undefined &&
       (violation.column < 0 || !Number.isInteger(violation.column))
     ) {
-      errors.push('Column number must be a non-negative integer');
+      errors.push("Column number must be a non-negative integer");
     }
 
     // Severity validation
-    const validSeverities = ['error', 'warn', 'info'];
+    const validSeverities = ["error", "warn", "info"];
     if (violation.severity && !validSeverities.includes(violation.severity)) {
-      errors.push(`Severity must be one of: ${validSeverities.join(', ')}`);
+      errors.push(`Severity must be one of: ${validSeverities.join(", ")}`);
     }
 
     // Source validation
-    const validSources = ['typescript', 'eslint'];
+    const validSources = ["typescript", "eslint"];
     if (violation.source && !validSources.includes(violation.source)) {
       warnings.push(
-        `Unusual source '${violation.source}' - expected one of: ${validSources.join(', ')}`
+        `Unusual source '${violation.source}' - expected one of: ${validSources.join(", ")}`,
       );
     }
 
     // File path validation
     if (violation.file && !/\.(ts|tsx|js|jsx)$/.test(violation.file)) {
       warnings.push(
-        `File '${violation.file}' does not have a typical TypeScript/JavaScript extension`
+        `File '${violation.file}' does not have a typical TypeScript/JavaScript extension`,
       );
     }
 
     // Message length validation
     if (violation.message && violation.message.length > 500) {
-      warnings.push('Message is unusually long (>500 characters)');
+      warnings.push("Message is unusually long (>500 characters)");
     }
 
     const result: ValidationResult = {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
     };
 
     // Cache the result
@@ -375,11 +375,11 @@ export class ViolationTracker implements IViolationTracker {
 
   sanitizeViolation(violation: OrchestratorViolation): OrchestratorViolation {
     const result: any = {
-      file: violation.file?.trim() || '',
-      message: violation.message?.trim() || '',
-      category: (violation.category?.trim() || 'unknown') as any,
-      severity: (violation.severity?.trim() || 'info') as any,
-      source: (violation.source?.trim() || 'unknown') as any
+      file: violation.file?.trim() || "",
+      message: violation.message?.trim() || "",
+      category: (violation.category?.trim() || "unknown") as any,
+      severity: (violation.severity?.trim() || "info") as any,
+      source: (violation.source?.trim() || "unknown") as any,
     };
 
     if (violation.line !== undefined) {
@@ -408,7 +408,7 @@ export class ViolationTracker implements IViolationTracker {
   clearCaches(): void {
     this.validationCache.clear();
     this.hashCache.clear();
-    console.log('[ViolationTracker] Caches cleared');
+    console.log("[ViolationTracker] Caches cleared");
   }
 
   /**
@@ -418,11 +418,11 @@ export class ViolationTracker implements IViolationTracker {
     validationCacheSize: number;
     hashCacheSize: number;
     totalCacheSize: number;
-    } {
+  } {
     return {
       validationCacheSize: this.validationCache.size,
       hashCacheSize: this.hashCache.size,
-      totalCacheSize: this.validationCache.size + this.hashCache.size
+      totalCacheSize: this.validationCache.size + this.hashCache.size,
     };
   }
 
@@ -435,7 +435,7 @@ export class ViolationTracker implements IViolationTracker {
    */
   async processBatchedViolations(
     violations: OrchestratorViolation[],
-    batchSize: number = 100
+    batchSize: number = 100,
   ): Promise<ProcessingResult[]> {
     const results: ProcessingResult[] = [];
 
@@ -457,7 +457,7 @@ export class ViolationTracker implements IViolationTracker {
       inserted: 0,
       updated: 0,
       deduplicated: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     for (const result of results) {
@@ -486,7 +486,7 @@ export class ViolationTracker implements IViolationTracker {
       filePaths?: string[];
       categories?: string[];
       sources?: string[];
-    }
+    },
   ): OrchestratorViolation[] {
     let filtered = violations;
 
@@ -504,7 +504,7 @@ export class ViolationTracker implements IViolationTracker {
 
     if (filters.categories) {
       filtered = filtered.filter((v) =>
-        filters.categories!.includes(v.category)
+        filters.categories!.includes(v.category),
       );
     }
 
@@ -526,7 +526,7 @@ let violationTrackerInstance: ViolationTracker | undefined;
  * Get or create violation tracker instance
  */
 export function getViolationTracker(
-  storageService: IStorageService
+  storageService: IStorageService,
 ): ViolationTracker {
   if (!violationTrackerInstance) {
     violationTrackerInstance = new ViolationTracker(storageService);

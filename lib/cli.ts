@@ -29,48 +29,48 @@
  * @version Dynamically loaded from package.json
  */
 
-import { resetAllServices } from '../services/index.js';
+import { resetAllServices } from "../services/index.js";
 import type {
   Violation as OrchestratorViolation,
-  OrchestratorResult
-} from '../utils/violation-types.js';
+  OrchestratorResult,
+} from "../utils/violation-types.js";
 // ViolationSummaryItem no longer needed - using live data only
 import {
   getDeveloperWatchDisplay,
-  resetDeveloperWatchDisplay
-} from './watch-display-v2.js';
-import { SessionManager } from '../services/session-manager.js';
-import { WatchController } from './watch-controller.js';
+  resetDeveloperWatchDisplay,
+} from "./watch-display-v2.js";
+import { SessionManager } from "../services/session-manager.js";
+import { WatchController } from "./watch-controller.js";
 import {
   detectTerminalBackground,
   detectTerminalModeHeuristic,
-  debugTerminalEnvironment
-} from './terminal-detector.js';
-import { isESLintCategory } from '../shared/constants.js';
-import type { CLIFlags } from '../utils/types.js';
-import type { ColorScheme } from '../shared/types.js';
-import type { RuleFrequencyRecommendation } from '../services/interfaces.js';
+  debugTerminalEnvironment,
+} from "./terminal-detector.js";
+import { isESLintCategory } from "../shared/constants.js";
+import type { CLIFlags } from "../utils/types.js";
+import type { ColorScheme } from "../shared/types.js";
+import type { RuleFrequencyRecommendation } from "../services/interfaces.js";
 
 // Import unified orchestrator and configuration bridge
-import { UnifiedOrchestrator } from '../services/unified-orchestrator.js';
+import { UnifiedOrchestrator } from "../services/unified-orchestrator.js";
 import {
   createUnifiedConfigFromFlags,
   createWatchModeConfig,
   createPRDConfig,
-  type CLIFlags as BridgeCLIFlags
-} from './unified-orchestrator-bridge.js';
+  type CLIFlags as BridgeCLIFlags,
+} from "./unified-orchestrator-bridge.js";
 
 // Parse command line arguments with Zod validation for security
 import {
   safeCLIArgumentsParse,
-  safeEnvironmentAccess
-} from '../utils/validation-schemas.js';
+  safeEnvironmentAccess,
+} from "../utils/validation-schemas.js";
 
 // Static imports for better testability
-import { writeFile, readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-import { checkEnvironmentCompatibility } from '../utils/node-compatibility.js';
+import { writeFile, readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { checkEnvironmentCompatibility } from "../utils/node-compatibility.js";
 
 /**
  * Process violations into summary format for session state
@@ -87,7 +87,7 @@ export function processViolationSummary(violations: OrchestratorViolation[]) {
   return {
     total: violations.length,
     bySource,
-    byCategory
+    byCategory,
   };
 }
 
@@ -97,13 +97,13 @@ export function processViolationSummary(violations: OrchestratorViolation[]) {
 async function getPackageVersion(): Promise<string> {
   try {
     const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-    const packageJsonPath = path.join(currentDirectory, '..', 'package.json');
-    const packageJsonContent = await readFile(packageJsonPath, 'utf8');
+    const packageJsonPath = path.join(currentDirectory, "..", "package.json");
+    const packageJsonContent = await readFile(packageJsonPath, "utf8");
     const packageJson = JSON.parse(packageJsonContent);
     return packageJson.version;
   } catch {
     // Fallback if package.json can't be read
-    return '0.1.0-alpha.x';
+    return "0.1.0-alpha.x";
   }
 }
 
@@ -112,20 +112,20 @@ async function getPackageVersion(): Promise<string> {
  */
 function detectPnpmProject(): boolean {
   try {
-    const fs = require('node:fs');
-    const path = require('node:path');
+    const fs = require("node:fs");
+    const path = require("node:path");
 
     // Check for pnpm-lock.yaml in current directory and parent directories
     let currentDirectory = process.cwd();
     while (currentDirectory !== path.dirname(currentDirectory)) {
-      if (fs.existsSync(path.join(currentDirectory, 'pnpm-lock.yaml'))) {
+      if (fs.existsSync(path.join(currentDirectory, "pnpm-lock.yaml"))) {
         return true;
       }
       currentDirectory = path.dirname(currentDirectory);
     }
 
     // Check user agent (if available)
-    if (process.env['npm_config_user_agent']?.includes('pnpm')) {
+    if (process.env["npm_config_user_agent"]?.includes("pnpm")) {
       return true;
     }
 
@@ -145,12 +145,12 @@ let flags: CLIFlags;
 try {
   flags = safeCLIArgumentsParse(arguments_) as CLIFlags;
   if (validatedEnvironment.DEBUG) {
-    console.log('[Security] CLI arguments validated successfully');
+    console.log("[Security] CLI arguments validated successfully");
   }
 } catch (error: unknown) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error(`[Security Error] ${errorMessage}`);
-  console.error('Falling back to safe defaults...');
+  console.error("Falling back to safe defaults...");
   // Use safe default flags if validation fails
   flags = {
     help: false,
@@ -163,7 +163,7 @@ try {
     eslintOnly: false,
     archaeology: false,
     includeArchaeology: false,
-    targetPath: '.',
+    targetPath: ".",
     verbose: false,
     strict: false,
     noCrossoverCheck: false,
@@ -174,21 +174,21 @@ try {
     resumeSession: false,
     debugTerminal: false,
     debug: false,
-    dataDir: './data',
+    dataDir: "./data",
     generatePRD: false,
     installShortcuts: false,
-    configAction: undefined
+    configAction: undefined,
   };
 }
 
 // Enable debug logging if --debug flag is set
-import { DebugLogger, debugLog } from '../utils/debug-logger.js';
+import { DebugLogger, debugLog } from "../utils/debug-logger.js";
 if (flags.debug) {
   DebugLogger.enable();
-  DebugLogger.debug('CLI', 'Debug mode enabled via --debug flag');
-  DebugLogger.debug('CLI', 'Command line arguments', {
+  DebugLogger.debug("CLI", "Debug mode enabled via --debug flag");
+  DebugLogger.debug("CLI", "Command line arguments", {
     args: arguments_,
-    flags
+    flags,
   });
 }
 
@@ -376,7 +376,7 @@ npm run sidequest:ai-context         # Full LLM guidance
  */
 function showQuickHelp(): void {
   console.log(
-    "SideQuest: Use 'sidequest:report' for clean TS analysis, 'sidequest:start' for watch mode. Separates TS (types) from ESLint (style) for 3x speed. Run 'sidequest:ai-context' for full LLM guidance."
+    "SideQuest: Use 'sidequest:report' for clean TS analysis, 'sidequest:start' for watch mode. Separates TS (types) from ESLint (style) for 3x speed. Run 'sidequest:ai-context' for full LLM guidance.",
   );
 }
 
@@ -563,43 +563,43 @@ function getColorScheme(): ColorScheme {
   const colorMode =
     validatedEnvironment.TERM_COLOR_MODE || detectTerminalMode();
 
-  return colorMode === 'light'
+  return colorMode === "light"
     ? {
-      // Light mode: Replicate macOS Terminal "Man Page" theme colors
-      reset: '\u001B[0m',
-      bold: '\u001B[1m',
-      dim: '\u001B[2m',
-      primary: '\u001B[30m', // Black text (Man Page style)
-      secondary: '\u001B[90m', // Dark gray
-      info: '\u001B[34m', // Deep blue
-      success: '\u001B[32m', // Deep green
-      warning: '\u001B[33m', // Amber/brown
-      error: '\u001B[31m', // Deep red
-      muted: '\u001B[37m', // Medium gray
-      accent: '\u001B[36m', // Cyan
-      header: '\u001B[35m' // Purple (Man Page style)
-    }
+        // Light mode: Replicate macOS Terminal "Man Page" theme colors
+        reset: "\u001B[0m",
+        bold: "\u001B[1m",
+        dim: "\u001B[2m",
+        primary: "\u001B[30m", // Black text (Man Page style)
+        secondary: "\u001B[90m", // Dark gray
+        info: "\u001B[34m", // Deep blue
+        success: "\u001B[32m", // Deep green
+        warning: "\u001B[33m", // Amber/brown
+        error: "\u001B[31m", // Deep red
+        muted: "\u001B[37m", // Medium gray
+        accent: "\u001B[36m", // Cyan
+        header: "\u001B[35m", // Purple (Man Page style)
+      }
     : {
-      // Dark mode: Replicate macOS Terminal "Pro" theme colors
-      reset: '\u001B[0m',
-      bold: '\u001B[1m',
-      dim: '\u001B[2m',
-      primary: '\u001B[97m', // Bright white (Pro theme style)
-      secondary: '\u001B[37m', // Light gray
-      info: '\u001B[94m', // Bright blue (Pro theme blue)
-      success: '\u001B[92m', // Bright green (Pro theme green)
-      warning: '\u001B[93m', // Bright yellow (Pro theme yellow)
-      error: '\u001B[91m', // Bright red (Pro theme red)
-      muted: '\u001B[90m', // Dim gray
-      accent: '\u001B[95m', // Bright magenta
-      header: '\u001B[96m' // Bright cyan (Pro theme cyan)
-    };
+        // Dark mode: Replicate macOS Terminal "Pro" theme colors
+        reset: "\u001B[0m",
+        bold: "\u001B[1m",
+        dim: "\u001B[2m",
+        primary: "\u001B[97m", // Bright white (Pro theme style)
+        secondary: "\u001B[37m", // Light gray
+        info: "\u001B[94m", // Bright blue (Pro theme blue)
+        success: "\u001B[92m", // Bright green (Pro theme green)
+        warning: "\u001B[93m", // Bright yellow (Pro theme yellow)
+        error: "\u001B[91m", // Bright red (Pro theme red)
+        muted: "\u001B[90m", // Dim gray
+        accent: "\u001B[95m", // Bright magenta
+        header: "\u001B[96m", // Bright cyan (Pro theme cyan)
+      };
 }
 
 /**
  * Detect terminal color mode using various heuristics
  */
-function detectTerminalMode(): 'light' | 'dark' {
+function detectTerminalMode(): "light" | "dark" {
   return detectTerminalModeHeuristic();
 }
 
@@ -612,30 +612,30 @@ async function createWatchController(
   flags: CLIFlags,
   orchestrator: UnifiedOrchestrator,
   sessionManager: SessionManager,
-  colors: ColorScheme
+  colors: ColorScheme,
 ): Promise<WatchController> {
-  debugLog('CLI', 'Starting createWatchController...');
+  debugLog("CLI", "Starting createWatchController...");
 
   // Create unified orchestrator for violation collection (SILENT mode for watch)
-  debugLog('CLI', 'Creating unified orchestrator for watch mode...');
+  debugLog("CLI", "Creating unified orchestrator for watch mode...");
   const unifiedConfig = createWatchModeConfig(flags as BridgeCLIFlags);
   const unifiedOrchestrator = new UnifiedOrchestrator(unifiedConfig);
   await unifiedOrchestrator.initialize();
-  debugLog('CLI', 'Unified orchestrator created and initialized successfully');
+  debugLog("CLI", "Unified orchestrator created and initialized successfully");
 
   // Get the clean developer display
-  debugLog('CLI', 'Getting developer watch display...');
+  debugLog("CLI", "Getting developer watch display...");
   const watchDisplay = getDeveloperWatchDisplay();
-  debugLog('CLI', 'Watch display obtained');
+  debugLog("CLI", "Watch display obtained");
 
-  debugLog('CLI', 'Creating WatchController instance...');
+  debugLog("CLI", "Creating WatchController instance...");
   return new WatchController({
     flags,
     orchestrator,
     sessionManager,
     display: watchDisplay,
     legacyOrchestrator: unifiedOrchestrator, // Use unified orchestrator instead of legacy
-    colors
+    colors,
   });
 }
 
@@ -643,19 +643,19 @@ async function createWatchController(
  * Display burndown analysis
  */
 async function displayBurndownAnalysis(
-  orchestrator: UnifiedOrchestrator
+  orchestrator: UnifiedOrchestrator,
 ): Promise<void> {
   const colors = getColorScheme();
 
   console.log(
-    `${colors.bold}${colors.header}📈 Burndown Analysis${colors.reset}\n`
+    `${colors.bold}${colors.header}📈 Burndown Analysis${colors.reset}\n`,
   );
 
   try {
     const analysisService = orchestrator.getAnalysisService();
     const timeRange = {
       start: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 hours ago
-      end: new Date()
+      end: new Date(),
     };
 
     // Get violation trends
@@ -664,13 +664,13 @@ async function displayBurndownAnalysis(
 
     console.log(`${colors.warning}24-Hour Summary:${colors.reset}`);
     console.log(
-      `${colors.secondary}  Total violations: ${colors.primary}${stats.total}${colors.reset}`
+      `${colors.secondary}  Total violations: ${colors.primary}${stats.total}${colors.reset}`,
     );
     console.log(
-      `${colors.secondary}  Files affected: ${colors.primary}${stats.filesAffected}${colors.reset}`
+      `${colors.secondary}  Files affected: ${colors.primary}${stats.filesAffected}${colors.reset}`,
     );
     console.log(
-      `${colors.secondary}  Avg per file: ${colors.primary}${stats.avgPerFile.toFixed(1)}${colors.reset}\n`
+      `${colors.secondary}  Avg per file: ${colors.primary}${stats.avgPerFile.toFixed(1)}${colors.reset}\n`,
     );
 
     // Show category breakdown
@@ -681,7 +681,7 @@ async function displayBurndownAnalysis(
       .forEach(([category, count]) => {
         const percentage = (((count as number) / stats.total) * 100).toFixed(1);
         console.log(
-          `  ${colors.info}${category}:${colors.reset} ${colors.primary}${count}${colors.reset} ${colors.secondary}(${percentage}%)${colors.reset}`
+          `  ${colors.info}${category}:${colors.reset} ${colors.primary}${count}${colors.reset} ${colors.secondary}(${percentage}%)${colors.reset}`,
         );
       });
 
@@ -689,7 +689,7 @@ async function displayBurndownAnalysis(
     const recommendations = await analysisService.recommendRuleFrequencies();
     if (recommendations.length > 0) {
       console.log(
-        `\n${colors.warning}Rule Frequency Recommendations:${colors.reset}`
+        `\n${colors.warning}Rule Frequency Recommendations:${colors.reset}`,
       );
       recommendations
         .slice(0, 5)
@@ -697,13 +697,13 @@ async function displayBurndownAnalysis(
           const currentFreq = Math.round(rec.currentFrequency / 1000);
           const recommendedFreq = Math.round(rec.recommendedFrequency / 1000);
           console.log(
-            `  ${colors.info}${rec.rule}:${colors.reset} ${currentFreq}s → ${recommendedFreq}s ${colors.secondary}(${rec.reasoning})${colors.reset}`
+            `  ${colors.info}${rec.rule}:${colors.reset} ${currentFreq}s → ${recommendedFreq}s ${colors.secondary}(${rec.reasoning})${colors.reset}`,
           );
         });
     }
   } catch (error) {
     console.log(
-      `${colors.error}Error generating burndown analysis: ${error}${colors.reset}`
+      `${colors.error}Error generating burndown analysis: ${error}${colors.reset}`,
     );
   }
 }
@@ -722,42 +722,42 @@ function displayConsoleResults(result: OrchestratorResult): void {
   const { violations, summary, totalExecutionTime } = result;
 
   console.log(
-    `\n${colors.bold}${colors.header}📊 Code Quality Analysis Results${colors.reset}`
+    `\n${colors.bold}${colors.header}📊 Code Quality Analysis Results${colors.reset}`,
   );
   console.log(
-    `${colors.secondary}Total violations: ${colors.primary}${summary.total}${colors.reset}`
+    `${colors.secondary}Total violations: ${colors.primary}${summary.total}${colors.reset}`,
   );
 
   if (
     summary.bySource.typescript > 0 ||
     summary.bySource.eslint > 0 ||
-    summary.bySource['unused-exports'] > 0
+    summary.bySource["unused-exports"] > 0
   ) {
     console.log(`\n${colors.warning}By Source:${colors.reset}`);
     if (summary.bySource.typescript > 0) {
       console.log(
-        `  📝 ${colors.info}TypeScript:${colors.reset} ${colors.primary}${summary.bySource.typescript}${colors.reset}`
+        `  📝 ${colors.info}TypeScript:${colors.reset} ${colors.primary}${summary.bySource.typescript}${colors.reset}`,
       );
     }
     if (summary.bySource.eslint > 0) {
       console.log(
-        `  🔍 ${colors.info}ESLint:${colors.reset} ${colors.primary}${summary.bySource.eslint}${colors.reset}`
+        `  🔍 ${colors.info}ESLint:${colors.reset} ${colors.primary}${summary.bySource.eslint}${colors.reset}`,
       );
     }
-    if (summary.bySource['unused-exports'] > 0) {
+    if (summary.bySource["unused-exports"] > 0) {
       console.log(
-        `  🗂️ ${colors.info}Unused Exports:${colors.reset} ${colors.primary}${summary.bySource['unused-exports']}${colors.reset}`
+        `  🗂️ ${colors.info}Unused Exports:${colors.reset} ${colors.primary}${summary.bySource["unused-exports"]}${colors.reset}`,
       );
     }
-    if (summary.bySource['zod-detection'] > 0) {
+    if (summary.bySource["zod-detection"] > 0) {
       console.log(
-        `  🛡️ ${colors.info}Zod Detection:${colors.reset} ${colors.primary}${summary.bySource['zod-detection']}${colors.reset}`
+        `  🛡️ ${colors.info}Zod Detection:${colors.reset} ${colors.primary}${summary.bySource["zod-detection"]}${colors.reset}`,
       );
     }
   }
 
   // Enhanced Zod Analysis Section
-  if (summary.bySource['zod-detection'] > 0) {
+  if (summary.bySource["zod-detection"] > 0) {
     displayZodAnalysisSection(violations, colors);
   }
 
@@ -766,20 +766,20 @@ function displayConsoleResults(result: OrchestratorResult): void {
     .sort(([, a], [, b]) => b - a)
     .forEach(([category, count]) => {
       const isESLint = isESLintCategory(category);
-      const prefix = isESLint ? '🔍' : '📝';
+      const prefix = isESLint ? "🔍" : "📝";
       const severity =
         violations.find((v: OrchestratorViolation) => v.category === category)
-          ?.severity || 'info';
+          ?.severity || "info";
       const severityIcon =
-        severity === 'error' ? '❌' : (severity === 'warn' ? '⚠️' : 'ℹ️');
+        severity === "error" ? "❌" : severity === "warn" ? "⚠️" : "ℹ️";
 
       console.log(
-        `  ${severityIcon} ${prefix} ${colors.info}${category}:${colors.reset} ${colors.primary}${count}${colors.reset}`
+        `  ${severityIcon} ${prefix} ${colors.info}${category}:${colors.reset} ${colors.primary}${count}${colors.reset}`,
       );
     });
 
   console.log(
-    `\n${colors.muted}Analysis completed in ${totalExecutionTime}ms${colors.reset}`
+    `\n${colors.muted}Analysis completed in ${totalExecutionTime}ms${colors.reset}`,
   );
 }
 
@@ -788,64 +788,64 @@ function displayConsoleResults(result: OrchestratorResult): void {
  */
 function displayZodAnalysisSection(
   violations: OrchestratorViolation[],
-  colors: ColorScheme
+  colors: ColorScheme,
 ): void {
   console.log(`\n${colors.bold}${colors.header}🛡️ Zod Analysis${colors.reset}`);
 
   // Extract Zod coverage data from violations
-  const zodViolations = violations.filter((v) => v.source === 'zod-detection');
+  const zodViolations = violations.filter((v) => v.source === "zod-detection");
   const coverageViolation = zodViolations.find(
-    (v) => v.message && v.message.includes('coverage is')
+    (v) => v.message && v.message.includes("coverage is"),
   );
   const parseRatioViolation = zodViolations.find(
-    (v) => v.message && v.message.includes('parse() vs')
+    (v) => v.message && v.message.includes("parse() vs"),
   );
   const baselineViolation = zodViolations.find(
-    (v) => v.message && v.message.includes('Target ')
+    (v) => v.message && v.message.includes("Target "),
   );
 
   // Extract coverage percentage
-  let coverage = '0';
-  let usedSchemas = '0';
-  let totalSchemas = '0';
+  let coverage = "0";
+  let usedSchemas = "0";
+  let totalSchemas = "0";
   if (coverageViolation && coverageViolation.message) {
     const coverageMatch = coverageViolation.message.match(
-      /coverage is ([\d.]+)% \((\d+)\/(\d+) schemas used\)/
+      /coverage is ([\d.]+)% \((\d+)\/(\d+) schemas used\)/,
     );
     if (coverageMatch) {
-      coverage = coverageMatch[1] || '0';
-      usedSchemas = coverageMatch[2] || '0';
-      totalSchemas = coverageMatch[3] || '0';
+      coverage = coverageMatch[1] || "0";
+      usedSchemas = coverageMatch[2] || "0";
+      totalSchemas = coverageMatch[3] || "0";
     }
   }
 
   // Extract parse safety data
-  let parseCallsCount = '0';
-  let safeParseCallsCount = '0';
+  let parseCallsCount = "0";
+  let safeParseCallsCount = "0";
   if (parseRatioViolation && parseRatioViolation.message) {
     const parseMatch = parseRatioViolation.message.match(
-      /(\d+) \.parse\(\) vs (\d+) \.safeParse\(\)/
+      /(\d+) \.parse\(\) vs (\d+) \.safeParse\(\)/,
     );
     if (parseMatch) {
-      parseCallsCount = parseMatch[1] || '0';
-      safeParseCallsCount = parseMatch[2] || '0';
+      parseCallsCount = parseMatch[1] || "0";
+      safeParseCallsCount = parseMatch[2] || "0";
     }
   }
 
   // Extract risk level from coverage percentage
   const coverageNumber = Number.parseFloat(coverage);
-  let riskLevel = 'High';
+  let riskLevel = "High";
   let riskColor = colors.error;
   if (coverageNumber >= 80) {
-    riskLevel = 'Low';
+    riskLevel = "Low";
     riskColor = colors.success;
   } else if (coverageNumber >= 50) {
-    riskLevel = 'Medium';
+    riskLevel = "Medium";
     riskColor = colors.warning;
   }
 
   // Extract baseline recommendation
-  let baseline = 'General TypeScript project: Target 70%+ coverage';
+  let baseline = "General TypeScript project: Target 70%+ coverage";
   if (baselineViolation && baselineViolation.message) {
     const baselineMatch = baselineViolation.message.match(/Target ([^.]+)\./);
     if (baselineMatch) {
@@ -855,16 +855,16 @@ function displayZodAnalysisSection(
 
   // Display coverage metrics prominently
   console.log(
-    `${colors.secondary}  Coverage: ${colors.primary}${coverage}%${colors.reset} ${colors.secondary}(${usedSchemas}/${totalSchemas} schemas used)${colors.reset}`
+    `${colors.secondary}  Coverage: ${colors.primary}${coverage}%${colors.reset} ${colors.secondary}(${usedSchemas}/${totalSchemas} schemas used)${colors.reset}`,
   );
   console.log(
-    `${colors.secondary}  Risk Level: ${riskColor}${riskLevel}${colors.reset}`
+    `${colors.secondary}  Risk Level: ${riskColor}${riskLevel}${colors.reset}`,
   );
   console.log(
-    `${colors.secondary}  Parse Safety: ${colors.primary}${parseCallsCount} unsafe${colors.reset}${colors.secondary}, ${colors.primary}${safeParseCallsCount} safe${colors.reset} ${colors.secondary}calls${colors.reset}`
+    `${colors.secondary}  Parse Safety: ${colors.primary}${parseCallsCount} unsafe${colors.reset}${colors.secondary}, ${colors.primary}${safeParseCallsCount} safe${colors.reset} ${colors.secondary}calls${colors.reset}`,
   );
   console.log(
-    `${colors.secondary}  Baseline: ${colors.info}${baseline}${colors.reset}`
+    `${colors.secondary}  Baseline: ${colors.info}${baseline}${colors.reset}`,
   );
 }
 
@@ -875,10 +875,10 @@ function displayZodAnalysisSection(
  */
 export async function generatePRD(
   violations: OrchestratorViolation[],
-  targetPath: string
+  targetPath: string,
 ): Promise<void> {
   const colors = getColorScheme();
-  const timestamp = new Date().toISOString().split('T')[0];
+  const timestamp = new Date().toISOString().split("T")[0];
 
   // Analyze violations for PRD content
   const totalViolations = violations.length;
@@ -895,11 +895,11 @@ export async function generatePRD(
     .map(([category, count]) => ({
       category,
       count,
-      percentage: ((count / totalViolations) * 100).toFixed(1)
+      percentage: ((count / totalViolations) * 100).toFixed(1),
     }));
 
-  const errorCount = violations.filter((v) => v.severity === 'error').length;
-  const warningCount = violations.filter((v) => v.severity === 'warn').length;
+  const errorCount = violations.filter((v) => v.severity === "error").length;
+  const warningCount = violations.filter((v) => v.severity === "warn").length;
 
   // Generate PRD content
   const prdContent = `# Code Quality Improvement PRD
@@ -919,7 +919,7 @@ This codebase requires systematic code quality improvements to address ${totalVi
 - Primary issues in: ${topCategories
     .slice(0, 3)
     .map((c) => c.category)
-    .join(', ')}
+    .join(", ")}
 
 **Impact:**
 - Developer productivity hindered by type safety issues
@@ -936,33 +936,33 @@ Implement a systematic code quality improvement process targeting the highest-im
 ${
   errorCount > 0
     ? violations
-      .filter((v) => v.severity === 'error')
-      .slice(0, 5)
-      .map((v) => `- **${v.category}**: ${v.message} (${v.file}:${v.line})`)
-      .join('\n')
-    : '- No critical errors found'
+        .filter((v) => v.severity === "error")
+        .slice(0, 5)
+        .map((v) => `- **${v.category}**: ${v.message} (${v.file}:${v.line})`)
+        .join("\n")
+    : "- No critical errors found"
 }
 
 ### Priority 2: High-Impact Categories
 ${topCategories
-    .slice(0, 5)
-    .map(
-      (cat) =>
-        `- **${cat.category}**: ${cat.count} violations (${cat.percentage}% of total)`
-    )
-    .join('\n')}
+  .slice(0, 5)
+  .map(
+    (cat) =>
+      `- **${cat.category}**: ${cat.count} violations (${cat.percentage}% of total)`,
+  )
+  .join("\n")}
 
 ### Priority 3: File-Based Cleanup
 Top affected files for focused remediation:
 ${[...new Set(violations.map((v) => v.file))]
-    .map((file) => ({
-      file,
-      count: violations.filter((v) => v.file === file).length
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10)
-    .map((f) => `- ${f.file}: ${f.count} violations`)
-    .join('\n')}
+  .map((file) => ({
+    file,
+    count: violations.filter((v) => v.file === file).length,
+  }))
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 10)
+  .map((f) => `- ${f.file}: ${f.count} violations`)
+  .join("\n")}
 
 ## Technical Approach
 
@@ -1013,7 +1013,7 @@ ${[...new Set(violations.map((v) => v.file))]
 **Week 2:** Top category remediation (${topCategories
     .slice(0, 2)
     .map((c) => c.category)
-    .join(', ')})
+    .join(", ")})
 **Week 3:** File-focused cleanup and remaining violations
 **Week 4:** Prevention systems and documentation
 
@@ -1032,14 +1032,14 @@ ${[...new Set(violations.map((v) => v.file))]
   const prdPath = `${targetPath}/CODE_QUALITY_PRD.md`;
 
   try {
-    await writeFile(prdPath, prdContent, 'utf8');
+    await writeFile(prdPath, prdContent, "utf8");
     console.log(`${colors.success}✅ PRD generated: ${prdPath}${colors.reset}`);
     console.log(
-      `${colors.info}📋 Ready for Claude Task Master ingestion${colors.reset}`
+      `${colors.info}📋 Ready for Claude Task Master ingestion${colors.reset}`,
     );
   } catch (error) {
     console.error(
-      `${colors.error}❌ Failed to write PRD file: ${error}${colors.reset}`
+      `${colors.error}❌ Failed to write PRD file: ${error}${colors.reset}`,
     );
   }
 }
@@ -1049,28 +1049,28 @@ ${[...new Set(violations.map((v) => v.file))]
  */
 async function checkAndRunFirstTimeSetup(): Promise<boolean> {
   try {
-    debugLog('CLI', 'Importing InteractiveSetup module');
+    debugLog("CLI", "Importing InteractiveSetup module");
     const { InteractiveSetup } = await import(
-      '../services/interactive-setup.js'
+      "../services/interactive-setup.js"
     );
-    debugLog('CLI', 'InteractiveSetup module imported successfully');
+    debugLog("CLI", "InteractiveSetup module imported successfully");
 
-    debugLog('CLI', 'Checking if setup should run', { dataDir: flags.dataDir });
+    debugLog("CLI", "Checking if setup should run", { dataDir: flags.dataDir });
     if (InteractiveSetup.shouldRunSetup(flags.dataDir)) {
-      debugLog('CLI', 'Setup is required, starting interactive setup');
+      debugLog("CLI", "Setup is required, starting interactive setup");
       const colors = getColorScheme();
       const setup = new InteractiveSetup(colors, flags.dataDir);
-      debugLog('CLI', 'Running interactive setup');
+      debugLog("CLI", "Running interactive setup");
       await setup.runSetup();
-      debugLog('CLI', 'Interactive setup completed');
+      debugLog("CLI", "Interactive setup completed");
       return true; // Setup was run
     }
 
-    debugLog('CLI', 'Setup not required, continuing');
+    debugLog("CLI", "Setup not required, continuing");
     return false; // No setup needed
   } catch (error) {
-    debugLog('CLI', 'Error during setup check', error);
-    console.warn('[Setup] Could not run first-time setup:', error);
+    debugLog("CLI", "Error during setup check", error);
+    console.warn("[Setup] Could not run first-time setup:", error);
     return false;
   }
 }
@@ -1083,44 +1083,44 @@ async function handleInstallShortcuts(): Promise<void> {
 
   try {
     console.log(
-      `${colors.info}📦 Installing SideQuest shortcuts...${colors.reset}`
+      `${colors.info}📦 Installing SideQuest shortcuts...${colors.reset}`,
     );
 
     // Import and run the postinstall script directly
-    const { execSync } = await import('node:child_process');
+    const { execSync } = await import("node:child_process");
     // eslint-disable-next-line unicorn/import-style
-    const pathModule = await import('node:path');
+    const pathModule = await import("node:path");
     const path = pathModule.default;
-    const { fileURLToPath } = await import('node:url');
+    const { fileURLToPath } = await import("node:url");
 
     // Get the package installation directory
     const currentModuleUrl = import.meta.url;
     const currentDirectory = path.dirname(fileURLToPath(currentModuleUrl));
     // In published package: dist/lib/cli.js -> go up twice to package root
-    const packageRoot = path.join(currentDirectory, '..', '..');
+    const packageRoot = path.join(currentDirectory, "..", "..");
     const postinstallScript = path.join(
       packageRoot,
-      'scripts',
-      'postinstall.cjs'
+      "scripts",
+      "postinstall.cjs",
     );
 
     // Run the postinstall script
     execSync(`node "${postinstallScript}"`, {
-      stdio: 'inherit',
-      cwd: process.cwd()
+      stdio: "inherit",
+      cwd: process.cwd(),
     });
 
     console.log(
-      `${colors.success}✅ Shortcuts installation completed!${colors.reset}`
+      `${colors.success}✅ Shortcuts installation completed!${colors.reset}`,
     );
     console.log(`${colors.info}💡 Try: pnpm run sidequest:help${colors.reset}`);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `${colors.error}❌ Failed to install shortcuts: ${errorMessage}${colors.reset}`
+      `${colors.error}❌ Failed to install shortcuts: ${errorMessage}${colors.reset}`,
     );
     console.error(
-      `${colors.warning}💡 You can add scripts manually to package.json:${colors.reset}`
+      `${colors.warning}💡 You can add scripts manually to package.json:${colors.reset}`,
     );
     console.log(`
 {
@@ -1143,55 +1143,55 @@ async function handleConfigCommand(action: string): Promise<void> {
   try {
     // Import preferences manager
     const { PreferencesManager } = await import(
-      '../services/preferences-manager.js'
+      "../services/preferences-manager.js"
     );
     const prefs = PreferencesManager.getInstance(flags.dataDir);
 
     switch (action) {
-    case 'show': {
-      console.log(
-        `${colors.bold}${colors.header}📋 Current User Preferences${colors.reset}\n`
-      );
-      const allPrefs = prefs.getAllPreferences();
-      console.log(JSON.stringify(allPrefs, undefined, 2));
-      break;
-    }
+      case "show": {
+        console.log(
+          `${colors.bold}${colors.header}📋 Current User Preferences${colors.reset}\n`,
+        );
+        const allPrefs = prefs.getAllPreferences();
+        console.log(JSON.stringify(allPrefs, undefined, 2));
+        break;
+      }
 
-    case 'edit': {
-      console.log(
-        `${colors.info}Opening preferences file in editor...${colors.reset}`
-      );
-      // TODO: Open in user's preferred editor
-      console.log(
-        `${colors.secondary}Edit: ~/.sidequest-cqo/user-preferences.json${colors.reset}`
-      );
-      break;
-    }
+      case "edit": {
+        console.log(
+          `${colors.info}Opening preferences file in editor...${colors.reset}`,
+        );
+        // TODO: Open in user's preferred editor
+        console.log(
+          `${colors.secondary}Edit: ~/.sidequest-cqo/user-preferences.json${colors.reset}`,
+        );
+        break;
+      }
 
-    case 'reset': {
-      console.log(
-        `${colors.warning}⚠️  Resetting all preferences to defaults...${colors.reset}`
-      );
-      prefs.resetToDefaults();
-      console.log(
-        `${colors.success}✅ Preferences reset successfully${colors.reset}`
-      );
-      break;
-    }
+      case "reset": {
+        console.log(
+          `${colors.warning}⚠️  Resetting all preferences to defaults...${colors.reset}`,
+        );
+        prefs.resetToDefaults();
+        console.log(
+          `${colors.success}✅ Preferences reset successfully${colors.reset}`,
+        );
+        break;
+      }
 
-    default: {
-      console.log(
-        `${colors.error}❌ Unknown config action: ${action}${colors.reset}`
-      );
-      console.log(
-        `${colors.secondary}Available actions: show, edit, reset${colors.reset}`
-      );
-      break;
-    }
+      default: {
+        console.log(
+          `${colors.error}❌ Unknown config action: ${action}${colors.reset}`,
+        );
+        console.log(
+          `${colors.secondary}Available actions: show, edit, reset${colors.reset}`,
+        );
+        break;
+      }
     }
   } catch (error) {
     console.error(
-      `${colors.error}❌ Configuration error: ${error}${colors.reset}`
+      `${colors.error}❌ Configuration error: ${error}${colors.reset}`,
     );
   }
 }
@@ -1205,12 +1205,12 @@ function interceptCommonErrors(): void {
 
   // Check for npm run sidequest --watch (common mistake)
   if (
-    process.env['npm_command'] === 'run-script' &&
-    process.env['npm_config_argv']
+    process.env["npm_command"] === "run-script" &&
+    process.env["npm_config_argv"]
   ) {
     try {
-      const npmArguments = JSON.parse(process.env['npm_config_argv']);
-      if (npmArguments.original?.includes('--watch')) {
+      const npmArguments = JSON.parse(process.env["npm_config_argv"]);
+      if (npmArguments.original?.includes("--watch")) {
         console.log(`${colors.warning}💡 Command Suggestion${colors.reset}
 
 It looks like you tried: ${colors.error}npm run sidequest --watch${colors.reset}
@@ -1231,20 +1231,20 @@ ${colors.info}Note:${colors.reset} npm doesn't support flags after script names.
 
   // Check for unknown npm script attempts
   if (
-    process.env['npm_command'] === 'run-script' &&
-    process.env['npm_lifecycle_event']
+    process.env["npm_command"] === "run-script" &&
+    process.env["npm_lifecycle_event"]
   ) {
-    const scriptName = process.env['npm_lifecycle_event'];
+    const scriptName = process.env["npm_lifecycle_event"];
 
     // Check for common sidequest: variations that don't exist
     if (
       scriptName &&
-      scriptName.startsWith('sidequest') &&
-      !scriptName.includes(':')
+      scriptName.startsWith("sidequest") &&
+      !scriptName.includes(":")
     ) {
       const isPnpm = detectPnpmProject();
-      const packageManager = isPnpm ? 'pnpm' : 'npm';
-      const runCommand = isPnpm ? '' : 'run ';
+      const packageManager = isPnpm ? "pnpm" : "npm";
+      const runCommand = isPnpm ? "" : "run ";
 
       console.log(`${colors.error}❌ Script Not Found${colors.reset}
 
@@ -1263,7 +1263,7 @@ After installation, you can use:
   ${colors.success}pnpm sidequest:ai-context${colors.reset}              # LLM guidance
 
 `
-    : ''
+    : ""
 }${colors.info}Are you a human?${colors.reset}
   ${colors.success}${packageManager} ${runCommand}sidequest:help${colors.reset}               # Standard help
   ${colors.success}${packageManager} ${runCommand}sidequest:help:markdown${colors.reset}      # Formatted documentation
@@ -1283,13 +1283,13 @@ ${colors.secondary}Common commands:${colors.reset}
   // Check for direct npx tsx cli.ts usage (suggest LLM context recovery)
   // Only show for truly direct usage, not when npm scripts call the same command
   if (
-    process.argv[1]?.includes('cli.ts') &&
-    !process.env['npm_command'] &&
-    !process.env['npm_lifecycle_event'] &&
-    !process.env['npm_lifecycle_script']
+    process.argv[1]?.includes("cli.ts") &&
+    !process.env["npm_command"] &&
+    !process.env["npm_lifecycle_event"] &&
+    !process.env["npm_lifecycle_script"]
   ) {
     const isLikelyLLM = [...arguments_].some((argument) =>
-      argument.includes('--verbose')
+      argument.includes("--verbose"),
     );
 
     if (isLikelyLLM) {
@@ -1320,7 +1320,7 @@ async function main(): Promise<void> {
   if (!compatibility.compatible) {
     const colors = getColorScheme();
     console.warn(
-      `${colors.warning}⚠️  Node.js Compatibility Warning:${colors.reset}`
+      `${colors.warning}⚠️  Node.js Compatibility Warning:${colors.reset}`,
     );
     compatibility.warnings.forEach((warning) => {
       console.warn(`   ${colors.error}${warning}${colors.reset}`);
@@ -1374,21 +1374,21 @@ async function main(): Promise<void> {
   // Always run setup check unless in automation mode (verbose flag indicates LLM/automation)
   if (flags.verbose) {
     debugLog(
-      'CLI',
-      'Skipping setup check due to verbose mode (automation detected)'
+      "CLI",
+      "Skipping setup check due to verbose mode (automation detected)",
     );
   } else {
-    debugLog('CLI', 'Checking for first-time setup requirement');
+    debugLog("CLI", "Checking for first-time setup requirement");
     const needsSetup = await checkAndRunFirstTimeSetup();
-    debugLog('CLI', 'Setup check completed', { needsSetup });
+    debugLog("CLI", "Setup check completed", { needsSetup });
     if (needsSetup) {
       debugLog(
-        'CLI',
-        'Setup was required and completed, exiting for user to retry'
+        "CLI",
+        "Setup was required and completed, exiting for user to retry",
       );
       // Setup was run, exit to let user try again with their preferences
       console.log(
-        `\n${getColorScheme().info}Now try: ${getColorScheme().bold}npm run sidequest:start${getColorScheme().reset}`
+        `\n${getColorScheme().info}Now try: ${getColorScheme().bold}npm run sidequest:start${getColorScheme().reset}`,
       );
       process.exit(0);
     }
@@ -1398,37 +1398,37 @@ async function main(): Promise<void> {
   if (flags.debugTerminal) {
     debugTerminalEnvironment();
 
-    console.log('\n=== Color Detection Test ===');
+    console.log("\n=== Color Detection Test ===");
     const heuristicMode = detectTerminalModeHeuristic();
-    console.log('Heuristic detection:', heuristicMode);
+    console.log("Heuristic detection:", heuristicMode);
 
-    console.log('\nTesting OSC background detection...');
+    console.log("\nTesting OSC background detection...");
     const oscDetection = await detectTerminalBackground();
     console.log(
-      'OSC detection result:',
-      oscDetection || 'Not supported/failed'
+      "OSC detection result:",
+      oscDetection || "Not supported/failed",
     );
 
     console.log(
-      '\nFinal color mode:',
-      process.env['TERM_COLOR_MODE'] || oscDetection || heuristicMode
+      "\nFinal color mode:",
+      process.env["TERM_COLOR_MODE"] || oscDetection || heuristicMode,
     );
     process.exit(0);
   }
 
-  debugLog('CLI', 'Getting color scheme');
+  debugLog("CLI", "Getting color scheme");
   const colors = getColorScheme();
-  debugLog('CLI', 'Color scheme obtained');
+  debugLog("CLI", "Color scheme obtained");
 
   // Determine which system to use
-  debugLog('CLI', 'Determining persistence system', {
-    usePersistence: flags.usePersistence
+  debugLog("CLI", "Determining persistence system", {
+    usePersistence: flags.usePersistence,
   });
   const usePersistence = flags.usePersistence;
 
   if (usePersistence) {
     console.log(
-      `${colors.info}🚀 Using enhanced SQLite persistence system...${colors.reset}`
+      `${colors.info}🚀 Using enhanced SQLite persistence system...${colors.reset}`,
     );
 
     try {
@@ -1441,13 +1441,13 @@ async function main(): Promise<void> {
         resetAllServices();
         resetDeveloperWatchDisplay();
         console.log(
-          `${colors.warning}♻️  Session reset - starting fresh...${colors.reset}`
+          `${colors.warning}♻️  Session reset - starting fresh...${colors.reset}`,
         );
       }
 
       // Create unified orchestrator with custom data directory if specified
       const baseConfig = createUnifiedConfigFromFlags(flags as BridgeCLIFlags);
-      if (flags.dataDir !== './data') {
+      if (flags.dataDir !== "./data") {
         baseConfig.database.path = `${flags.dataDir}/code-quality.db`;
       }
 
@@ -1465,33 +1465,33 @@ async function main(): Promise<void> {
       const health = await orchestrator.healthCheck();
       if (!health.overall) {
         console.log(
-          `${colors.warning}⚠️  Health check warnings: ${health.errors.join(', ')}${colors.reset}`
+          `${colors.warning}⚠️  Health check warnings: ${health.errors.join(", ")}${colors.reset}`,
         );
       }
 
       if (flags.watch) {
-        debugLog('CLI', 'Starting watch mode setup...');
+        debugLog("CLI", "Starting watch mode setup...");
 
         // Create and start watch controller
-        debugLog('CLI', 'About to create watch controller...');
+        debugLog("CLI", "About to create watch controller...");
         const watchController = await createWatchController(
           flags,
           orchestrator,
           sessionManager,
-          colors
+          colors,
         );
-        debugLog('CLI', 'Watch controller created successfully');
+        debugLog("CLI", "Watch controller created successfully");
 
         // Set up event listeners for debugging
-        watchController.on('stateChange', (transition) => {
+        watchController.on("stateChange", (transition) => {
           if (flags.verbose) {
             console.log(`State: ${transition.from} → ${transition.to}`);
           }
         });
 
-        watchController.on('invalidTransition', (attempt) => {
+        watchController.on("invalidTransition", (attempt) => {
           console.warn(
-            `Invalid state transition attempted: ${attempt.from} → ${attempt.to}`
+            `Invalid state transition attempted: ${attempt.from} → ${attempt.to}`,
           );
         });
 
@@ -1500,12 +1500,12 @@ async function main(): Promise<void> {
       } else {
         // Single run mode with persistence
         console.log(
-          `${colors.info}Running Enhanced Code Quality Analysis...${colors.reset}`
+          `${colors.info}Running Enhanced Code Quality Analysis...${colors.reset}`,
         );
 
         // Use unified orchestrator for analysis with integrated persistence
         const unifiedConfig = createUnifiedConfigFromFlags(
-          flags as BridgeCLIFlags
+          flags as BridgeCLIFlags,
         );
         const unifiedOrchestrator = new UnifiedOrchestrator(unifiedConfig);
         await unifiedOrchestrator.initialize();
@@ -1523,19 +1523,19 @@ async function main(): Promise<void> {
           try {
             // Check for setup issues and add warning for LLMs/automation
             const setupIssues = result.violations.filter(
-              (v) => v.category === 'setup-issue'
+              (v) => v.category === "setup-issue",
             );
             const setupWarning =
               setupIssues.length > 0
                 ? {
-                  setupIssuesDetected: true,
-                  setupIssuesCount: setupIssues.length,
-                  setupIssuesWarning:
-                      'CRITICAL: Analysis tools are misconfigured or failing. Violation counts may be incorrect. Fix setup issues first.',
-                  affectedTools: [
-                    ...new Set(setupIssues.map((v) => v.source))
-                  ]
-                }
+                    setupIssuesDetected: true,
+                    setupIssuesCount: setupIssues.length,
+                    setupIssuesWarning:
+                      "CRITICAL: Analysis tools are misconfigured or failing. Violation counts may be incorrect. Fix setup issues first.",
+                    affectedTools: [
+                      ...new Set(setupIssues.map((v) => v.source)),
+                    ],
+                  }
                 : undefined;
 
             const enhancedResult = {
@@ -1547,37 +1547,37 @@ async function main(): Promise<void> {
                   .getViolationSummary(),
                 dashboard: await orchestrator
                   .getStorageService()
-                  .getDashboardData()
-              }
+                  .getDashboardData(),
+              },
             };
             console.log(JSON.stringify(enhancedResult, undefined, 2));
           } catch (error) {
             // Fallback if database fails - still show violations with setup warning
             const setupIssues = result.violations.filter(
-              (v) => v.category === 'setup-issue'
+              (v) => v.category === "setup-issue",
             );
             const setupWarning =
               setupIssues.length > 0
                 ? {
-                  setupIssuesDetected: true,
-                  setupIssuesCount: setupIssues.length,
-                  setupIssuesWarning:
-                      'CRITICAL: Analysis tools are misconfigured or failing. Violation counts may be incorrect. Fix setup issues first.',
-                  affectedTools: [
-                    ...new Set(setupIssues.map((v) => v.source))
-                  ]
-                }
+                    setupIssuesDetected: true,
+                    setupIssuesCount: setupIssues.length,
+                    setupIssuesWarning:
+                      "CRITICAL: Analysis tools are misconfigured or failing. Violation counts may be incorrect. Fix setup issues first.",
+                    affectedTools: [
+                      ...new Set(setupIssues.map((v) => v.source)),
+                    ],
+                  }
                 : undefined;
 
             const fallbackResult = {
               ...result,
-              ...(setupWarning && { setupWarning })
+              ...(setupWarning && { setupWarning }),
             };
             console.log(JSON.stringify(fallbackResult, undefined, 2));
             if (flags.verbose) {
               console.warn(
-                '[Warning] Database dashboard data unavailable:',
-                error
+                "[Warning] Database dashboard data unavailable:",
+                error,
               );
             }
           }
@@ -1592,7 +1592,7 @@ async function main(): Promise<void> {
             console.log(`\n${colors.info}📊 Database Summary:${colors.reset}`);
             summary.slice(0, 5).forEach((item) => {
               console.log(
-                `  ${colors.secondary}${item.category}: ${colors.primary}${item.count}${colors.reset} ${colors.secondary}(${item.affected_files} files)${colors.reset}`
+                `  ${colors.secondary}${item.category}: ${colors.primary}${item.count}${colors.reset} ${colors.secondary}(${item.affected_files} files)${colors.reset}`,
               );
             });
           }
@@ -1601,13 +1601,13 @@ async function main(): Promise<void> {
         await orchestrator.shutdown();
       }
     } catch (error) {
-      console.error('[Enhanced Orchestrator] Error:', error);
+      console.error("[Enhanced Orchestrator] Error:", error);
       process.exit(1);
     }
   } else {
     // Unified orchestrator mode (replaces legacy mode)
     console.log(
-      `${colors.info}🚀 Using unified orchestrator...${colors.reset}`
+      `${colors.info}🚀 Using unified orchestrator...${colors.reset}`,
     );
 
     // Use unified orchestrator for PRD generation or fallback scenarios
@@ -1634,7 +1634,7 @@ async function main(): Promise<void> {
 // Only run main() when this file is executed directly, not when imported
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
-    console.error('[CLI] Unexpected error:', error);
+    console.error("[CLI] Unexpected error:", error);
     process.exit(1);
   });
 }

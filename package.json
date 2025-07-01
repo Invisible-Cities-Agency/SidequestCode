@@ -109,29 +109,30 @@
     "docs/PNPM-INSTALL.md"
   ],
   "dependencies": {
-    "ts-prune": "^0.10.3",
-    "jscpd": "^3.5.10"
+    "jscpd": "^3.5.10",
+    "ts-prune": "^0.10.3"
   },
   "devDependencies": {
-    "kysely": "^0.27.0",
-    "zod": "^3.25.67",
-    "better-sqlite3": "^11.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vitest/coverage-v8": "^1.6.0",
     "@vitest/ui": "^1.6.0",
+    "better-sqlite3": "^11.0.0",
     "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-unicorn": "^55.0.0",
     "husky": "^9.1.7",
+    "kysely": "^0.27.0",
     "lint-staged": "^16.1.2",
     "prettier": "^3.3.0",
     "ts-unused-exports": "^11.0.1",
     "tsx": "^4.20.0",
     "type-fest": "^4.41.0",
     "typescript": "^5.8.3",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "zod": "^3.25.67"
   },
   "peerDependencies": {
     "eslint": ">=8.0.0",
