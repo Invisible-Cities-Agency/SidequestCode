@@ -89,6 +89,24 @@ interface UserPreferences {
       debounceMs: number;
       intervalMs: number;
     };
+    customTypeScriptScripts?: {
+      enabled: boolean;
+      defaultPreset: string;
+      presetMappings: {
+        [preset: string]: string[];
+      };
+      scriptTimeout: number;
+      failureHandling: "continue" | "warn" | "fail";
+    };
+    customESLintScripts?: {
+      enabled: boolean;
+      defaultPreset: string;
+      presetMappings: {
+        [preset: string]: string[];
+      };
+      scriptTimeout: number;
+      failureHandling: "continue" | "warn" | "fail";
+    };
   };
   userChoices: {
     hasSeenTscEslintWarning: boolean;
@@ -176,6 +194,30 @@ export class PreferencesManager {
           debounceMs: 500,
           intervalMs: 3000,
         },
+        customTypeScriptScripts: {
+          enabled: true,
+          defaultPreset: "safe",
+          presetMappings: {
+            safe: ["tsc:safe", "type-check", "tsc:dev"],
+            strict: ["tsc:strict", "type-check:strict", "tsc:ci"],
+            dev: ["tsc:dev", "tsc:safe", "type-check"],
+            ci: ["tsc:ci", "tsc:strict", "type-check:strict"],
+          },
+          scriptTimeout: 60000,
+          failureHandling: "warn",
+        },
+        customESLintScripts: {
+          enabled: true,
+          defaultPreset: "safe",
+          presetMappings: {
+            safe: ["lint:check", "eslint", "lint"],
+            fix: ["lint:fix", "eslint:fix"],
+            strict: ["lint:strict", "eslint:strict"],
+            ci: ["lint:ci", "eslint:ci"],
+          },
+          scriptTimeout: 60000,
+          failureHandling: "warn",
+        },
       },
       userChoices: {
         hasSeenTscEslintWarning: false,
@@ -215,6 +257,14 @@ export class PreferencesManager {
         watch: {
           ...defaults.preferences.watch,
           ...loaded.preferences?.watch,
+        },
+        customTypeScriptScripts: {
+          ...defaults.preferences.customTypeScriptScripts,
+          ...loaded.preferences?.customTypeScriptScripts,
+        },
+        customESLintScripts: {
+          ...defaults.preferences.customESLintScripts,
+          ...loaded.preferences?.customESLintScripts,
         },
       },
       userChoices: {

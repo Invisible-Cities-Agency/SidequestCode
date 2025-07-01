@@ -6,21 +6,20 @@
 
 import { EventEmitter } from "node:events";
 import type { CLIFlags } from "../utils/types.js";
-import type { OrchestratorService } from "../services/orchestrator-service.js";
+// OrchestratorService import removed - using UnifiedOrchestrator only
 import type { SessionManager } from "../services/session-manager.js";
 import type { DeveloperWatchDisplay } from "./watch-display-v2.js";
-import type { CodeQualityOrchestrator } from "./orchestrator.js";
-import type { Violation as OrchestratorViolation } from "../utils/violation-types.js";
+import type { UnifiedOrchestrator } from "../services/unified-orchestrator.js";
 import { WatchStateManager } from "../services/watch-state-manager.js";
 import { processViolationSummary } from "./cli.js";
 import { debugLog } from "../utils/debug-logger.js";
 
 export interface WatchControllerConfig {
   flags: CLIFlags;
-  orchestrator: OrchestratorService;
+  orchestrator: UnifiedOrchestrator; // Using unified orchestrator for all functionality
   sessionManager: SessionManager;
   display: DeveloperWatchDisplay;
-  legacyOrchestrator: CodeQualityOrchestrator;
+  legacyOrchestrator: UnifiedOrchestrator; // Using unified orchestrator
   colors: any; // Color scheme from cli.ts
 }
 
@@ -272,10 +271,7 @@ export class WatchController extends EventEmitter {
 
       const checksCount = this.stateManager.getChecksCount() + 1;
 
-      // Process violations with persistence (for historical tracking)
-      debugLog("WatchController", "Processing violations with persistence...");
-      await this.processViolationsWithPersistence(result.violations);
-      debugLog("WatchController", "Violations processed with persistence");
+      // Note: Persistence is now handled automatically by UnifiedOrchestrator
 
       // Update session state
       debugLog("WatchController", "Updating session state...");
@@ -355,20 +351,8 @@ export class WatchController extends EventEmitter {
     }
   }
 
-  /**
-   * Process violations with persistence system
-   */
-  private async processViolationsWithPersistence(
-    violations: OrchestratorViolation[],
-  ): Promise<void> {
-    const { orchestrator } = this.config;
-    try {
-      const violationTracker = orchestrator.getViolationTracker();
-      await violationTracker.processViolations(violations);
-    } catch (error) {
-      console.warn("Failed to process violations with persistence:", error);
-    }
-  }
+  // processViolationsWithPersistence method removed - 
+  // persistence is now handled automatically by UnifiedOrchestrator
 
   /**
    * Handle watch mode errors with comprehensive diagnostics

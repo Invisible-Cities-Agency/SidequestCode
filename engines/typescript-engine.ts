@@ -21,6 +21,7 @@ import {
   type ValidatedTSConfig,
 } from "../utils/validation-schemas.js";
 import { debugLog } from "../utils/debug-logger.js";
+import { getPreferencesManager } from "../services/index.js";
 
 /**
  * Engine for TypeScript compilation validation
@@ -79,14 +80,27 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       true;
     const includeAny =
       options["includeAny"] ?? this.config.options["includeAny"] ?? false;
-    const enableCustomScripts =
-      options["enableCustomScripts"] ??
-      this.config.options["enableCustomScripts"] ??
-      true;
-    const customScriptPreset =
-      options["customScriptPreset"] ??
-      this.config.options["customScriptPreset"] ??
-      "safe";
+    // Get custom script configuration from user preferences
+    let enableCustomScripts = true;
+    let customScriptPreset = "safe";
+    
+    try {
+      const preferencesManager = getPreferencesManager();
+      const preferences = preferencesManager.getAllPreferences();
+      const customScriptConfig = preferences.preferences?.customTypeScriptScripts;
+      
+      enableCustomScripts = customScriptConfig?.enabled ?? true;
+      customScriptPreset = customScriptConfig?.defaultPreset ?? "safe";
+      
+      // Allow override from options
+      enableCustomScripts = (options["enableCustomScripts"] ?? this.config.options?.["enableCustomScripts"] ?? enableCustomScripts) as boolean;
+      customScriptPreset = (options["customScriptPreset"] ?? this.config.options?.["customScriptPreset"] ?? customScriptPreset) as string;
+    } catch (error) {
+      // Fallback to defaults if config is unavailable
+      debugLog("TypeScriptEngine", "Using fallback custom script config", { error: String(error) });
+      enableCustomScripts = (options["enableCustomScripts"] ?? this.config.options?.["enableCustomScripts"] ?? true) as boolean;
+      customScriptPreset = (options["customScriptPreset"] ?? this.config.options?.["customScriptPreset"] ?? "safe") as string;
+    }
     const searchPath = path.join(this.baseDir, targetPath);
 
     // FIRST: Run TypeScript compiler to catch actual compilation errors
@@ -846,9 +860,12 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         packageJsonPath,
         exists: fs.existsSync(packageJsonPath),
       });
-      
+
       if (!fs.existsSync(packageJsonPath)) {
-        debugLog("TypeScriptEngine", "No package.json found, skipping custom scripts");
+        debugLog(
+          "TypeScriptEngine",
+          "No package.json found, skipping custom scripts",
+        );
         return violations;
       }
 
@@ -858,7 +875,9 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
 
       debugLog("TypeScriptEngine", "package.json parsed", {
         hasScripts: !!packageJson.scripts,
-        scriptCount: packageJson.scripts ? Object.keys(packageJson.scripts).length : 0,
+        scriptCount: packageJson.scripts
+          ? Object.keys(packageJson.scripts).length
+          : 0,
       });
 
       if (!packageJson.scripts) {
@@ -867,12 +886,14 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       }
 
       // Detect custom TypeScript scripts
-      const customScripts = this.detectCustomTypeScriptScripts(packageJson.scripts);
+      const customScripts = this.detectCustomTypeScriptScripts(
+        packageJson.scripts,
+      );
       debugLog("TypeScriptEngine", "Custom script detection results", {
         customScripts,
         count: customScripts.length,
       });
-      
+
       if (customScripts.length === 0) {
         return violations;
       }
@@ -883,7 +904,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         hasTypeScriptSystem,
         customScripts: customScripts.length,
       });
-      
+
       if (!hasTypeScriptSystem) {
         debugLog("TypeScriptEngine", "No custom TypeScript system detected");
         return violations;
@@ -896,7 +917,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         preset,
         availableScripts: customScripts,
       });
-      
+
       if (scriptToRun) {
         debugLog("TypeScriptEngine", "Executing custom TypeScript script", {
           scriptName: scriptToRun,
@@ -926,13 +947,16 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   /**
    * Detect custom TypeScript scripts in package.json
    */
-  private detectCustomTypeScriptScripts(scripts: Record<string, string>): string[] {
+  private detectCustomTypeScriptScripts(
+    scripts: Record<string, string>,
+  ): string[] {
     const customScripts: string[] = [];
 
     for (const [scriptName, scriptCommand] of Object.entries(scripts)) {
       // Look for scripts that start with 'tsc:' or 'type-check:'
       if (
-        (scriptName.startsWith("tsc:") || scriptName.startsWith("type-check:")) &&
+        (scriptName.startsWith("tsc:") ||
+          scriptName.startsWith("type-check:")) &&
         !scriptName.includes("legacy") &&
         !scriptName.includes("original")
       ) {
@@ -964,31 +988,76 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
   }
 
   /**
-   * Select the best custom script to run based on preset
+   * Select the best custom script to run based on preset and user configuration
    */
   private selectBestCustomScript(
     customScripts: string[],
     preset: string,
   ): string | null {
-    // Priority order based on preset
-    const presetPriority: Record<string, string[]> = {
-      safe: ["tsc:safe", "type-check", "tsc:dev"],
-      strict: ["tsc:strict", "type-check:strict", "tsc:ci"],
-      dev: ["tsc:dev", "tsc:safe", "type-check"],
-      ci: ["tsc:ci", "tsc:strict", "type-check:strict"],
-    };
+    try {
+      // Get user preferences for custom script mappings
+      const preferencesManager = getPreferencesManager();
+      const preferences = preferencesManager.getAllPreferences();
+      const customScriptConfig = preferences.preferences?.customTypeScriptScripts;
 
-    const preferredScripts = presetPriority[preset] || presetPriority["safe"];
+      // Use configured preset mappings if available
+      const presetMappings = customScriptConfig?.presetMappings || {};
+      const preferredScripts = presetMappings[preset];
 
-    // Find the first preferred script that exists
-    for (const preferredScript of preferredScripts || []) {
-      if (customScripts.includes(preferredScript)) {
-        return preferredScript;
+      if (preferredScripts && Array.isArray(preferredScripts)) {
+        // Find the first preferred script that exists
+        for (const preferredScript of preferredScripts) {
+          if (customScripts.includes(preferredScript)) {
+            debugLog("TypeScriptEngine", "Selected script from user config", {
+              preset,
+              selectedScript: preferredScript,
+              configuredPreferences: preferredScripts,
+            });
+            return preferredScript;
+          }
+        }
       }
-    }
 
-    // Fallback to the first available custom script
-    return customScripts[0] || null;
+      // Fallback to default mappings if no user config or no matches
+      const defaultMappings: Record<string, string[]> = {
+        safe: ["tsc:safe", "type-check", "tsc:dev"],
+        strict: ["tsc:strict", "type-check:strict", "tsc:ci"],
+        dev: ["tsc:dev", "tsc:safe", "type-check"],
+        ci: ["tsc:ci", "tsc:strict", "type-check:strict"],
+      };
+
+      const fallbackScripts = defaultMappings[preset] || defaultMappings["safe"] || [];
+      
+      for (const fallbackScript of fallbackScripts) {
+        if (customScripts.includes(fallbackScript)) {
+          debugLog("TypeScriptEngine", "Selected script from fallback defaults", {
+            preset,
+            selectedScript: fallbackScript,
+            fallbackPreferences: fallbackScripts,
+          });
+          return fallbackScript;
+        }
+      }
+
+      // Final fallback to the first available custom script
+      const firstScript = customScripts[0] || null;
+      if (firstScript) {
+        debugLog("TypeScriptEngine", "Selected first available script", {
+          selectedScript: firstScript,
+          allScripts: customScripts,
+        });
+      }
+      
+      return firstScript;
+    } catch (error) {
+      debugLog("TypeScriptEngine", "Error selecting custom script, using fallback", {
+        error: String(error),
+        availableScripts: customScripts,
+      });
+      
+      // Error fallback - just return first script
+      return customScripts[0] || null;
+    }
   }
 
   /**
@@ -1001,25 +1070,44 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
     const violations: Violation[] = [];
 
     try {
+      // Get configured timeout
+      let scriptTimeout = 60000; // Default 60 seconds
+      try {
+        const preferencesManager = getPreferencesManager();
+        const preferences = preferencesManager.getAllPreferences();
+        const customScriptConfig = preferences.preferences?.customTypeScriptScripts;
+        scriptTimeout = customScriptConfig?.scriptTimeout ?? 60000;
+      } catch (error) {
+        debugLog("TypeScriptEngine", "Using default script timeout", { error: String(error) });
+      }
+
       // Determine the package manager
       const packageManager = this.detectPackageManager();
-      const runCommand = packageManager === "yarn" ? "yarn" : `${packageManager} run`;
+      const runCommand =
+        packageManager === "yarn" ? "yarn" : `${packageManager} run`;
 
       // Execute the custom script
       const command = runCommand.split(" ")[0];
       if (!command) {
         throw new Error(`Invalid package manager command: ${runCommand}`);
       }
-      
-      const result = spawnSync(command, [
-        ...(packageManager === "yarn" ? [] : ["run"]),
+
+      debugLog("TypeScriptEngine", "Executing custom script with config", {
         scriptName,
-      ], {
-        encoding: "utf8",
-        cwd: this.baseDir,
-        timeout: 60000, // 60 second timeout for custom scripts
-        signal: this.abortController?.signal,
+        packageManager,
+        timeout: scriptTimeout,
       });
+
+      const result = spawnSync(
+        command,
+        [...(packageManager === "yarn" ? [] : ["run"]), scriptName],
+        {
+          encoding: "utf8",
+          cwd: this.baseDir,
+          timeout: scriptTimeout,
+          signal: this.abortController?.signal,
+        },
+      );
 
       if (result.error) {
         console.warn(
@@ -1035,7 +1123,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         result.stderr || "",
         scriptName,
       );
-      
+
       violations.push(...customViolations);
     } catch (error) {
       console.warn(
@@ -1082,13 +1170,11 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
 
     // If no specific patterns matched, look for summary information
     if (violations.length === 0) {
-      const summaryMatch = output.match(
-        /(\d+)\s+(error|warning)s?\s+found/i,
-      );
+      const summaryMatch = output.match(/(\d+)\s+(error|warning)s?\s+found/i);
       if (summaryMatch && summaryMatch[1] && summaryMatch[2]) {
         const count = parseInt(summaryMatch[1], 10);
         const severity = summaryMatch[2].toLowerCase() as ViolationSeverity;
-        
+
         if (count > 0) {
           violations.push(
             this.createViolation(
@@ -1127,7 +1213,14 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         filePath = match[1];
         line = parseInt(match[2], 10);
         message = match[4];
-      } else if (match.length === 6 && match[1] && match[2] && match[3] && match[4] && match[5]) {
+      } else if (
+        match.length === 6 &&
+        match[1] &&
+        match[2] &&
+        match[3] &&
+        match[4] &&
+        match[5]
+      ) {
         // Pattern: [rule-name] message (filename:line:col)
         ruleName = match[1];
         message = match[2];
@@ -1156,7 +1249,9 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         message,
         category,
         severity,
-        ruleName ? `CUSTOM-${ruleName.toUpperCase()}` : `CUSTOM-${scriptName.toUpperCase()}`,
+        ruleName
+          ? `CUSTOM-${ruleName.toUpperCase()}`
+          : `CUSTOM-${scriptName.toUpperCase()}`,
         `Custom TypeScript quality check detected: ${message}`,
       );
     } catch (error) {
@@ -1236,10 +1331,7 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       return "architecture";
     }
 
-    if (
-      scriptName.includes("branded") ||
-      ruleName.includes("branded")
-    ) {
+    if (scriptName.includes("branded") || ruleName.includes("branded")) {
       return "type-alias";
     }
 

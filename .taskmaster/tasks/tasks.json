@@ -1,0 +1,76 @@
+{
+  "development": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Consolidate SideQuest dual orchestrator architecture into unified system",
+        "description": "Merge the legacy CodeQualityOrchestrator and enhanced OrchestratorService into a single unified orchestration system that eliminates code duplication while supporting both custom TypeScript/ESLint script detection and SQLite persistence.",
+        "details": "This architectural consolidation task involves several key implementation steps:\n\n1. **Architecture Analysis**: Audit both CodeQualityOrchestrator and OrchestratorService to identify overlapping functionality, unique features, and integration points with CLI, watch mode, and PRD generation systems.\n\n2. **Unified Interface Design**: Create a single orchestrator interface that combines the best features of both systems:\n   - Custom TypeScript/ESLint script detection capabilities from CodeQualityOrchestrator\n   - SQLite persistence layer from OrchestratorService\n   - Support for both single-run and watch mode operations\n   - Integration with PRD generation workflows\n\n3. **Core Implementation**: \n   - Design a modular architecture with pluggable components for script detection and persistence\n   - Implement configuration system to toggle between different operational modes\n   - Ensure backward compatibility with existing CLI commands and watch mode functionality\n   - Maintain performance characteristics of both original systems\n\n4. **Migration Strategy**: \n   - Create migration utilities to handle any existing data or configuration dependencies\n   - Update all dependent systems (CLI, watch mode, PRD generation) to use the unified orchestrator\n   - Remove deprecated orchestrator classes and clean up imports\n\n5. **Version Targeting**: Ensure all changes align with version 0.2.0-alpha.1 release requirements and maintain API stability for external consumers.",
+        "testStrategy": "Verification approach includes:\n\n1. **Unit Testing**: Create comprehensive test suites covering both script detection and persistence functionality, ensuring feature parity with both original orchestrators.\n\n2. **Integration Testing**: \n   - Test CLI single-run operations with various TypeScript/ESLint configurations\n   - Verify watch mode functionality maintains file monitoring and incremental analysis\n   - Validate PRD generation workflows continue to function correctly\n   - Test SQLite persistence operations including data integrity and performance\n\n3. **Regression Testing**: Run existing test suites for CodeQualityOrchestrator and OrchestratorService functionality to ensure no features are lost during consolidation.\n\n4. **Performance Benchmarking**: Compare performance metrics (memory usage, execution time, file processing speed) between the unified system and original dual orchestrators to ensure no degradation.\n\n5. **End-to-End Testing**: Execute complete analysis workflows from CLI invocation through result persistence to verify the entire pipeline functions correctly.\n\n6. **Migration Validation**: Test upgrade scenarios from previous versions to ensure smooth transition and data preservation.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit Existing Orchestrators and Integration Points",
+            "description": "Perform a comprehensive analysis of both CodeQualityOrchestrator and OrchestratorService to identify overlapping features, unique capabilities, and all integration points with CLI, watch mode, and PRD generation systems.",
+            "dependencies": [],
+            "details": "Document all shared and distinct functionalities, as well as dependencies and extension points, to inform the unified design.",
+            "status": "done",
+            "testStrategy": "Review documentation and codebase; validate findings with architectural diagrams and stakeholder interviews."
+          },
+          {
+            "id": 2,
+            "title": "Design Unified Orchestrator Interface and Architecture",
+            "description": "Develop a single orchestrator interface that merges the best features of both legacy systems, including custom TypeScript/ESLint script detection and SQLite persistence, while supporting both single-run and watch mode operations.",
+            "dependencies": [
+              1
+            ],
+            "details": "Define clear module boundaries and interfaces for script detection, persistence, and operational modes. Ensure the design supports PRD generation workflows and is extensible for future enhancements.",
+            "status": "done",
+            "testStrategy": "Conduct design reviews and create interface mockups; validate with sample integration scenarios."
+          },
+          {
+            "id": 3,
+            "title": "Implement Modular Unified Orchestrator Core",
+            "description": "Build the unified orchestrator using a modular architecture with pluggable components for script detection and persistence. Implement a configuration system for operational modes and ensure backward compatibility with CLI and watch mode.",
+            "dependencies": [
+              2
+            ],
+            "details": "Refactor or rewrite core logic to eliminate duplication, maintain performance, and support all required features from both original orchestrators.",
+            "status": "done",
+            "testStrategy": "Unit and integration tests for each module; regression tests for CLI and watch mode compatibility."
+          },
+          {
+            "id": 4,
+            "title": "Develop and Execute Migration and Cleanup Plan",
+            "description": "Create migration utilities for existing data and configuration, update all dependent systems to use the unified orchestrator, and remove deprecated classes and imports.",
+            "dependencies": [
+              3
+            ],
+            "details": "Ensure seamless transition for all users and systems, minimizing downtime and risk. Provide clear migration documentation.",
+            "status": "done",
+            "testStrategy": "Migration dry runs in staging; verify all dependent systems function correctly post-migration."
+          },
+          {
+            "id": 5,
+            "title": "Align Release and API Stability with Version 0.2.0-alpha.1",
+            "description": "Finalize all changes to meet the requirements for the 0.2.0-alpha.1 release, ensuring API stability and compatibility for external consumers.",
+            "dependencies": [
+              4
+            ],
+            "details": "Perform final API reviews, update versioning, and communicate changes to stakeholders. Prepare release notes and documentation.",
+            "status": "in-progress",
+            "testStrategy": "API contract tests; external consumer integration tests; release checklist verification."
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-01T00:57:34.179Z",
+      "updated": "2025-07-01T02:40:54.048Z",
+      "description": "=Development tasks for SideQuest Code Quality Orchestrator"
+    }
+  }
+}

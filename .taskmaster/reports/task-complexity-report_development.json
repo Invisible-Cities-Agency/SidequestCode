@@ -1,0 +1,21 @@
+{
+	"meta": {
+		"generatedAt": "2025-07-01T00:58:38.687Z",
+		"tasksAnalyzed": 1,
+		"totalTasks": 1,
+		"analysisCount": 1,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Consolidate SideQuest dual orchestrator architecture into unified system",
+			"complexityScore": 9,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Break down the consolidation of the dual orchestrator architecture into detailed subtasks covering architecture analysis, unified interface design, modular implementation, configuration system development, migration utilities, dependency updates, deprecated code removal, and comprehensive testing (unit, integration, regression, performance, migration validation).",
+			"reasoning": "This task involves merging two complex orchestration systems with overlapping and unique features, requiring deep architectural analysis, interface unification, modular design, and careful migration planning. It must maintain backward compatibility, performance, and API stability while updating all dependent systems and ensuring robust testing across multiple dimensions. The breadth of integration points, need for migration utilities, and extensive verification requirements indicate high cyclomatic and cognitive complexity, justifying a high score and a substantial number of subtasks for effective management and risk mitigation.[1][3]"
+		}
+	]
+}

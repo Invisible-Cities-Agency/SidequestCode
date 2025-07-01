@@ -84,6 +84,68 @@
               "description": "Watch mode polling interval"
             }
           }
+        },
+        "customTypeScriptScripts": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable automatic detection and execution of custom TypeScript scripts",
+              "default": true
+            },
+            "defaultPreset": {
+              "type": "string",
+              "description": "Default preset to use when no specific preset is requested",
+              "default": "safe"
+            },
+            "presetMappings": {
+              "type": "object",
+              "description": "Mapping of presets to preferred script names in priority order",
+              "properties": {
+                "safe": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Scripts to try for safe analysis (in priority order)",
+                  "default": ["tsc:safe", "type-check", "tsc:dev"]
+                },
+                "strict": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Scripts to try for strict analysis (in priority order)",
+                  "default": ["tsc:strict", "type-check:strict", "tsc:ci"]
+                },
+                "dev": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Scripts to try for development analysis (in priority order)",
+                  "default": ["tsc:dev", "tsc:safe", "type-check"]
+                },
+                "ci": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Scripts to try for CI analysis (in priority order)",
+                  "default": ["tsc:ci", "tsc:strict", "type-check:strict"]
+                }
+              },
+              "additionalProperties": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "scriptTimeout": {
+              "type": "number",
+              "minimum": 10000,
+              "maximum": 300000,
+              "description": "Timeout for custom script execution in milliseconds",
+              "default": 60000
+            },
+            "failureHandling": {
+              "type": "string",
+              "enum": ["continue", "warn", "fail"],
+              "description": "How to handle custom script failures",
+              "default": "warn"
+            }
+          }
         }
       }
     },

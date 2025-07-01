@@ -47,7 +47,17 @@
       "Bash(printf \"Starting watch mode test...\\n\")",
       "Bash(git tag:*)",
       "Bash(npx tsx:*)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(tm help:*)",
+      "Bash(tm add-task:*)",
+      "Bash(tm list:*)",
+      "Bash(tm add-tag:*)",
+      "Bash(tm use-tag:*)",
+      "Bash(tm analyze-complexity:*)",
+      "Bash(tm expand:*)",
+      "Bash(tm start:*)",
+      "Bash(tm status:*)",
+      "Bash(tm set-status:*)"
     ],
     "deny": []
   }

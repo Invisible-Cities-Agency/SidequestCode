@@ -30,7 +30,6 @@
  */
 
 import {
-  createOrchestratorService,
   resetAllServices,
 } from "../services/index.js";
 import type {
@@ -50,10 +49,18 @@ import {
   debugTerminalEnvironment,
 } from "./terminal-detector.js";
 import { isESLintCategory } from "../shared/constants.js";
-import type { CLIFlags, OrchestratorConfigInput } from "../utils/types.js";
+import type { CLIFlags } from "../utils/types.js";
 
-// Import the old orchestrator temporarily for compatibility
-import { CodeQualityOrchestrator } from "./orchestrator.js";
+// Import unified orchestrator and configuration bridge
+import { 
+  UnifiedOrchestrator
+} from "../services/unified-orchestrator.js";
+import {
+  createUnifiedConfigFromFlags,
+  createWatchModeConfig,
+  createPRDConfig,
+  type CLIFlags as BridgeCLIFlags
+} from "./unified-orchestrator-bridge.js";
 
 // Parse command line arguments with Zod validation for security
 import {
@@ -547,52 +554,12 @@ async function createWatchController(
 ): Promise<WatchController> {
   debugLog("CLI", "Starting createWatchController...");
 
-  // Create legacy orchestrator for violation collection (SILENT mode for watch)
-  debugLog("CLI", "Creating legacy orchestrator for watch mode...");
-  const legacyOrchestrator = new CodeQualityOrchestrator({
-    targetPath: flags.targetPath,
-    watch: { enabled: false, interval: 3000, debounce: 500 },
-    engines: {
-      typescript: {
-        enabled: !flags.eslintOnly,
-        options: {
-          includeAny: flags.includeAny,
-          strict: flags.strict,
-          targetPath: flags.targetPath,
-        },
-        priority: 1,
-        timeout: 30_000,
-        allowFailure: false,
-      },
-      eslint: {
-        enabled: true, // Always enabled in watch mode for comprehensive analysis
-        options: {
-          roundRobin: false,
-          maxWarnings: 1000,
-          timeout: 30_000,
-        },
-        priority: 2,
-        timeout: 35_000,
-        allowFailure: true,
-      },
-      unusedExports: {
-        enabled: true, // Always enabled for comprehensive analysis
-        options: {},
-        priority: 3,
-        timeout: 30_000,
-        allowFailure: true,
-      },
-    },
-    output: { console: false }, // SILENT: No console output during watch mode
-    deduplication: { enabled: true, strategy: "exact" as const },
-    crossover: {
-      enabled: !flags.noCrossoverCheck,
-      warnOnTypeAwareRules: true,
-      warnOnDuplicateViolations: true,
-      failOnCrossover: flags.failOnCrossover,
-    },
-  });
-  debugLog("CLI", "Legacy orchestrator created successfully");
+  // Create unified orchestrator for violation collection (SILENT mode for watch)
+  debugLog("CLI", "Creating unified orchestrator for watch mode...");
+  const unifiedConfig = createWatchModeConfig(flags as BridgeCLIFlags);
+  const unifiedOrchestrator = new UnifiedOrchestrator(unifiedConfig);
+  await unifiedOrchestrator.initialize();
+  debugLog("CLI", "Unified orchestrator created and initialized successfully");
 
   // Get the clean developer display
   debugLog("CLI", "Getting developer watch display...");
@@ -605,7 +572,7 @@ async function createWatchController(
     orchestrator,
     sessionManager,
     display: watchDisplay,
-    legacyOrchestrator,
+    legacyOrchestrator: unifiedOrchestrator, // Use unified orchestrator instead of legacy
     colors,
   });
 }
@@ -678,23 +645,8 @@ async function displayBurndownAnalysis(orchestrator: any): Promise<void> {
 /**
  * Process violations using the new persistence system
  */
-async function processViolationsWithPersistence(
-  violations: OrchestratorViolation[],
-  orchestrator: any,
-): Promise<void> {
-  try {
-    const violationTracker = orchestrator.getViolationTracker();
-    const processingResult =
-      await violationTracker.processViolations(violations);
-
-    // Log processing results in debug mode
-    if (validatedEnvironment.DEBUG) {
-      console.log("[Persistence] Processing result:", processingResult);
-    }
-  } catch (error) {
-    console.error("[Persistence] Failed to process violations:", error);
-  }
-}
+// processViolationsWithPersistence function removed - 
+// persistence is now handled automatically by UnifiedOrchestrator
 
 /**
  * Legacy display function for compatibility
@@ -1422,16 +1374,14 @@ async function main(): Promise<void> {
         );
       }
 
-      // Create enhanced orchestrator service with custom data directory if specified
-      const config =
-        flags.dataDir === "./data"
-          ? undefined
-          : { database: { path: `${flags.dataDir}/code-quality.db` } };
-
-      const orchestrator = await createOrchestratorService(
-        "development",
-        config,
-      );
+      // Create unified orchestrator with custom data directory if specified
+      const baseConfig = createUnifiedConfigFromFlags(flags as BridgeCLIFlags);
+      if (flags.dataDir !== "./data") {
+        baseConfig.database.path = `${flags.dataDir}/code-quality.db`;
+      }
+      
+      const orchestrator = new UnifiedOrchestrator(baseConfig);
+      await orchestrator.initialize();
 
       // Show burndown analysis if requested
       if (flags.showBurndown) {
@@ -1482,58 +1432,14 @@ async function main(): Promise<void> {
           `${colors.info}Running Enhanced Code Quality Analysis...${colors.reset}`,
         );
 
-        // Use legacy orchestrator for analysis, new system for persistence
-        const legacyOrchestrator = new CodeQualityOrchestrator({
-          targetPath: flags.targetPath,
-          watch: { enabled: false, interval: 3000, debounce: 500 },
-          engines: {
-            typescript: {
-              enabled: !flags.eslintOnly,
-              options: {
-                includeAny: flags.includeAny,
-                strict: flags.strict,
-                targetPath: flags.targetPath,
-              },
-              priority: 1,
-              timeout: 30_000,
-              allowFailure: false,
-            },
-            eslint: {
-              enabled: true, // Always enabled for comprehensive analysis
-              options: {
-                roundRobin: false,
-                maxWarnings: 1000,
-                timeout: 30_000,
-              },
-              priority: 2,
-              timeout: 35_000,
-              allowFailure: true,
-            },
-            unusedExports: {
-              enabled: true, // Always enabled for comprehensive analysis
-              options: {},
-              priority: 3,
-              timeout: 30_000,
-              allowFailure: true,
-            },
-          },
-          output: {
-            console: !flags.verbose,
-            ...(flags.verbose ? { json: "stdout" } : {}),
-          },
-          deduplication: { enabled: true, strategy: "exact" as const },
-          crossover: {
-            enabled: !flags.noCrossoverCheck,
-            warnOnTypeAwareRules: true,
-            warnOnDuplicateViolations: true,
-            failOnCrossover: flags.failOnCrossover,
-          },
-        });
+        // Use unified orchestrator for analysis with integrated persistence
+        const unifiedConfig = createUnifiedConfigFromFlags(flags as BridgeCLIFlags);
+        const unifiedOrchestrator = new UnifiedOrchestrator(unifiedConfig);
+        await unifiedOrchestrator.initialize();
 
-        const result = await legacyOrchestrator.analyze();
+        const result = await unifiedOrchestrator.analyze();
 
-        // Process with persistence
-        await processViolationsWithPersistence(result.violations, orchestrator);
+        // Note: Persistence is now handled automatically by the unified orchestrator
 
         // Generate PRD if requested
         if (flags.generatePRD) {
@@ -1626,57 +1532,17 @@ async function main(): Promise<void> {
       process.exit(1);
     }
   } else {
-    // Legacy mode
+    // Unified orchestrator mode (replaces legacy mode)
     console.log(
-      `${colors.warning}⚠️  Using legacy in-memory mode...${colors.reset}`,
+      `${colors.info}🚀 Using unified orchestrator...${colors.reset}`,
     );
 
-    // Fallback to original implementation
-    const config: OrchestratorConfigInput = {
-      targetPath: flags.targetPath,
-      watch: { enabled: flags.watch, interval: 3000, debounce: 500 },
-      engines: {
-        typescript: {
-          enabled: !flags.eslintOnly,
-          options: {
-            includeAny: flags.includeAny,
-            strict: flags.strict,
-            targetPath: flags.targetPath,
-          },
-          priority: 1,
-          timeout: 30_000,
-          allowFailure: false,
-        },
-        eslint: {
-          enabled: flags.includeESLint || flags.eslintOnly,
-          options: { roundRobin: true, maxWarnings: 500, timeout: 30_000 },
-          priority: 2,
-          timeout: 35_000,
-          allowFailure: true,
-        },
-        unusedExports: {
-          enabled: !flags.eslintOnly, // Enable unless ESLint-only mode
-          options: {},
-          priority: 3,
-          timeout: 30_000,
-          allowFailure: true,
-        },
-      },
-      output: {
-        console: !flags.verbose,
-        ...(flags.verbose ? { json: "stdout" } : {}),
-      },
-      deduplication: { enabled: true, strategy: "exact" as const },
-      crossover: {
-        enabled: !flags.noCrossoverCheck,
-        warnOnTypeAwareRules: true,
-        warnOnDuplicateViolations: true,
-        failOnCrossover: flags.failOnCrossover,
-      },
-    };
+    // Use unified orchestrator for PRD generation or fallback scenarios
+    const unifiedConfig = createPRDConfig(flags as BridgeCLIFlags);
+    const unifiedOrchestrator = new UnifiedOrchestrator(unifiedConfig);
+    await unifiedOrchestrator.initialize();
 
-    const orchestrator = new CodeQualityOrchestrator(config);
-    const result = await orchestrator.analyze();
+    const result = await unifiedOrchestrator.analyze();
 
     // Generate PRD if requested
     if (flags.generatePRD) {

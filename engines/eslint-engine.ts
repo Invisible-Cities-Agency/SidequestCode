@@ -18,6 +18,8 @@ import {
   ESLintOutputSchema,
   type ValidatedESLintOutput,
 } from "../utils/validation-schemas.js";
+import { debugLog } from "../utils/debug-logger.js";
+import { getPreferencesManager } from "../services/index.js";
 
 /**
  * Engine for ESLint-based code quality analysis
@@ -48,6 +50,8 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       maxWarnings?: number;
       timeout?: number;
       roundRobin?: boolean; // Use comprehensive analysis by default
+      enableCustomScripts?: boolean; // Run custom ESLint scripts if found
+      customScriptPreset?: string; // Preset to use for custom scripts (default: safe)
     };
     priority?: number;
     timeout?: number;
@@ -68,6 +72,8 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         maxWarnings: 500,
         timeout: 30_000,
         roundRobin: false, // Use comprehensive analysis by default
+        enableCustomScripts: true, // Automatically detect and run custom ESLint scripts
+        customScriptPreset: "safe", // Use safe preset to avoid overwhelming output
       },
       priority: 2,
       timeout: 35_000,
@@ -119,13 +125,48 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     targetPath: string,
     options: Record<string, unknown> = {},
   ): Promise<Violation[]> {
-    const roundRobin =
-      options["roundRobin"] ?? this.config.options["roundRobin"];
+    const violations: Violation[] = [];
+    
+    // Get custom script configuration from user preferences
+    let enableCustomScripts = true;
+    let customScriptPreset = "safe";
+    
+    try {
+      const preferencesManager = getPreferencesManager();
+      const preferences = preferencesManager.getAllPreferences();
+      const customScriptConfig = preferences.preferences?.customESLintScripts;
+      
+      enableCustomScripts = customScriptConfig?.enabled ?? true;
+      customScriptPreset = customScriptConfig?.defaultPreset ?? "safe";
+      
+      // Allow override from options
+      enableCustomScripts = (options["enableCustomScripts"] ?? this.config.options?.["enableCustomScripts"] ?? enableCustomScripts) as boolean;
+      customScriptPreset = (options["customScriptPreset"] ?? this.config.options?.["customScriptPreset"] ?? customScriptPreset) as string;
+    } catch (error) {
+      // Fallback to defaults if config is unavailable
+      debugLog("ESLintEngine", "Using fallback custom script config", { error: String(error) });
+      enableCustomScripts = (options["enableCustomScripts"] ?? this.config.options?.["enableCustomScripts"] ?? true) as boolean;
+      customScriptPreset = (options["customScriptPreset"] ?? this.config.options?.["customScriptPreset"] ?? "safe") as string;
+    }
+    
+    const searchPath = path.join(this.baseDir, targetPath);
 
-    // For comprehensive analysis, disable round-robin to get all violations
-    return roundRobin
+    // FIRST: Try running custom ESLint scripts if enabled and detected
+    if (enableCustomScripts && this.hasCustomESLintSystem()) {
+      debugLog("ESLintEngine", "Custom ESLint system detected, attempting to run custom scripts");
+      const customViolations = await this.runCustomESLintScripts(searchPath, customScriptPreset);
+      violations.push(...customViolations);
+    }
+
+    // SECOND: Run standard ESLint analysis
+    const roundRobin = options["roundRobin"] ?? this.config.options["roundRobin"];
+    const standardViolations = roundRobin
       ? await this.analyzeWithRoundRobin(targetPath, options)
-      : this.analyzeAllRules(targetPath, options);
+      : await this.analyzeAllRules(targetPath, options);
+    
+    violations.push(...standardViolations);
+    
+    return violations;
   }
 
   /**
@@ -898,5 +939,386 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   getRules(): string[] {
     return [...this.eslintRules];
+  }
+
+  /**
+   * Check if the project has a custom ESLint system
+   */
+  private hasCustomESLintSystem(): boolean {
+    const eslintSystemPaths = [
+      path.join(this.baseDir, "scripts/eslint/config.js"),
+      path.join(this.baseDir, "scripts/eslint/run-all.js"),
+      path.join(this.baseDir, "scripts/eslint"),
+    ];
+
+    return eslintSystemPaths.some((eslintPath) => {
+      try {
+        const fs = require("node:fs");
+        return fs.existsSync(eslintPath);
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Run custom ESLint scripts if detected
+   */
+  private async runCustomESLintScripts(
+    searchPath: string,
+    preset: string,
+  ): Promise<Violation[]> {
+    const violations: Violation[] = [];
+
+    try {
+      // Get configured timeout
+      let scriptTimeout = 60000; // Default 60 seconds
+      try {
+        const preferencesManager = getPreferencesManager();
+        const preferences = preferencesManager.getAllPreferences();
+        const customScriptConfig = preferences.preferences?.customESLintScripts;
+        scriptTimeout = customScriptConfig?.scriptTimeout ?? 60000;
+      } catch (error) {
+        debugLog("ESLintEngine", "Using default script timeout", { error: String(error) });
+      }
+
+      // Detect available custom ESLint scripts
+      const customScripts = this.detectCustomESLintScripts();
+      
+      if (customScripts.length === 0) {
+        debugLog("ESLintEngine", "No custom ESLint scripts found in package.json");
+        return violations;
+      }
+
+      debugLog("ESLintEngine", "Detected custom ESLint scripts", { 
+        scripts: customScripts,
+        preset,
+        searchPath,
+      });
+
+      // Select best script based on preset
+      const selectedScript = this.selectBestCustomScript(customScripts, preset);
+      
+      if (!selectedScript) {
+        debugLog("ESLintEngine", "No suitable custom script found for preset", { preset, availableScripts: customScripts });
+        return violations;
+      }
+
+      // Execute the selected custom script
+      const customViolations = await this.executeCustomESLintScript(selectedScript, searchPath, scriptTimeout);
+      violations.push(...customViolations);
+      
+    } catch (error) {
+      debugLog("ESLintEngine", "Error running custom ESLint scripts", { error: String(error) });
+      // Don't throw - gracefully degrade to standard ESLint
+    }
+
+    return violations;
+  }
+
+  /**
+   * Detect custom ESLint scripts in package.json
+   */
+  private detectCustomESLintScripts(): string[] {
+    const customScripts: string[] = [];
+    
+    try {
+      const fs = require("node:fs");
+      const packageJsonPath = path.join(this.baseDir, "package.json");
+      
+      if (!fs.existsSync(packageJsonPath)) {
+        return customScripts;
+      }
+      
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      const scripts = packageJson.scripts || {};
+      
+      // Look for ESLint-related scripts
+      const eslintScriptPatterns = [
+        /^lint$/,
+        /^eslint$/,
+        /^lint:/,
+        /^eslint:/,
+        /lint$/,
+        /eslint$/,
+      ];
+      
+      for (const [scriptName, scriptCommand] of Object.entries(scripts)) {
+        if (typeof scriptCommand === "string" && eslintScriptPatterns.some(pattern => pattern.test(scriptName))) {
+          // Verify it actually runs ESLint
+          if (scriptCommand.includes("eslint") || scriptCommand.includes("lint")) {
+            customScripts.push(scriptName);
+          }
+        }
+      }
+      
+      debugLog("ESLintEngine", "Custom ESLint script detection completed", {
+        totalScripts: Object.keys(scripts).length,
+        eslintScripts: customScripts.length,
+        foundScripts: customScripts,
+      });
+      
+    } catch (error) {
+      debugLog("ESLintEngine", "Error detecting custom ESLint scripts", { error: String(error) });
+    }
+    
+    return customScripts;
+  }
+
+  /**
+   * Select the best custom script to run based on preset and user configuration
+   */
+  private selectBestCustomScript(
+    customScripts: string[],
+    preset: string,
+  ): string | null {
+    try {
+      // Get user preferences for custom script mappings
+      const preferencesManager = getPreferencesManager();
+      const preferences = preferencesManager.getAllPreferences();
+      const customScriptConfig = preferences.preferences?.customESLintScripts;
+
+      // Use configured preset mappings if available
+      const presetMappings = customScriptConfig?.presetMappings || {};
+      const preferredScripts = presetMappings[preset];
+
+      if (preferredScripts && Array.isArray(preferredScripts)) {
+        // Find the first preferred script that exists
+        for (const preferredScript of preferredScripts) {
+          if (customScripts.includes(preferredScript)) {
+            debugLog("ESLintEngine", "Selected script from user config", {
+              preset,
+              selectedScript: preferredScript,
+              configuredPreferences: preferredScripts,
+            });
+            return preferredScript;
+          }
+        }
+      }
+
+      // Fallback to default mappings if no user config or no matches
+      const defaultMappings: Record<string, string[]> = {
+        safe: ["lint:check", "eslint", "lint"],
+        fix: ["lint:fix", "eslint:fix"],
+        strict: ["lint:strict", "eslint:strict"],
+        ci: ["lint:ci", "eslint:ci"],
+      };
+
+      const fallbackScripts = defaultMappings[preset] || defaultMappings["safe"] || [];
+      
+      for (const fallbackScript of fallbackScripts) {
+        if (customScripts.includes(fallbackScript)) {
+          debugLog("ESLintEngine", "Selected script from fallback defaults", {
+            preset,
+            selectedScript: fallbackScript,
+            fallbackPreferences: fallbackScripts,
+          });
+          return fallbackScript;
+        }
+      }
+
+      // Final fallback to the first available custom script
+      const firstScript = customScripts[0] || null;
+      if (firstScript) {
+        debugLog("ESLintEngine", "Selected first available script", {
+          selectedScript: firstScript,
+          allScripts: customScripts,
+        });
+      }
+
+      return firstScript;
+    } catch (error) {
+      debugLog("ESLintEngine", "Error selecting custom script, using first available", { 
+        error: String(error),
+        fallbackScript: customScripts[0] || null,
+      });
+      return customScripts[0] || null;
+    }
+  }
+
+  /**
+   * Execute a custom ESLint script and parse its output
+   */
+  private async executeCustomESLintScript(
+    scriptName: string,
+    searchPath: string,
+    timeout: number,
+  ): Promise<Violation[]> {
+    const violations: Violation[] = [];
+    
+    try {
+      debugLog("ESLintEngine", "Executing custom ESLint script", {
+        scriptName,
+        searchPath,
+        timeout,
+      });
+
+      // Detect package manager
+      const fs = require("node:fs");
+      const packageManager = fs.existsSync(path.join(this.baseDir, "pnpm-lock.yaml")) 
+        ? "pnpm" 
+        : fs.existsSync(path.join(this.baseDir, "yarn.lock"))
+        ? "yarn"
+        : "npm";
+
+      // Build command based on package manager
+      const runCmd = packageManager === "yarn" ? "yarn" : `${packageManager} run`;
+      const fullCommand = `${runCmd} ${scriptName}`;
+      
+      debugLog("ESLintEngine", "Running custom ESLint command", {
+        command: fullCommand,
+        cwd: this.baseDir,
+        packageManager,
+      });
+
+      // Execute the script
+      const cmdParts = runCmd.split(" ");
+      const command = cmdParts[0];
+      const args = cmdParts.slice(1).concat([scriptName]);
+      
+      if (!command) {
+        throw new Error(`Invalid command: ${runCmd}`);
+      }
+      
+      const result = spawnSync(command, args, {
+        encoding: "utf8",
+        cwd: this.baseDir,
+        timeout,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      debugLog("ESLintEngine", "Custom ESLint script completed", {
+        scriptName,
+        exitCode: result.status,
+        signal: result.signal,
+        hasStdout: !!result.stdout,
+        hasStderr: !!result.stderr,
+        stdoutLength: result.stdout?.length || 0,
+        stderrLength: result.stderr?.length || 0,
+      });
+
+      // Parse output as ESLint JSON if available
+      if (result.stdout) {
+        try {
+          const output = JSON.parse(result.stdout);
+          if (Array.isArray(output)) {
+            // Process ESLint JSON output
+            const customViolations = this.parseCustomESLintOutput(output, scriptName);
+            violations.push(...customViolations);
+            
+            debugLog("ESLintEngine", "Successfully parsed custom ESLint output", {
+              scriptName,
+              violationsFound: customViolations.length,
+            });
+          }
+        } catch (parseError) {
+          debugLog("ESLintEngine", "Could not parse custom ESLint output as JSON", {
+            scriptName,
+            parseError: String(parseError),
+            outputPreview: result.stdout.slice(0, 200),
+          });
+        }
+      }
+
+      // Add a summary violation for the custom script execution
+      violations.push({
+        file: "custom-script-execution",
+        line: 1,
+        column: 1,
+        code: `Custom ESLint script "${scriptName}" executed successfully`,
+        category: "custom-script-summary",
+        severity: "info",
+        source: "custom",
+        rule: "custom-script-execution",
+        message: `Executed custom ESLint script: ${scriptName} (exit code: ${result.status})`,
+      });
+
+    } catch (error) {
+      debugLog("ESLintEngine", "Error executing custom ESLint script", {
+        scriptName,
+        error: String(error),
+      });
+
+      // Add error violation
+      violations.push({
+        file: "custom-script-execution",
+        line: 1,
+        column: 1,
+        code: `Failed to execute custom ESLint script "${scriptName}": ${String(error)}`,
+        category: "setup-issue",
+        severity: "warn",
+        source: "custom",
+        rule: "custom-script-execution-error",
+        message: `Custom ESLint script execution failed: ${String(error)}`,
+      });
+    }
+
+    return violations;
+  }
+
+  /**
+   * Parse custom ESLint output into violation format
+   */
+  private parseCustomESLintOutput(eslintOutput: any[], scriptName: string): Violation[] {
+    const violations: Violation[] = [];
+    
+    try {
+      for (const fileResult of eslintOutput) {
+        if (!fileResult.filePath || !Array.isArray(fileResult.messages)) {
+          continue;
+        }
+        
+        for (const message of fileResult.messages) {
+          const violation: Violation = {
+            file: path.relative(this.baseDir, fileResult.filePath),
+            line: message.line || 1,
+            column: message.column || 1,
+            code: message.message || "ESLint violation",
+            category: this.mapESLintSeverityToCategory(message.severity),
+            severity: this.mapESLintSeverityToSeverity(message.severity),
+            source: "custom",
+            rule: message.ruleId || "unknown",
+            message: `[${scriptName}] ${message.message || "ESLint violation"}`,
+          };
+          violations.push(violation);
+        }
+      }
+      
+      debugLog("ESLintEngine", "Parsed custom ESLint violations", {
+        scriptName,
+        filesProcessed: eslintOutput.length,
+        violationsExtracted: violations.length,
+      });
+      
+    } catch (error) {
+      debugLog("ESLintEngine", "Error parsing custom ESLint output", {
+        scriptName,
+        error: String(error),
+      });
+    }
+    
+    return violations;
+  }
+
+  /**
+   * Map ESLint severity to our category system
+   */
+  private mapESLintSeverityToCategory(severity: number): ViolationCategory {
+    switch (severity) {
+      case 2: return "syntax-error";
+      case 1: return "best-practices";
+      default: return "style";
+    }
+  }
+
+  /**
+   * Map ESLint severity to our severity system
+   */
+  private mapESLintSeverityToSeverity(severity: number): ViolationSeverity {
+    switch (severity) {
+      case 2: return "error";
+      case 1: return "warn";
+      default: return "info";
+    }
   }
 }

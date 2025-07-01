@@ -44,6 +44,18 @@
       "preferredEditor": "auto",
       "generatePRDByDefault": false,
       "autoCommitDatabase": true
+    },
+    "customTypeScriptScripts": {
+      "enabled": true,
+      "defaultPreset": "safe",
+      "presetMappings": {
+        "safe": ["tsc:safe", "type-check", "tsc:dev"],
+        "strict": ["tsc:strict", "type-check:strict", "tsc:ci"],
+        "dev": ["tsc:dev", "tsc:safe", "type-check"],
+        "ci": ["tsc:ci", "tsc:strict", "type-check:strict"]
+      },
+      "scriptTimeout": 60000,
+      "failureHandling": "warn"
     }
   },
   "userChoices": {
