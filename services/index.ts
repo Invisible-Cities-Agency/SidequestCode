@@ -14,20 +14,20 @@
 // ============================================================================
 
 // Only export what's actually used
-export { ConfigManager } from "./config-manager.js";
-export { PreferencesManager } from "./preferences-manager.js";
+export { ConfigManager } from './config-manager.js';
+export { PreferencesManager } from './preferences-manager.js';
 
 // Export unified orchestrator components
-export { 
+export {
   UnifiedOrchestrator,
   getUnifiedOrchestrator,
   resetUnifiedOrchestrator,
   createUnifiedOrchestrator,
-  createDefaultUnifiedConfig 
-} from "./unified-orchestrator.js";
+  createDefaultUnifiedConfig
+} from './unified-orchestrator.js';
 
 // Import classes for getter functions
-import { PreferencesManager } from "./preferences-manager.js";
+import { PreferencesManager } from './preferences-manager.js';
 
 // Export preferences manager getter function
 export function getPreferencesManager(): PreferencesManager {
@@ -41,11 +41,11 @@ export function getPreferencesManager(): PreferencesManager {
 // Unused convenience imports removed
 
 // Import reset functions directly for synchronous access
-import { resetStorageService } from "./storage-service.js";
-import { resetPollingService } from "./polling-service.js";
-import { resetAnalysisService } from "./analysis-service.js";
-import { resetViolationTracker } from "./violation-tracker.js";
-import { resetUnifiedOrchestrator } from "./unified-orchestrator.js";
+import { resetStorageService } from './storage-service.js';
+import { resetPollingService } from './polling-service.js';
+import { resetAnalysisService } from './analysis-service.js';
+import { resetViolationTracker } from './violation-tracker.js';
+import { resetUnifiedOrchestrator } from './unified-orchestrator.js';
 
 /**
  * Reset all service instances (useful for testing)

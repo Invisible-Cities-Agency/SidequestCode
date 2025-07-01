@@ -193,7 +193,11 @@ try {
       'sidequest:help':
         'if [ "$VERCEL" != "1" ]; then sidequest-cqo --help; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
       'sidequest:ai-context':
-        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --ai-context; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi'
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --ai-context; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
+      'sidequest:archaeology':
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --archaeology --verbose; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi',
+      'sidequest:debt':
+        'if [ "$VERCEL" != "1" ]; then sidequest-cqo --include-archaeology --verbose; else echo \'Skipping Sidequest (a node dev tool) in the Vercel environment\'; fi'
     };
 
     log(`📦 Existing scripts: ${Object.keys(package_.scripts).join(', ')}`);
@@ -321,6 +325,8 @@ ${nextCommand}
 - \`pnpm sidequest:config\` - Configuration management
 - \`pnpm sidequest:help\` - Show help
 - \`pnpm sidequest:ai-context\` - LLM context & guidance
+- \`pnpm sidequest:archaeology\` - Technical debt analysis
+- \`pnpm sidequest:debt\` - Combined analysis with technical debt
 
 ## Quick start after setup (no "run" needed!):
 \`\`\`bash

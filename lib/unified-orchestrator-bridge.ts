@@ -1,12 +1,12 @@
 /**
  * Configuration Bridge for Unified Orchestrator
- * 
+ *
  * Provides utilities to convert legacy CLI flags and configurations
  * to the new UnifiedOrchestratorConfig format, enabling seamless
  * migration from dual orchestrator architecture.
  */
 
-import type { UnifiedOrchestratorConfig } from "../services/unified-orchestrator.js";
+import type { UnifiedOrchestratorConfig } from '../services/unified-orchestrator.js';
 
 /**
  * CLI flags interface (extracted from existing CLI implementation)
@@ -21,15 +21,19 @@ export interface CLIFlags {
   noCrossoverCheck?: boolean;
   failOnCrossover?: boolean;
   watch?: boolean;
+  archaeology?: boolean;
+  includeArchaeology?: boolean;
 }
 
-// convertLegacyToUnifiedConfig function removed - no longer needed 
+// convertLegacyToUnifiedConfig function removed - no longer needed
 // since legacy orchestrator has been fully replaced
 
 /**
  * Create unified orchestrator configuration from CLI flags
  */
-export function createUnifiedConfigFromFlags(flags: CLIFlags): UnifiedOrchestratorConfig {
+export function createUnifiedConfigFromFlags(
+  flags: CLIFlags
+): UnifiedOrchestratorConfig {
   return {
     // Analysis Configuration
     targetPath: flags.targetPath,
@@ -39,85 +43,98 @@ export function createUnifiedConfigFromFlags(flags: CLIFlags): UnifiedOrchestrat
         options: {
           includeAny: flags.includeAny || false,
           strict: flags.strict || false,
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 1,
         timeout: 30_000,
-        allowFailure: false,
+        allowFailure: false
       },
       eslint: {
         enabled: true,
         options: {
           includeTypescriptRules: !flags.eslintOnly,
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 2,
         timeout: 60_000,
-        allowFailure: false,
+        allowFailure: false
       },
       unusedExports: {
         enabled: true,
         options: {
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 3,
         timeout: 30_000,
-        allowFailure: true,
+        allowFailure: true
       },
       zodDetection: {
         enabled: true,
         options: {
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 4,
         timeout: 15_000,
-        allowFailure: true,
+        allowFailure: true
       },
+      archaeology: {
+        enabled: flags.archaeology || flags.includeArchaeology || false,
+        options: {
+          targetPath: flags.targetPath,
+          deadCode: { enabled: true, threshold: 0.8 },
+          duplication: { enabled: true, minTokens: 50, threshold: 0.95 }
+        },
+        priority: 5,
+        timeout: 60_000, // Longer timeout for archaeology analysis
+        allowFailure: true
+      }
     },
     deduplication: {
       enabled: true,
-      strategy: "exact",
+      strategy: 'exact'
     },
     crossover: {
       enabled: !flags.noCrossoverCheck,
       warnOnTypeAwareRules: true,
       warnOnDuplicateViolations: true,
-      failOnCrossover: flags.failOnCrossover || false,
+      failOnCrossover: flags.failOnCrossover || false
     },
     output: {
       console: !flags.verbose, // Console output disabled in verbose mode (JSON only)
-      ...(flags.verbose ? { json: "stdout" } : {}),
+      ...(flags.verbose ? { json: 'stdout' } : {})
     },
-    
+
     // Service Configuration
     database: {
-      path: "./data/dev-code-quality.db",
+      path: './data/dev-code-quality.db',
       enableWAL: true,
-      maxHistoryDays: 30,
+      maxHistoryDays: 30
     },
     polling: {
       defaultFrequencyMs: 30_000,
       maxConcurrentChecks: 3,
-      adaptivePolling: true,
+      adaptivePolling: true
     },
     watch: {
       intervalMs: 3000,
       debounceMs: 500,
-      autoCleanup: true,
+      autoCleanup: true
     },
     performance: {
       batchSize: 100,
-      enableMetrics: true,
-    },
+      enableMetrics: true
+    }
   };
 }
 
 /**
  * Create watch mode configuration from CLI flags
  */
-export function createWatchModeConfig(flags: CLIFlags): UnifiedOrchestratorConfig {
+export function createWatchModeConfig(
+  flags: CLIFlags
+): UnifiedOrchestratorConfig {
   const baseConfig = createUnifiedConfigFromFlags(flags);
-  
+
   // Watch mode specific adjustments
   return {
     ...baseConfig,
@@ -126,18 +143,23 @@ export function createWatchModeConfig(flags: CLIFlags): UnifiedOrchestratorConfi
       // In watch mode, always enable ESLint for comprehensive analysis
       eslint: {
         ...baseConfig.engines.eslint!,
-        enabled: true,
+        enabled: true
       },
+      // In watch mode, enable archaeology if requested (not by default due to performance)
+      archaeology: {
+        ...baseConfig.engines.archaeology!,
+        enabled: flags.archaeology || flags.includeArchaeology || false
+      }
     },
     output: {
       // In watch mode, always use console output for real-time display
-      console: true,
+      console: true
     },
     watch: {
       intervalMs: 3000,
       debounceMs: 500,
-      autoCleanup: true,
-    },
+      autoCleanup: true
+    }
   };
 }
 
@@ -146,7 +168,7 @@ export function createWatchModeConfig(flags: CLIFlags): UnifiedOrchestratorConfi
  */
 export function createPRDConfig(flags: CLIFlags): UnifiedOrchestratorConfig {
   const baseConfig = createUnifiedConfigFromFlags(flags);
-  
+
   // PRD generation specific adjustments
   return {
     ...baseConfig,
@@ -156,49 +178,60 @@ export function createPRDConfig(flags: CLIFlags): UnifiedOrchestratorConfig {
         options: {
           includeAny: true, // Include any-type violations for PRD
           strict: true, // Use strict mode for comprehensive analysis
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 1,
         timeout: 60_000, // Longer timeout for comprehensive analysis
-        allowFailure: false,
+        allowFailure: false
       },
       eslint: {
         enabled: true, // Always enable ESLint for comprehensive PRD analysis
         options: {
           includeTypescriptRules: true,
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 2,
         timeout: 120_000, // Longer timeout for comprehensive analysis
-        allowFailure: false,
+        allowFailure: false
       },
       unusedExports: {
         enabled: true,
         options: {
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 3,
         timeout: 60_000,
-        allowFailure: true,
+        allowFailure: true
       },
       zodDetection: {
         enabled: true,
         options: {
-          targetPath: flags.targetPath,
+          targetPath: flags.targetPath
         },
         priority: 4,
         timeout: 30_000,
-        allowFailure: true,
+        allowFailure: true
       },
+      archaeology: {
+        enabled: flags.archaeology || flags.includeArchaeology || false, // Enable for comprehensive PRD analysis if requested
+        options: {
+          targetPath: flags.targetPath,
+          deadCode: { enabled: true, threshold: 0.8 },
+          duplication: { enabled: true, minTokens: 50, threshold: 0.95 }
+        },
+        priority: 5,
+        timeout: 120_000, // Extra long timeout for comprehensive PRD analysis
+        allowFailure: true
+      }
     },
     crossover: {
       enabled: true, // Always enable crossover detection for PRD
       warnOnTypeAwareRules: true,
       warnOnDuplicateViolations: true,
-      failOnCrossover: false, // Don't fail PRD generation on crossover issues
+      failOnCrossover: false // Don't fail PRD generation on crossover issues
     },
     output: {
-      console: false, // Disable console output for PRD generation
-    },
+      console: false // Disable console output for PRD generation
+    }
   };
 }

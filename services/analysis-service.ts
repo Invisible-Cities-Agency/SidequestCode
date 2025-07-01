@@ -16,9 +16,9 @@ import type {
   ViolationPrediction,
   RuleFrequencyRecommendation,
   QualityReport,
-  RuleEfficiencyReport,
-} from "./interfaces.js";
-import { arrayAt } from "../utils/node-compatibility.js";
+  RuleEfficiencyReport
+} from './interfaces.js';
+import { arrayAt } from '../utils/node-compatibility.js';
 
 // import type {
 //   ViolationHistory,
@@ -42,7 +42,7 @@ export class AnalysisService implements IAnalysisService {
 
   computeViolationDeltas(
     previousViolations: string[],
-    currentViolations: string[],
+    currentViolations: string[]
   ): {
     added: string[];
     removed: string[];
@@ -64,7 +64,7 @@ export class AnalysisService implements IAnalysisService {
 
   async getViolationTrends(timeRange: TimeRange): Promise<ViolationTrend[]> {
     const violations = await this.storageService.getViolations({
-      since: timeRange.start.toISOString(),
+      since: timeRange.start.toISOString()
     });
 
     // Group violations by date, category, and severity
@@ -72,8 +72,8 @@ export class AnalysisService implements IAnalysisService {
 
     for (const violation of violations) {
       const date =
-        violation.last_seen_at?.split("T")?.[0] ??
-        new Date().toISOString().split("T")[0]!; // Extract date part
+        violation.last_seen_at?.split('T')?.[0] ??
+        new Date().toISOString().split('T')[0]!; // Extract date part
       const key = `${date}:${violation.category}:${violation.severity}`;
 
       if (trendsMap.has(key)) {
@@ -83,7 +83,7 @@ export class AnalysisService implements IAnalysisService {
           date,
           count: 1,
           severity: violation.severity,
-          category: violation.category,
+          category: violation.category
         });
       }
     }
@@ -98,7 +98,7 @@ export class AnalysisService implements IAnalysisService {
     let filteredPerformance = rulePerformance;
     if (ruleId) {
       filteredPerformance = rulePerformance.filter(
-        (rule: any) => rule.rule_id === ruleId,
+        (rule: any) => rule.rule_id === ruleId
       );
     }
 
@@ -109,17 +109,17 @@ export class AnalysisService implements IAnalysisService {
       avgViolationsFound: rule.avg_violations_found || 0,
       successRate:
         rule.total_runs > 0 ? rule.successful_runs / rule.total_runs : 0,
-      lastRun: rule.last_run_at || "Never",
+      lastRun: rule.last_run_at || 'Never',
       trend: this.calculateTrend(
         rule.avg_violations_found,
-        rule.consecutive_zero_count,
-      ),
+        rule.consecutive_zero_count
+      )
     }));
   }
 
   async getFileQualityTrends(filePath?: string): Promise<FileQualityTrend[]> {
     const violations = await this.storageService.getViolations(
-      filePath ? { file_paths: [filePath] } : {},
+      filePath ? { file_paths: [filePath] } : {}
     );
 
     // Group by file path
@@ -142,7 +142,7 @@ export class AnalysisService implements IAnalysisService {
       filePath: path,
       violationCount: data.count,
       trend: this.calculateFileTrend(data.count), // Simplified trend calculation
-      categories: [...data.categories],
+      categories: [...data.categories]
     }));
   }
 
@@ -151,7 +151,7 @@ export class AnalysisService implements IAnalysisService {
   // ========================================================================
 
   async calculateViolationStats(
-    _timeRange: TimeRange,
+    _timeRange: TimeRange
   ): Promise<ViolationStats> {
     // For now, get all active violations to show meaningful stats
     // TODO: Fix timestamp filtering when database schema is properly updated
@@ -185,7 +185,7 @@ export class AnalysisService implements IAnalysisService {
       bySource,
       avgPerFile:
         uniqueFiles.size > 0 ? violations.length / uniqueFiles.size : 0,
-      filesAffected: uniqueFiles.size,
+      filesAffected: uniqueFiles.size
     };
   }
 
@@ -199,7 +199,7 @@ export class AnalysisService implements IAnalysisService {
         violationCount: file.violationCount,
         severityScore: this.calculateSeverityScore(file.violationCount),
         categories: file.categories,
-        lastModified: new Date().toISOString(), // Simplified - would need file system access
+        lastModified: new Date().toISOString() // Simplified - would need file system access
       }))
       .sort((a, b) => b.severityScore - a.severityScore);
   }
@@ -213,7 +213,7 @@ export class AnalysisService implements IAnalysisService {
       .map((rule: any) => {
         const variance = this.calculateVariance(
           rule.avg_violations_found,
-          rule.total_runs,
+          rule.total_runs
         );
         const stdDeviation = Math.sqrt(variance);
 
@@ -223,7 +223,7 @@ export class AnalysisService implements IAnalysisService {
           varianceScore: variance,
           runCount: rule.total_runs,
           avgViolations: rule.avg_violations_found || 0,
-          stdDeviation,
+          stdDeviation
         };
       })
       .filter((rule) => rule.stdDeviation > 2) // High variance threshold
@@ -235,7 +235,7 @@ export class AnalysisService implements IAnalysisService {
   // ========================================================================
 
   async predictViolationGrowth(
-    timeRange: TimeRange,
+    timeRange: TimeRange
   ): Promise<ViolationPrediction> {
     const trends = await this.getViolationTrends(timeRange);
 
@@ -243,8 +243,8 @@ export class AnalysisService implements IAnalysisService {
       return {
         projectedGrowth: 0,
         confidence: 0,
-        timeframe: "30 days",
-        factors: ["Insufficient historical data"],
+        timeframe: '30 days',
+        factors: ['Insufficient historical data']
       };
     }
 
@@ -255,8 +255,8 @@ export class AnalysisService implements IAnalysisService {
     return {
       projectedGrowth: growthRate * 30, // 30-day projection
       confidence: Math.min(trends.length / 30, 1), // Confidence based on data points
-      timeframe: "30 days",
-      factors: this.identifyGrowthFactors(trends),
+      timeframe: '30 days',
+      factors: this.identifyGrowthFactors(trends)
     };
   }
 
@@ -267,12 +267,12 @@ export class AnalysisService implements IAnalysisService {
     return rulePerformance.map((rule: any) => {
       const currentFrequency = 30_000; // Default 30 seconds
       let recommendedFrequency = currentFrequency;
-      let reasoning = "No change recommended";
+      let reasoning = 'No change recommended';
 
       // Rules that consistently find violations should run more frequently
       if (rule.avg_violations_found > 5) {
         recommendedFrequency = currentFrequency / 2;
-        reasoning = "High violation rate - increase frequency";
+        reasoning = 'High violation rate - increase frequency';
       }
       // Rules that rarely find violations can run less frequently
       else if (
@@ -280,12 +280,12 @@ export class AnalysisService implements IAnalysisService {
         rule.consecutive_zero_count > 5
       ) {
         recommendedFrequency = currentFrequency * 2;
-        reasoning = "Low violation rate - decrease frequency";
+        reasoning = 'Low violation rate - decrease frequency';
       }
       // Rules with high execution time should run less frequently
       else if (rule.avg_execution_time_ms > 1000) {
         recommendedFrequency = currentFrequency * 1.5;
-        reasoning = "High execution time - decrease frequency";
+        reasoning = 'High execution time - decrease frequency';
       }
 
       return {
@@ -294,9 +294,9 @@ export class AnalysisService implements IAnalysisService {
         currentFrequency,
         recommendedFrequency: Math.max(
           5000,
-          Math.min(300_000, recommendedFrequency),
+          Math.min(300_000, recommendedFrequency)
         ), // 5s to 5min bounds
-        reasoning,
+        reasoning
       };
     });
   }
@@ -310,13 +310,13 @@ export class AnalysisService implements IAnalysisService {
       this.calculateViolationStats(timeRange),
       this.getViolationTrends(timeRange),
       this.identifyProblemFiles(5),
-      this.getRulePerformanceAnalysis(),
+      this.getRulePerformanceAnalysis()
     ]);
 
     const recommendations = this.generateRecommendations(
       summary,
       problemFiles,
-      rulePerformance,
+      rulePerformance
     );
 
     return {
@@ -325,7 +325,7 @@ export class AnalysisService implements IAnalysisService {
       trends,
       problemFiles,
       rulePerformance,
-      recommendations,
+      recommendations
     };
   }
 
@@ -336,12 +336,12 @@ export class AnalysisService implements IAnalysisService {
 
     const totalRules = rulePerformance.length;
     const activeRules = rulePerformance.filter(
-      (rule: any) => rule.enabled,
+      (rule: any) => rule.enabled
     ).length;
     const avgExecutionTime =
       rulePerformance.reduce(
         (sum: any, rule: any) => sum + (rule.avg_execution_time_ms || 0),
-        0,
+        0
       ) / totalRules;
 
     return {
@@ -349,7 +349,7 @@ export class AnalysisService implements IAnalysisService {
       activeRules,
       avgExecutionTime,
       resourceUtilization: this.calculateResourceUtilization(rulePerformance),
-      recommendations,
+      recommendations
     };
   }
 
@@ -359,31 +359,31 @@ export class AnalysisService implements IAnalysisService {
 
   private calculateTrend(
     avgViolations: number,
-    consecutiveZeroCount: number,
-  ): "improving" | "stable" | "degrading" {
+    consecutiveZeroCount: number
+  ): 'improving' | 'stable' | 'degrading' {
     if (consecutiveZeroCount > 3) {
-      return "improving";
+      return 'improving';
     }
     if (avgViolations < 1) {
-      return "stable";
+      return 'stable';
     }
     if (avgViolations > 10) {
-      return "degrading";
+      return 'degrading';
     }
-    return "stable";
+    return 'stable';
   }
 
   private calculateFileTrend(
-    violationCount: number,
-  ): "improving" | "stable" | "degrading" {
+    violationCount: number
+  ): 'improving' | 'stable' | 'degrading' {
     // Simplified trend calculation - in practice would compare historical data
     if (violationCount < 3) {
-      return "improving";
+      return 'improving';
     }
     if (violationCount > 15) {
-      return "degrading";
+      return 'degrading';
     }
-    return "stable";
+    return 'stable';
   }
 
   private calculateSeverityScore(violationCount: number): number {
@@ -431,7 +431,7 @@ export class AnalysisService implements IAnalysisService {
     for (const trend of trends) {
       categoryCount.set(
         trend.category,
-        (categoryCount.get(trend.category) || 0) + trend.count,
+        (categoryCount.get(trend.category) || 0) + trend.count
       );
     }
 
@@ -451,7 +451,7 @@ export class AnalysisService implements IAnalysisService {
     // Simplified resource utilization calculation
     const totalExecutionTime = rulePerformance.reduce(
       (sum, rule) => sum + (rule.avg_execution_time_ms || 0),
-      0,
+      0
     );
     const maxPossibleTime = rulePerformance.length * 1000; // Assume 1s max per rule
 
@@ -461,38 +461,38 @@ export class AnalysisService implements IAnalysisService {
   private generateRecommendations(
     summary: ViolationStats,
     problemFiles: ProblemFile[],
-    rulePerformance: RulePerformanceAnalysis[],
+    rulePerformance: RulePerformanceAnalysis[]
   ): string[] {
     const recommendations: string[] = [];
 
     // High violation count recommendations
     if (summary.total > 100) {
       recommendations.push(
-        "Consider implementing stricter code review processes",
+        'Consider implementing stricter code review processes'
       );
     }
 
     // Problem files recommendations
     if (problemFiles.length > 5) {
       recommendations.push(
-        `Focus refactoring efforts on ${problemFiles.length} high-violation files`,
+        `Focus refactoring efforts on ${problemFiles.length} high-violation files`
       );
     }
 
     // Rule performance recommendations
     const slowRules = rulePerformance.filter(
-      (rule: any) => (rule.avgExecutionTime || 0) > 500,
+      (rule: any) => (rule.avgExecutionTime || 0) > 500
     );
     if (slowRules.length > 0) {
       recommendations.push(
-        `Optimize ${slowRules.length} slow-performing rules`,
+        `Optimize ${slowRules.length} slow-performing rules`
       );
     }
 
     // Category-specific recommendations
-    if ((summary.byCategory?.["record-type"] || 0) > summary.total * 0.3) {
+    if ((summary.byCategory?.['record-type'] || 0) > summary.total * 0.3) {
       recommendations.push(
-        "High number of record-type violations - consider TypeScript configuration updates",
+        'High number of record-type violations - consider TypeScript configuration updates'
       );
     }
 
@@ -510,7 +510,7 @@ let analysisServiceInstance: AnalysisService | undefined;
  * Get or create analysis service instance
  */
 export function getAnalysisService(
-  storageService: IStorageService,
+  storageService: IStorageService
 ): AnalysisService {
   if (!analysisServiceInstance) {
     analysisServiceInstance = new AnalysisService(storageService);

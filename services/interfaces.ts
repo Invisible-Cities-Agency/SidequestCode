@@ -3,7 +3,7 @@
  * Defines contracts for module separation and clean architecture
  */
 
-import type { Violation as OrchestratorViolation } from "../utils/violation-types.js";
+import type { Violation as OrchestratorViolation } from '../utils/violation-types.js';
 
 import type {
   Violation,
@@ -14,8 +14,8 @@ import type {
   NewRuleSchedule,
   DashboardData,
   ViolationQueryParameters,
-  HistoryQueryParameters,
-} from "../database/types.js";
+  HistoryQueryParameters
+} from '../database/types.js';
 
 // ============================================================================
 // Simple type definitions for missing types
@@ -23,7 +23,7 @@ import type {
 
 export interface RuleCheckResult {
   rule: string;
-  engine: "typescript" | "eslint";
+  engine: 'typescript' | 'eslint';
   checkId?: number;
   success: boolean;
   violationCount: number;
@@ -57,7 +57,7 @@ export interface IStorageService {
   // Rule Check Management
   startRuleCheck(
     _rule: string,
-    _engine: "typescript" | "eslint",
+    _engine: 'typescript' | 'eslint',
   ): Promise<number>;
   completeRuleCheck(
     _checkId: number,
@@ -114,19 +114,19 @@ export interface IPollingService {
   // Rule Scheduling
   scheduleRule(
     _rule: string,
-    _engine: "typescript" | "eslint",
+    _engine: 'typescript' | 'eslint',
     _frequencyMs?: number,
   ): Promise<void>;
   unscheduleRule(
     _rule: string,
-    _engine: "typescript" | "eslint",
+    _engine: 'typescript' | 'eslint',
   ): Promise<void>;
   getScheduledRules(): Promise<RuleSchedule[]>;
 
   // Execution Control
   executeRule(
     _rule: string,
-    _engine: "typescript" | "eslint",
+    _engine: 'typescript' | 'eslint',
   ): Promise<RuleCheckResult>;
   executeNextRules(_maxConcurrent?: number): Promise<RuleCheckResult[]>;
 
@@ -137,19 +137,19 @@ export interface IPollingService {
 
   // Events
   on(
-    _event: "ruleStarted",
+    _event: 'ruleStarted',
     _listener: (_rule: string, _engine: string) => void,
   ): void;
   on(
-    _event: "ruleCompleted",
+    _event: 'ruleCompleted',
     _listener: (_result: RuleCheckResult) => void,
   ): void;
   on(
-    _event: "ruleFailed",
+    _event: 'ruleFailed',
     _listener: (_rule: string, _engine: string, _error: Error) => void,
   ): void;
   on(
-    _event: "cycleCompleted",
+    _event: 'cycleCompleted',
     _listener: (_results: RuleCheckResult[]) => void,
   ): void;
 }
@@ -258,7 +258,7 @@ export interface IOrchestratorService {
   // Manual Operations
   runSingleCheck(
     _rule: string,
-    _engine: "typescript" | "eslint",
+    _engine: 'typescript' | 'eslint',
   ): Promise<RuleCheckResult>;
   runAllChecks(): Promise<RuleCheckResult[]>;
 
@@ -299,13 +299,13 @@ export interface RulePerformanceAnalysis {
   avgViolationsFound: number;
   successRate: number;
   lastRun: string;
-  trend: "improving" | "stable" | "degrading";
+  trend: 'improving' | 'stable' | 'degrading';
 }
 
 export interface FileQualityTrend {
   filePath: string;
   violationCount: number;
-  trend: "improving" | "stable" | "degrading";
+  trend: 'improving' | 'stable' | 'degrading';
   categories: string[];
 }
 

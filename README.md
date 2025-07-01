@@ -35,6 +35,10 @@ pnpm sidequest:help      # ✅ Direct command
 npm run sidequest:report             # TypeScript violations (JSON)
 npm run sidequest:precommit           # Clean CI/pre-commit validation (JSON)
 npm run sidequest:report:strict      # Strict mode analysis (JSON)
+
+# Technical debt analysis (Code Archaeology)
+npm run sidequest:archaeology                    # Dead code + duplication analysis (JSON)
+npm run sidequest:debt                           # Combined analysis with technical debt (JSON)
 ```
 
 > **Note for LLMs**: Use `sidequest:report*` commands - they provide clean JSON output without interactive prompts or watch modes that LLMs cannot handle.
@@ -63,6 +67,11 @@ npm run sidequest:help:markdown      # Formatted documentation
 npm run sidequest:help:quick         # One-liner summary
 npm run sidequest:ai-context         # LLM context & guidance
 
+# Technical debt analysis (Code Archaeology)
+npm run sidequest:archaeology                    # Dead code + duplication analysis (JSON)
+npm run sidequest:debt                           # Combined analysis with technical debt (JSON)
+npm run sidequest:archaeology:watch             # Watch mode with technical debt tracking
+
 # Project insights
 npm run sidequest:prd                # Generate PRD for task management
 
@@ -83,6 +92,57 @@ npm run sidequest:session:reset      # Fresh start
 - **📋 PRD Generation** - Creates task-master compatible PRD files for automated project planning
 - **⚡ Performance Optimized** - Sub-second response times with smart caching and database optimization
 - **📂 Flexible Data Storage** - Project-scoped or global data directory options
+- **🏺 Code Archaeology Engine** - Technical debt analysis with dead code detection and duplication analysis
+- **📝 JSDoc Annotation Control** - Developer-managed exclusions with permanent and temporary options
+
+## 🏺 Code Archaeology Features (Alpha 2)
+
+SideQuest's **Code Archaeology Engine** provides comprehensive technical debt analysis to help you maintain a clean, maintainable codebase:
+
+### 💀 Dead Code Detection
+
+- **Unused Exports** - Finds exports that are never imported or used
+- **Unreachable Code** - Identifies code blocks that can never be executed
+- **Unused Imports** - Locates import statements that aren't being used
+- **Confidence Scoring** - Smart pattern detection reduces false positives
+
+### 🔄 Code Duplication Analysis
+
+- **Exact Duplicates** - Finds identical code blocks across files
+- **Structural Duplicates** - Detects similar patterns with minor variations
+- **Similarity Metrics** - Percentage-based duplication scoring
+- **Refactoring Suggestions** - Actionable recommendations for cleanup
+
+### 🎯 False Positive Control
+
+- **Pattern Recognition** - Automatically recognizes CLI functions, public APIs, and utilities
+- **Confidence Levels** - Risk assessment for each potential removal
+- **JSDoc Annotations** - Developer-controlled exclusions with reasoning
+
+### 📝 JSDoc Annotation System
+
+Control archaeology analysis with structured JSDoc comments:
+
+```typescript
+/**
+ * @archaeology-exclude permanent "CLI entry point used by npm scripts"
+ * @since 0.2.0
+ */
+export function generatePRD() { ... }
+
+/**
+ * @archaeology-exclude temporary "Will be replaced by Zod validation"
+ * @archaeology-recheck-after 0.3.0
+ * @since 0.2.0
+ */
+export function legacyFunction() { ... }
+```
+
+**Annotation Types:**
+
+- **Permanent** - Never flag this code (CLI functions, public APIs)
+- **Temporary** - Exclude until specified version, then recheck
+- **Version-Aware** - Automatically triggers rechecks after version bumps
 
 ## 🔗 Systems Thinking: The SideQuest Advantage
 

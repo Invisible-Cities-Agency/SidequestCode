@@ -7,7 +7,7 @@
         "description": "Merge the legacy CodeQualityOrchestrator and enhanced OrchestratorService into a single unified orchestration system that eliminates code duplication while supporting both custom TypeScript/ESLint script detection and SQLite persistence.",
         "details": "This architectural consolidation task involves several key implementation steps:\n\n1. **Architecture Analysis**: Audit both CodeQualityOrchestrator and OrchestratorService to identify overlapping functionality, unique features, and integration points with CLI, watch mode, and PRD generation systems.\n\n2. **Unified Interface Design**: Create a single orchestrator interface that combines the best features of both systems:\n   - Custom TypeScript/ESLint script detection capabilities from CodeQualityOrchestrator\n   - SQLite persistence layer from OrchestratorService\n   - Support for both single-run and watch mode operations\n   - Integration with PRD generation workflows\n\n3. **Core Implementation**: \n   - Design a modular architecture with pluggable components for script detection and persistence\n   - Implement configuration system to toggle between different operational modes\n   - Ensure backward compatibility with existing CLI commands and watch mode functionality\n   - Maintain performance characteristics of both original systems\n\n4. **Migration Strategy**: \n   - Create migration utilities to handle any existing data or configuration dependencies\n   - Update all dependent systems (CLI, watch mode, PRD generation) to use the unified orchestrator\n   - Remove deprecated orchestrator classes and clean up imports\n\n5. **Version Targeting**: Ensure all changes align with version 0.2.0-alpha.1 release requirements and maintain API stability for external consumers.",
         "testStrategy": "Verification approach includes:\n\n1. **Unit Testing**: Create comprehensive test suites covering both script detection and persistence functionality, ensuring feature parity with both original orchestrators.\n\n2. **Integration Testing**: \n   - Test CLI single-run operations with various TypeScript/ESLint configurations\n   - Verify watch mode functionality maintains file monitoring and incremental analysis\n   - Validate PRD generation workflows continue to function correctly\n   - Test SQLite persistence operations including data integrity and performance\n\n3. **Regression Testing**: Run existing test suites for CodeQualityOrchestrator and OrchestratorService functionality to ensure no features are lost during consolidation.\n\n4. **Performance Benchmarking**: Compare performance metrics (memory usage, execution time, file processing speed) between the unified system and original dual orchestrators to ensure no degradation.\n\n5. **End-to-End Testing**: Execute complete analysis workflows from CLI invocation through result persistence to verify the entire pipeline functions correctly.\n\n6. **Migration Validation**: Test upgrade scenarios from previous versions to ensure smooth transition and data preservation.",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": [
@@ -24,9 +24,7 @@
             "id": 2,
             "title": "Design Unified Orchestrator Interface and Architecture",
             "description": "Develop a single orchestrator interface that merges the best features of both legacy systems, including custom TypeScript/ESLint script detection and SQLite persistence, while supporting both single-run and watch mode operations.",
-            "dependencies": [
-              1
-            ],
+            "dependencies": [1],
             "details": "Define clear module boundaries and interfaces for script detection, persistence, and operational modes. Ensure the design supports PRD generation workflows and is extensible for future enhancements.",
             "status": "done",
             "testStrategy": "Conduct design reviews and create interface mockups; validate with sample integration scenarios."
@@ -35,9 +33,7 @@
             "id": 3,
             "title": "Implement Modular Unified Orchestrator Core",
             "description": "Build the unified orchestrator using a modular architecture with pluggable components for script detection and persistence. Implement a configuration system for operational modes and ensure backward compatibility with CLI and watch mode.",
-            "dependencies": [
-              2
-            ],
+            "dependencies": [2],
             "details": "Refactor or rewrite core logic to eliminate duplication, maintain performance, and support all required features from both original orchestrators.",
             "status": "done",
             "testStrategy": "Unit and integration tests for each module; regression tests for CLI and watch mode compatibility."
@@ -46,9 +42,7 @@
             "id": 4,
             "title": "Develop and Execute Migration and Cleanup Plan",
             "description": "Create migration utilities for existing data and configuration, update all dependent systems to use the unified orchestrator, and remove deprecated classes and imports.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [3],
             "details": "Ensure seamless transition for all users and systems, minimizing downtime and risk. Provide clear migration documentation.",
             "status": "done",
             "testStrategy": "Migration dry runs in staging; verify all dependent systems function correctly post-migration."
@@ -57,19 +51,112 @@
             "id": 5,
             "title": "Align Release and API Stability with Version 0.2.0-alpha.1",
             "description": "Finalize all changes to meet the requirements for the 0.2.0-alpha.1 release, ensuring API stability and compatibility for external consumers.",
-            "dependencies": [
-              4
-            ],
+            "dependencies": [4],
             "details": "Perform final API reviews, update versioning, and communicate changes to stakeholders. Prepare release notes and documentation.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "API contract tests; external consumer integration tests; release checklist verification."
           }
         ]
+      },
+      {
+        "id": 2,
+        "title": "Implement Code Archaeology Engine for Alpha 2 release",
+        "description": "Create a comprehensive Code Archaeology Engine that bundles ts-prune and jscpd to detect unused exports, dead code, and code duplication patterns, positioning SideQuest as a technical debt relief system.",
+        "details": "This task implements a strategic differentiator for SideQuest by creating a comprehensive code archaeology system:\n\n**Core Implementation Steps:**\n\n1. **BaseAuditEngine Extension**: Create CodeArchaeologyEngine class extending BaseAuditEngine with archaeology-specific functionality:\n   ```typescript\n   class CodeArchaeologyEngine extends BaseAuditEngine {\n     async analyzeDeadCode(): Promise<DeadCodeViolation[]>\n     async analyzeDuplication(): Promise<DuplicationViolation[]>\n     async generateArchaeologyReport(): Promise<ArchaeologyReport>\n   }\n   ```\n\n2. **Dependency Integration**: Bundle ts-prune and jscpd in package.json for Alpha 2 MVP:\n   - ts-prune: Detect unused exports and dead code\n   - jscpd: Identify code duplication patterns\n   - Defer madge/dependency-cruiser to Alpha 3\n\n3. **CLI Integration**: Add --archaeology flag support:\n   ```bash\n   sidequest --archaeology\n   sidequest audit --include-archaeology\n   ```\n\n4. **Violation Categories**: Implement new violation types:\n   - DeadCodeViolation: unused exports, unreachable code\n   - CodeDuplicationViolation: duplicate code blocks with similarity metrics\n   - Future: CircularDependencyViolation, ArchitectureViolation (Alpha 3)\n\n5. **UnifiedOrchestrator Integration**: Integrate with existing orchestration system to:\n   - Execute archaeology analysis alongside existing audits\n   - Merge archaeology violations with existing violation tracking\n   - Support both single-run and watch mode operations\n\n6. **Configuration Schema**: Add archaeology-specific configuration:\n   ```json\n   {\n     \"archaeology\": {\n       \"deadCode\": { \"enabled\": true, \"threshold\": 0.8 },\n       \"duplication\": { \"enabled\": true, \"minTokens\": 50, \"threshold\": 0.95 }\n     }\n   }\n   ```\n\n7. **Report Integration**: Create dedicated archaeology section in reports with:\n   - Dead code summary with file-level breakdown\n   - Duplication metrics with similarity scores\n   - Technical debt quantification\n   - Actionable remediation suggestions",
+        "testStrategy": "Comprehensive verification approach:\n\n**Unit Testing:**\n1. Test CodeArchaeologyEngine class methods independently:\n   - Mock ts-prune and jscpd outputs to verify parsing logic\n   - Test violation object creation and categorization\n   - Verify configuration schema validation\n\n**Integration Testing:**\n2. Test CLI flag integration:\n   - Verify --archaeology flag triggers archaeology analysis\n   - Test integration with existing audit commands\n   - Validate output format consistency\n\n**End-to-End Testing:**\n3. Create test projects with known archaeology issues:\n   - Project with unused exports for dead code detection\n   - Project with intentional code duplication\n   - Verify accurate detection and reporting\n\n**Performance Testing:**\n4. Benchmark archaeology analysis on large codebases:\n   - Measure execution time impact\n   - Test memory usage with ts-prune/jscpd integration\n   - Verify scalability with watch mode\n\n**Report Validation:**\n5. Verify archaeology report sections:\n   - Test report generation with various violation combinations\n   - Validate JSON/HTML output formats\n   - Ensure proper integration with existing report structure\n\n**Configuration Testing:**\n6. Test archaeology configuration options:\n   - Verify threshold settings affect detection sensitivity\n   - Test enable/disable flags for different analysis types\n   - Validate configuration inheritance and overrides",
+        "status": "done",
+        "dependencies": [1],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design CodeArchaeologyEngine Class and Core Methods",
+            "description": "Define and implement the CodeArchaeologyEngine class by extending BaseAuditEngine, including methods for analyzing dead code, code duplication, and generating archaeology reports.",
+            "dependencies": [],
+            "details": "Create the TypeScript class structure with async methods: analyzeDeadCode, analyzeDuplication, and generateArchaeologyReport. Ensure the class is ready for integration with external tools and reporting.",
+            "status": "done",
+            "testStrategy": "Write unit tests for each method to verify correct detection of dead code and duplication using mock data."
+          },
+          {
+            "id": 2,
+            "title": "Integrate ts-prune and jscpd Dependencies",
+            "description": "Add ts-prune and jscpd as dependencies in package.json and implement their invocation within the CodeArchaeologyEngine to detect unused exports and code duplication.",
+            "dependencies": [1],
+            "details": "Configure and bundle ts-prune for dead code analysis and jscpd for duplication detection. Ensure both tools are programmatically invoked and their outputs are parsed for further processing.",
+            "status": "done",
+            "testStrategy": "Run integration tests to confirm that both tools execute correctly and their results are accurately captured and parsed."
+          },
+          {
+            "id": 3,
+            "title": "Implement CLI Archaeology Flag and Command Integration",
+            "description": "Extend the SideQuest CLI to support the --archaeology flag and related commands, triggering the CodeArchaeologyEngine analysis as part of the audit workflow.",
+            "dependencies": [2],
+            "details": "Modify CLI parsing logic to recognize new flags and ensure that archaeology analysis is executed when specified by the user.",
+            "status": "done",
+            "testStrategy": "Test CLI commands with and without the --archaeology flag to verify correct behavior and output."
+          },
+          {
+            "id": 4,
+            "title": "Define Violation Types and Reporting Schema",
+            "description": "Implement DeadCodeViolation and CodeDuplicationViolation types, and update the reporting schema to include detailed archaeology results and actionable remediation suggestions.",
+            "dependencies": [2],
+            "details": "Create TypeScript interfaces for new violation types and extend the report generation logic to include a dedicated archaeology section with summaries, metrics, and suggestions.",
+            "status": "done",
+            "testStrategy": "Generate sample reports and validate the presence and accuracy of archaeology sections and violation details."
+          },
+          {
+            "id": 5,
+            "title": "Integrate with UnifiedOrchestrator and Configuration Schema",
+            "description": "Connect the CodeArchaeologyEngine to the UnifiedOrchestrator for coordinated execution and update the configuration schema to support archaeology-specific options.",
+            "dependencies": [3, 4],
+            "details": "Ensure the engine runs alongside existing audits, merges violations, and supports both single-run and watch modes. Update configuration handling to include archaeology thresholds and toggles.",
+            "status": "done",
+            "testStrategy": "Perform end-to-end tests to confirm orchestration, configuration parsing, and correct merging of archaeology results with other audit outputs."
+          },
+          {
+            "id": 11,
+            "title": "Extend Configuration Schema for Archaeology",
+            "description": "Add archaeology-specific configuration options to the project’s config schema, supporting thresholds and toggles for dead code and duplication analysis.",
+            "dependencies": [],
+            "details": "Update configuration files and validation logic to support new archaeology options, including deadCode and duplication settings.",
+            "status": "done",
+            "testStrategy": "Config validation tests to ensure correct parsing, defaults, and error handling for new fields."
+          },
+          {
+            "id": 12,
+            "title": "Develop Archaeology Report Section",
+            "description": "Implement a dedicated section in audit reports for archaeology findings, including summaries, metrics, and remediation suggestions.",
+            "dependencies": [],
+            "details": "Design report templates and rendering logic to present dead code and duplication data, technical debt quantification, and actionable insights.",
+            "status": "done",
+            "testStrategy": "Report generation tests to verify correct formatting, data inclusion, and clarity of remediation suggestions."
+          },
+          {
+            "id": 13,
+            "title": "End-to-End Validation and Documentation",
+            "description": "Perform comprehensive end-to-end testing of the Code Archaeology Engine and document usage, configuration, and troubleshooting.",
+            "dependencies": [],
+            "details": "Test the full workflow from CLI invocation to report output. Write user and developer documentation for the new engine and its integration.",
+            "status": "done",
+            "testStrategy": "Manual and automated end-to-end tests; review documentation for completeness and clarity."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Clean up SideQuest ESLint violations and code quality issues",
+        "description": "Systematically resolve all ESLint violations and code quality issues in the SideQuest codebase to achieve zero violations before alpha release, focusing on async/await patterns, unused variables, and style consistency.",
+        "details": "This comprehensive code quality cleanup task involves multiple phases of systematic violation resolution:\n\n**Phase 1: ESLint Audit and Categorization**\n1. Run full ESLint scan across entire codebase to generate comprehensive violation report\n2. Categorize violations by severity and type:\n   - Critical: async methods without await, potential runtime errors\n   - High: unused variables, imports, and dead code\n   - Medium: style inconsistencies, formatting issues\n   - Low: preference-based rules and documentation\n\n**Phase 2: Critical Violation Resolution**\n1. **Async/Await Pattern Fixes**:\n   - Identify async functions missing await keywords\n   - Add proper await statements for Promise-returning operations\n   - Convert callback patterns to async/await where appropriate\n   - Ensure proper error handling with try/catch blocks\n\n2. **Unused Code Elimination**:\n   - Remove unused variables, imports, and function parameters\n   - Clean up unreferenced type definitions and interfaces\n   - Eliminate dead code branches and unreachable statements\n\n**Phase 3: Style Consistency Implementation**\n1. Apply consistent formatting rules across all TypeScript/JavaScript files\n2. Standardize import ordering and grouping\n3. Ensure consistent naming conventions for variables, functions, and classes\n4. Apply consistent indentation, spacing, and bracket placement\n\n**Phase 4: ESLint Configuration Optimization**\n1. Review and update .eslintrc configuration for project needs\n2. Add custom rules specific to SideQuest architecture patterns\n3. Configure IDE integration for real-time violation detection\n4. Set up pre-commit hooks to prevent future violations\n\n**Implementation Considerations**:\n- Use ESLint's --fix flag for auto-fixable violations\n- Manually review and test all async/await changes to ensure functionality\n- Coordinate with unified orchestrator architecture to avoid conflicts\n- Maintain backward compatibility with existing CLI and watch mode functionality",
+        "testStrategy": "**Verification Strategy**:\n\n**Phase 1: Automated Validation**\n1. Run `npm run lint` or `yarn lint` to confirm zero ESLint violations\n2. Execute `npm run lint:fix` to verify no auto-fixable issues remain\n3. Run TypeScript compiler (`tsc --noEmit`) to ensure no type errors introduced\n\n**Phase 2: Functional Testing**\n1. **Async/Await Verification**:\n   - Test all modified async functions to ensure proper Promise resolution\n   - Verify error handling works correctly with try/catch blocks\n   - Run integration tests to confirm no breaking changes in async flows\n\n2. **Dead Code Removal Validation**:\n   - Execute full test suite to ensure no functionality broken by unused code removal\n   - Verify all imports still resolve correctly\n   - Test CLI commands and watch mode functionality\n\n**Phase 3: Integration Testing**\n1. Run complete SideQuest test suite to ensure no regressions\n2. Test unified orchestrator functionality with cleaned codebase\n3. Verify Code Archaeology Engine still functions correctly\n4. Test PRD generation and all CLI operations\n\n**Phase 4: Code Quality Metrics**\n1. Generate before/after ESLint reports to document improvement\n2. Measure code coverage to ensure no test coverage lost\n3. Run performance benchmarks to confirm no performance degradation\n4. Document any breaking changes or API modifications\n\n**Phase 5: Continuous Integration**\n1. Update CI/CD pipeline to include ESLint checks\n2. Configure automated quality gates to prevent future violations\n3. Set up code review guidelines for maintaining quality standards",
+        "status": "in-progress",
+        "dependencies": [1, 2],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-07-01T00:57:34.179Z",
-      "updated": "2025-07-01T02:40:54.048Z",
+      "updated": "2025-07-01T05:00:12.350Z",
       "description": "=Development tasks for SideQuest Code Quality Orchestrator"
     }
   }

@@ -3,9 +3,9 @@
  * Handles session state, recovery, and resumption capabilities
  */
 
-import { writeFile, readFile, access } from "node:fs/promises";
-import { join } from "node:path";
-import type { ViolationSummary } from "../shared/types.js";
+import { writeFile, readFile, access } from 'node:fs/promises';
+import path from 'node:path';
+import type { ViolationSummary } from '../shared/types.js';
 
 export interface WatchSession {
   id: string;
@@ -14,7 +14,7 @@ export interface WatchSession {
   checksCount: number;
   baseline: ViolationSummary | undefined;
   current: ViolationSummary;
-  viewMode: "dashboard" | "tidy" | "burndown";
+  viewMode: 'dashboard' | 'tidy' | 'burndown';
   errors: SessionError[];
   metadata: {
     cwd: string;
@@ -34,10 +34,10 @@ export interface SessionError {
 
 export class SessionManager {
   private sessionFile: string;
-  private currentSession: WatchSession | null = null;
+  private currentSession: WatchSession | undefined = undefined;
 
-  constructor(dataDir: string = "./data") {
-    this.sessionFile = join(dataDir, "watch-session.json");
+  constructor(dataDirectory: string = './data') {
+    this.sessionFile = path.join(dataDirectory, 'watch-session.json');
   }
 
   /**
@@ -53,14 +53,14 @@ export class SessionManager {
       checksCount: 0,
       baseline: undefined,
       current: { total: 0, bySource: {}, byCategory: {} },
-      viewMode: "dashboard",
+      viewMode: 'dashboard',
       errors: [],
       metadata: {
         cwd: process.cwd(),
         nodeVersion: process.version,
         platform: process.platform,
-        flags,
-      },
+        flags
+      }
     };
 
     await this.saveSession();
@@ -70,23 +70,23 @@ export class SessionManager {
   /**
    * Load existing session from disk
    */
-  async loadSession(): Promise<WatchSession | null> {
+  async loadSession(): Promise<WatchSession | undefined> {
     try {
       await access(this.sessionFile);
-      const content = await readFile(this.sessionFile, "utf8");
+      const content = await readFile(this.sessionFile, 'utf8');
       const session = JSON.parse(content) as WatchSession;
 
       // Validate session is recent (within 24 hours)
       const maxAge = 24 * 60 * 60 * 1000; // 24 hours
       if (Date.now() - session.lastUpdate > maxAge) {
-        console.log("⏰ Previous session too old, starting fresh...");
-        return null;
+        console.log('⏰ Previous session too old, starting fresh...');
+        return undefined;
       }
 
       this.currentSession = session;
       return session;
     } catch {
-      return null; // No session file or invalid format
+      return undefined; // No session file or invalid format
     }
   }
 
@@ -95,11 +95,11 @@ export class SessionManager {
    */
   async updateSession(updates: Partial<WatchSession>): Promise<void> {
     if (!this.currentSession) {
-      throw new Error("No active session to update");
+      throw new Error('No active session to update');
     }
 
     Object.assign(this.currentSession, updates, {
-      lastUpdate: Date.now(),
+      lastUpdate: Date.now()
     });
 
     await this.saveSession();
@@ -111,7 +111,7 @@ export class SessionManager {
   async logError(
     error: Error,
     checksCount: number,
-    context?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ): Promise<void> {
     if (!this.currentSession) {
       return; // No session to log to
@@ -122,7 +122,7 @@ export class SessionManager {
       error: error.message,
       stack: error.stack,
       checksCount,
-      context,
+      context
     };
 
     this.currentSession.errors.push(sessionError);
@@ -138,7 +138,7 @@ export class SessionManager {
   /**
    * Get current session
    */
-  getCurrentSession(): WatchSession | null {
+  getCurrentSession(): WatchSession | undefined {
     return this.currentSession;
   }
 
@@ -146,9 +146,9 @@ export class SessionManager {
    * Clear current session
    */
   async clearSession(): Promise<void> {
-    this.currentSession = null;
+    this.currentSession = undefined;
     try {
-      const { existsSync, unlinkSync } = await import("node:fs");
+      const { existsSync, unlinkSync } = await import('node:fs');
       if (existsSync(this.sessionFile)) {
         unlinkSync(this.sessionFile);
       }
@@ -160,15 +160,17 @@ export class SessionManager {
   /**
    * Get session statistics for display
    */
-  getSessionStats(): {
-    duration: number;
-    checksCount: number;
-    errorCount: number;
-    lastError: SessionError | undefined;
-    progressMade: boolean;
-  } | null {
+  getSessionStats():
+    | {
+        duration: number;
+        checksCount: number;
+        errorCount: number;
+        lastError: SessionError | undefined;
+        progressMade: boolean;
+      }
+    | undefined {
     if (!this.currentSession) {
-      return null;
+      return undefined;
     }
 
     const duration = Date.now() - this.currentSession.startTime;
@@ -180,9 +182,8 @@ export class SessionManager {
       duration,
       checksCount: this.currentSession.checksCount,
       errorCount: this.currentSession.errors.length,
-      lastError:
-        this.currentSession.errors[this.currentSession.errors.length - 1],
-      progressMade: !!progressMade,
+      lastError: this.currentSession.errors.at(-1),
+      progressMade: !!progressMade
     };
   }
 
@@ -191,10 +192,10 @@ export class SessionManager {
    */
   canResumeSession(
     session: WatchSession,
-    currentFlags: Record<string, unknown>,
+    currentFlags: Record<string, unknown>
   ): boolean {
     // Check if critical flags match
-    const criticalFlags = ["targetPath", "strict", "eslintOnly"];
+    const criticalFlags = ['targetPath', 'strict', 'eslintOnly'];
     for (const flag of criticalFlags) {
       if (session.metadata.flags[flag] !== currentFlags[flag]) {
         return false;
@@ -208,7 +209,7 @@ export class SessionManager {
 
     // Check if there are too many recent errors
     const recentErrors = session.errors.filter(
-      (err) => Date.now() - err.timestamp < 5 * 60 * 1000, // 5 minutes
+      (error) => Date.now() - error.timestamp < 5 * 60 * 1000 // 5 minutes
     );
     if (recentErrors.length > 3) {
       return false; // Too many recent errors, might be unstable
@@ -226,21 +227,23 @@ export class SessionManager {
     }
 
     try {
-      const { existsSync, mkdirSync } = await import("node:fs");
-      const { dirname } = await import("node:path");
+      const { existsSync, mkdirSync } = await import('node:fs');
+      // eslint-disable-next-line unicorn/import-style
+      const pathModule = await import('node:path');
+      const path = pathModule.default;
 
       // Ensure directory exists
-      const dir = dirname(this.sessionFile);
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+      const directory = path.dirname(this.sessionFile);
+      if (!existsSync(directory)) {
+        mkdirSync(directory, { recursive: true });
       }
 
-      const content = JSON.stringify(this.currentSession, null, 2);
-      await writeFile(this.sessionFile, content, "utf8");
+      const content = JSON.stringify(this.currentSession, undefined, 2);
+      await writeFile(this.sessionFile, content, 'utf8');
     } catch (error) {
-      const errorObj =
+      const errorObject =
         error instanceof Error ? error : new Error(String(error));
-      console.warn("⚠️  Failed to save session state:", errorObj.message);
+      console.warn('⚠️  Failed to save session state:', errorObject.message);
     }
   }
 }

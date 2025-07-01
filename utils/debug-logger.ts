@@ -7,7 +7,7 @@
 
 interface DebugLogEntry {
   timestamp: string;
-  level: "debug" | "info" | "warn" | "error";
+  level: 'debug' | 'info' | 'warn' | 'error';
   component: string;
   message: string;
   data?: any;
@@ -23,7 +23,7 @@ export class DebugLogger {
    */
   static enable(): void {
     this.isDebugEnabled = true;
-    this.debug("DebugLogger", "Debug logging enabled");
+    this.debug('DebugLogger', 'Debug logging enabled');
   }
 
   /**
@@ -44,18 +44,20 @@ export class DebugLogger {
    * Debug level logging (only shows when debug enabled)
    */
   static debug(component: string, message: string, data?: any): void {
-    if (!this.isDebugEnabled) return;
+    if (!this.isDebugEnabled) {
+      return;
+    }
 
-    const entry = this.createLogEntry("debug", component, message, data);
+    const entry = this.createLogEntry('debug', component, message, data);
     this.addLogEntry(entry);
 
-    const timestamp = entry.timestamp.substring(11, 23); // Show only time with ms
+    const timestamp = entry.timestamp.slice(11, 23); // Show only time with ms
     const prefix = `[${timestamp}] [DEBUG:${component}]`;
 
-    if (data !== undefined) {
-      console.log(`${prefix} ${message}`, data);
-    } else {
+    if (data === undefined) {
       console.log(`${prefix} ${message}`);
+    } else {
+      console.log(`${prefix} ${message}`, data);
     }
   }
 
@@ -63,17 +65,17 @@ export class DebugLogger {
    * Info level logging (always shows)
    */
   static info(component: string, message: string, data?: any): void {
-    const entry = this.createLogEntry("info", component, message, data);
+    const entry = this.createLogEntry('info', component, message, data);
     this.addLogEntry(entry);
 
     if (this.isDebugEnabled) {
-      const timestamp = entry.timestamp.substring(11, 23);
+      const timestamp = entry.timestamp.slice(11, 23);
       const prefix = `[${timestamp}] [INFO:${component}]`;
 
-      if (data !== undefined) {
-        console.log(`${prefix} ${message}`, data);
-      } else {
+      if (data === undefined) {
         console.log(`${prefix} ${message}`);
+      } else {
+        console.log(`${prefix} ${message}`, data);
       }
     }
   }
@@ -82,16 +84,16 @@ export class DebugLogger {
    * Warning level logging (always shows)
    */
   static warn(component: string, message: string, data?: any): void {
-    const entry = this.createLogEntry("warn", component, message, data);
+    const entry = this.createLogEntry('warn', component, message, data);
     this.addLogEntry(entry);
 
-    const timestamp = entry.timestamp.substring(11, 23);
+    const timestamp = entry.timestamp.slice(11, 23);
     const prefix = `[${timestamp}] [WARN:${component}]`;
 
-    if (data !== undefined) {
-      console.warn(`${prefix} ${message}`, data);
-    } else {
+    if (data === undefined) {
       console.warn(`${prefix} ${message}`);
+    } else {
+      console.warn(`${prefix} ${message}`, data);
     }
   }
 
@@ -99,16 +101,16 @@ export class DebugLogger {
    * Error level logging (always shows)
    */
   static error(component: string, message: string, data?: any): void {
-    const entry = this.createLogEntry("error", component, message, data);
+    const entry = this.createLogEntry('error', component, message, data);
     this.addLogEntry(entry);
 
-    const timestamp = entry.timestamp.substring(11, 23);
+    const timestamp = entry.timestamp.slice(11, 23);
     const prefix = `[${timestamp}] [ERROR:${component}]`;
 
-    if (data !== undefined) {
-      console.error(`${prefix} ${message}`, data);
-    } else {
+    if (data === undefined) {
       console.error(`${prefix} ${message}`);
+    } else {
+      console.error(`${prefix} ${message}`, data);
     }
   }
 
@@ -139,11 +141,11 @@ export class DebugLogger {
   static exportLogs(): string {
     return this.logs
       .map((log) => {
-        const timestamp = log.timestamp.substring(11, 23);
-        const dataStr = log.data ? ` ${JSON.stringify(log.data)}` : "";
-        return `[${timestamp}] [${log.level.toUpperCase()}:${log.component}] ${log.message}${dataStr}`;
+        const timestamp = log.timestamp.slice(11, 23);
+        const dataString = log.data ? ` ${JSON.stringify(log.data)}` : '';
+        return `[${timestamp}] [${log.level.toUpperCase()}:${log.component}] ${log.message}${dataString}`;
       })
-      .join("\n");
+      .join('\n');
   }
 
   /**
@@ -151,18 +153,23 @@ export class DebugLogger {
    */
   static async writeLogsToFile(filePath?: string): Promise<void> {
     try {
-      const { writeFile } = await import("node:fs/promises");
-      const { join } = await import("node:path");
+      const { writeFile } = await import('node:fs/promises');
+      // eslint-disable-next-line unicorn/import-style
+      const pathModule = await import('node:path');
+      const path = pathModule.default;
 
-      const logDir = join(process.cwd(), ".sidequest-logs");
+      const logDirectory = path.join(process.cwd(), '.sidequest-logs');
       const logFile =
         filePath ||
-        join(logDir, `debug-${new Date().toISOString().split("T")[0]}.log`);
+        path.join(
+          logDirectory,
+          `debug-${new Date().toISOString().split('T')[0]}.log`
+        );
 
       // Ensure directory exists
-      const { existsSync, mkdirSync } = await import("node:fs");
-      if (!existsSync(logDir)) {
-        mkdirSync(logDir, { recursive: true });
+      const { existsSync, mkdirSync } = await import('node:fs');
+      if (!existsSync(logDirectory)) {
+        mkdirSync(logDirectory, { recursive: true });
       }
 
       const logContent = `# SideQuest Debug Log - ${new Date().toISOString()}\n\n${this.exportLogs()}`;
@@ -172,7 +179,7 @@ export class DebugLogger {
         console.log(`[DebugLogger] Logs written to: ${logFile}`);
       }
     } catch (error) {
-      console.error("[DebugLogger] Failed to write logs to file:", error);
+      console.error('[DebugLogger] Failed to write logs to file:', error);
     }
   }
 
@@ -180,17 +187,17 @@ export class DebugLogger {
    * Create a log entry with timestamp
    */
   private static createLogEntry(
-    level: DebugLogEntry["level"],
+    level: DebugLogEntry['level'],
     component: string,
     message: string,
-    data?: any,
+    data?: any
   ): DebugLogEntry {
     return {
       timestamp: new Date().toISOString(),
       level,
       component,
       message,
-      data,
+      data
     };
   }
 

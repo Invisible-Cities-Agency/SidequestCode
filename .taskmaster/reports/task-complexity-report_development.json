@@ -1,21 +1,29 @@
 {
-	"meta": {
-		"generatedAt": "2025-07-01T00:58:38.687Z",
-		"tasksAnalyzed": 1,
-		"totalTasks": 1,
-		"analysisCount": 1,
-		"thresholdScore": 5,
-		"projectName": "Taskmaster",
-		"usedResearch": true
-	},
-	"complexityAnalysis": [
-		{
-			"taskId": 1,
-			"taskTitle": "Consolidate SideQuest dual orchestrator architecture into unified system",
-			"complexityScore": 9,
-			"recommendedSubtasks": 8,
-			"expansionPrompt": "Break down the consolidation of the dual orchestrator architecture into detailed subtasks covering architecture analysis, unified interface design, modular implementation, configuration system development, migration utilities, dependency updates, deprecated code removal, and comprehensive testing (unit, integration, regression, performance, migration validation).",
-			"reasoning": "This task involves merging two complex orchestration systems with overlapping and unique features, requiring deep architectural analysis, interface unification, modular design, and careful migration planning. It must maintain backward compatibility, performance, and API stability while updating all dependent systems and ensuring robust testing across multiple dimensions. The breadth of integration points, need for migration utilities, and extensive verification requirements indicate high cyclomatic and cognitive complexity, justifying a high score and a substantial number of subtasks for effective management and risk mitigation.[1][3]"
-		}
-	]
+  "meta": {
+    "generatedAt": "2025-07-01T03:29:11.094Z",
+    "tasksAnalyzed": 1,
+    "totalTasks": 2,
+    "analysisCount": 2,
+    "thresholdScore": 5,
+    "projectName": "Taskmaster",
+    "usedResearch": true
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Consolidate SideQuest dual orchestrator architecture into unified system",
+      "complexityScore": 9,
+      "recommendedSubtasks": 8,
+      "expansionPrompt": "Break down the consolidation of the dual orchestrator architecture into detailed subtasks covering architecture analysis, unified interface design, modular implementation, configuration system development, migration utilities, dependency updates, deprecated code removal, and comprehensive testing (unit, integration, regression, performance, migration validation).",
+      "reasoning": "This task involves merging two complex orchestration systems with overlapping and unique features, requiring deep architectural analysis, interface unification, modular design, and careful migration planning. It must maintain backward compatibility, performance, and API stability while updating all dependent systems and ensuring robust testing across multiple dimensions. The breadth of integration points, need for migration utilities, and extensive verification requirements indicate high cyclomatic and cognitive complexity, justifying a high score and a substantial number of subtasks for effective management and risk mitigation.[1][3]"
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Implement Code Archaeology Engine for Alpha 2 release",
+      "complexityScore": 9,
+      "recommendedSubtasks": 8,
+      "expansionPrompt": "Break down the implementation of the Code Archaeology Engine into granular subtasks covering: (1) detailed design and interface specification, (2) integration and abstraction of ts-prune and jscpd, (3) CLI and configuration schema updates, (4) violation type modeling and reporting, (5) orchestrator and workflow integration, (6) comprehensive unit and integration testing, (7) performance and scalability validation, and (8) documentation and developer onboarding.",
+      "reasoning": "This task is highly complex due to the need for deep integration of multiple static analysis tools, extension of core engine architecture, CLI and configuration changes, new reporting schemas, and orchestration with existing systems. It also requires robust testing strategies (unit, integration, end-to-end, performance), and the subtasks provided only partially cover the full scope. Given the breadth of technical domains (tool integration, CLI, reporting, configuration, orchestration, and testing), further decomposition is necessary to ensure maintainability, parallelization, and risk mitigation. The complexity is high (9/10) because it involves architectural extension, third-party tool integration, and significant cross-cutting concerns, as well as the need for maintainable, scalable, and testable code."
+    }
+  ]
 }

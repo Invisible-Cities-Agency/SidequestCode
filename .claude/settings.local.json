@@ -57,7 +57,15 @@
       "Bash(tm expand:*)",
       "Bash(tm start:*)",
       "Bash(tm status:*)",
-      "Bash(tm set-status:*)"
+      "Bash(tm set-status:*)",
+      "Bash(tm next:*)",
+      "Bash(npx ts-prune:*)",
+      "Bash(npx jscpd:*)",
+      "Bash(tm update-subtask:*)",
+      "Bash(tm remove-task:*)",
+      "Bash(tm show:*)",
+      "Bash(tm create:*)",
+      "Bash(npx vitest run:*)"
     ],
     "deny": []
   }

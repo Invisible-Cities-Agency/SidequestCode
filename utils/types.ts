@@ -3,12 +3,12 @@
  * For code quality that Reddit can't criticize
  */
 
-import type { Simplify } from "type-fest";
+import type { Simplify } from 'type-fest';
 
 /**
  * Clean deduplication strategy enum
  */
-type DeduplicationStrategy = "exact" | "similar" | "location";
+type DeduplicationStrategy = 'exact' | 'similar' | 'location';
 
 /**
  * Simplified CLI flags interface
@@ -22,6 +22,8 @@ export interface CLIFlags extends Record<string, unknown> {
   readonly includeAny: boolean;
   readonly includeESLint: boolean;
   readonly eslintOnly: boolean;
+  readonly archaeology: boolean;
+  readonly includeArchaeology: boolean;
   readonly targetPath: string;
   readonly verbose: boolean;
   readonly strict: boolean;

@@ -1,6 +1,6 @@
 {
   "name": "@invisiblecities/sidequest-cqo",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "Configuration-agnostic TypeScript and ESLint orchestrator with real-time watch mode, SQLite persistence, and intelligent terminal detection",
   "type": "module",
   "main": "dist/lib/cli.js",
@@ -30,6 +30,9 @@
     "sidequest:help:markdown": "tsx lib/cli.ts --help-markdown",
     "sidequest:help:quick": "tsx lib/cli.ts --help-quick",
     "sidequest:ai-context": "tsx lib/cli.ts --ai-context",
+    "sidequest:archaeology": "tsx lib/cli.ts --archaeology --verbose",
+    "sidequest:archaeology:watch": "tsx lib/cli.ts --watch --include-archaeology",
+    "sidequest:debt": "tsx lib/cli.ts --include-archaeology --verbose",
     "sidequest:prd": "tsx lib/cli.ts --prd",
     "sidequest:debug:terminal": "tsx lib/cli.ts --debug-terminal",
     "sidequest:session:reset": "tsx lib/cli.ts --reset-session",
@@ -105,7 +108,10 @@
     "docs/CHANGELOG.md",
     "docs/PNPM-INSTALL.md"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "ts-prune": "^0.10.3",
+    "jscpd": "^3.5.10"
+  },
   "devDependencies": {
     "kysely": "^0.27.0",
     "zod": "^3.25.67",

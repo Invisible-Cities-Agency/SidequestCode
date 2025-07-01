@@ -5,21 +5,21 @@
  * continuing to analyze valid files while reporting parsing failures separately.
  */
 
-import { spawnSync } from "node:child_process";
-import * as path from "node:path";
-import { BaseAuditEngine } from "./base-engine.js";
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { BaseAuditEngine } from './base-engine.js';
 import type {
   Violation,
   ViolationCategory,
-  ViolationSeverity,
-} from "../utils/violation-types.js";
+  ViolationSeverity
+} from '../utils/violation-types.js';
 import {
   safeJsonParse,
   ESLintOutputSchema,
-  type ValidatedESLintOutput,
-} from "../utils/validation-schemas.js";
-import { debugLog } from "../utils/debug-logger.js";
-import { getPreferencesManager } from "../services/index.js";
+  type ValidatedESLintOutput
+} from '../utils/validation-schemas.js';
+import { debugLog } from '../utils/debug-logger.js';
+import { getPreferencesManager } from '../services/index.js';
 
 /**
  * Engine for ESLint-based code quality analysis
@@ -61,26 +61,26 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       enabled: true,
       options: {
         rules: [
-          "@typescript-eslint/explicit-function-return-type",
-          "@typescript-eslint/no-unused-vars",
-          "@typescript-eslint/no-explicit-any",
-          "@typescript-eslint/explicit-module-boundary-types",
-          "@typescript-eslint/no-deprecated",
-          "@typescript-eslint/no-non-null-assertion",
-          "@typescript-eslint/ban-ts-comment",
+          '@typescript-eslint/explicit-function-return-type',
+          '@typescript-eslint/no-unused-vars',
+          '@typescript-eslint/no-explicit-any',
+          '@typescript-eslint/explicit-module-boundary-types',
+          '@typescript-eslint/no-deprecated',
+          '@typescript-eslint/no-non-null-assertion',
+          '@typescript-eslint/ban-ts-comment'
         ],
         maxWarnings: 500,
         timeout: 30_000,
         roundRobin: false, // Use comprehensive analysis by default
         enableCustomScripts: true, // Automatically detect and run custom ESLint scripts
-        customScriptPreset: "safe", // Use safe preset to avoid overwhelming output
+        customScriptPreset: 'safe' // Use safe preset to avoid overwhelming output
       },
       priority: 2,
       timeout: 35_000,
-      allowFailure: true, // ESLint failures shouldn't break the whole analysis
+      allowFailure: true // ESLint failures shouldn't break the whole analysis
     };
     const mergedConfig = { ...defaultConfig, ...config };
-    super("ESLint Audit", "eslint", mergedConfig);
+    super('ESLint Audit', 'eslint', mergedConfig);
     this.baseDir = process.cwd();
 
     // Extract rules with proper fallback
@@ -89,33 +89,33 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     this.eslintRules = Array.isArray(rulesFromConfig)
       ? rulesFromConfig
       : [
-          // Code Quality & Style (non-type-aware)
-          "no-console",
-          "no-debugger",
-          "prefer-const",
-          "no-var",
-          "no-unused-vars",
+        // Code Quality & Style (non-type-aware)
+        'no-console',
+        'no-debugger',
+        'prefer-const',
+        'no-var',
+        'no-unused-vars',
 
-          // Performance & Architecture
-          "no-floating-promises",
-          "no-restricted-imports",
+        // Performance & Architecture
+        'no-floating-promises',
+        'no-restricted-imports',
 
-          // TypeScript-specific but performance-focused
-          "@typescript-eslint/no-unused-vars",
-          "@typescript-eslint/prefer-nullish-coalescing",
-          "@typescript-eslint/prefer-optional-chain",
+        // TypeScript-specific but performance-focused
+        '@typescript-eslint/no-unused-vars',
+        '@typescript-eslint/prefer-nullish-coalescing',
+        '@typescript-eslint/prefer-optional-chain',
 
-          // Comprehensive Unicorn rules (matching actual ESLint config)
-          "unicorn/prefer-node-protocol",
-          "unicorn/prefer-module",
-          "unicorn/prefer-array-flat-map",
-          "unicorn/prefer-string-starts-ends-with",
-          "unicorn/prefer-number-properties",
-          "unicorn/no-array-instanceof",
-          "unicorn/prefer-spread",
-          "unicorn/explicit-length-check",
-          "unicorn/no-useless-undefined",
-        ];
+        // Comprehensive Unicorn rules (matching actual ESLint config)
+        'unicorn/prefer-node-protocol',
+        'unicorn/prefer-module',
+        'unicorn/prefer-array-flat-map',
+        'unicorn/prefer-string-starts-ends-with',
+        'unicorn/prefer-number-properties',
+        'unicorn/no-array-instanceof',
+        'unicorn/prefer-spread',
+        'unicorn/explicit-length-check',
+        'unicorn/no-useless-undefined'
+      ];
   }
 
   /**
@@ -123,49 +123,66 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   protected async analyze(
     targetPath: string,
-    options: Record<string, unknown> = {},
+    options: Record<string, unknown> = {}
   ): Promise<Violation[]> {
     const violations: Violation[] = [];
-    
+
     // Get custom script configuration from user preferences
     let enableCustomScripts = true;
-    let customScriptPreset = "safe";
-    
+    let customScriptPreset = 'safe';
+
     try {
       const preferencesManager = getPreferencesManager();
       const preferences = preferencesManager.getAllPreferences();
       const customScriptConfig = preferences.preferences?.customESLintScripts;
-      
+
       enableCustomScripts = customScriptConfig?.enabled ?? true;
-      customScriptPreset = customScriptConfig?.defaultPreset ?? "safe";
-      
+      customScriptPreset = customScriptConfig?.defaultPreset ?? 'safe';
+
       // Allow override from options
-      enableCustomScripts = (options["enableCustomScripts"] ?? this.config.options?.["enableCustomScripts"] ?? enableCustomScripts) as boolean;
-      customScriptPreset = (options["customScriptPreset"] ?? this.config.options?.["customScriptPreset"] ?? customScriptPreset) as string;
+      enableCustomScripts = (options['enableCustomScripts'] ??
+        this.config.options?.['enableCustomScripts'] ??
+        enableCustomScripts) as boolean;
+      customScriptPreset = (options['customScriptPreset'] ??
+        this.config.options?.['customScriptPreset'] ??
+        customScriptPreset) as string;
     } catch (error) {
       // Fallback to defaults if config is unavailable
-      debugLog("ESLintEngine", "Using fallback custom script config", { error: String(error) });
-      enableCustomScripts = (options["enableCustomScripts"] ?? this.config.options?.["enableCustomScripts"] ?? true) as boolean;
-      customScriptPreset = (options["customScriptPreset"] ?? this.config.options?.["customScriptPreset"] ?? "safe") as string;
+      debugLog('ESLintEngine', 'Using fallback custom script config', {
+        error: String(error)
+      });
+      enableCustomScripts = (options['enableCustomScripts'] ??
+        this.config.options?.['enableCustomScripts'] ??
+        true) as boolean;
+      customScriptPreset = (options['customScriptPreset'] ??
+        this.config.options?.['customScriptPreset'] ??
+        'safe') as string;
     }
-    
+
     const searchPath = path.join(this.baseDir, targetPath);
 
     // FIRST: Try running custom ESLint scripts if enabled and detected
     if (enableCustomScripts && this.hasCustomESLintSystem()) {
-      debugLog("ESLintEngine", "Custom ESLint system detected, attempting to run custom scripts");
-      const customViolations = await this.runCustomESLintScripts(searchPath, customScriptPreset);
+      debugLog(
+        'ESLintEngine',
+        'Custom ESLint system detected, attempting to run custom scripts'
+      );
+      const customViolations = await this.runCustomESLintScripts(
+        searchPath,
+        customScriptPreset
+      );
       violations.push(...customViolations);
     }
 
     // SECOND: Run standard ESLint analysis
-    const roundRobin = options["roundRobin"] ?? this.config.options["roundRobin"];
+    const roundRobin =
+      options['roundRobin'] ?? this.config.options['roundRobin'];
     const standardViolations = roundRobin
       ? await this.analyzeWithRoundRobin(targetPath, options)
       : await this.analyzeAllRules(targetPath, options);
-    
+
     violations.push(...standardViolations);
-    
+
     return violations;
   }
 
@@ -174,7 +191,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private async analyzeWithRoundRobin(
     targetPath: string,
-    _options: Record<string, unknown>,
+    _options: Record<string, unknown>
   ): Promise<Violation[]> {
     this.checksCount++;
 
@@ -189,7 +206,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     // Run ESLint for the selected rule
     const ruleViolations = await this.runESLintForRules(
       [ruleToCheck],
-      targetPath,
+      targetPath
     );
 
     // Update cache
@@ -200,7 +217,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     if (ruleViolations.length === 0) {
       this.ruleZeroCount.set(
         ruleToCheck,
-        (this.ruleZeroCount.get(ruleToCheck) || 0) + 1,
+        (this.ruleZeroCount.get(ruleToCheck) || 0) + 1
       );
     } else {
       this.ruleZeroCount.set(ruleToCheck, 0);
@@ -215,7 +232,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private analyzeAllRules(
     targetPath: string,
-    _options: Record<string, unknown>,
+    _options: Record<string, unknown>
   ): Promise<Violation[]> {
     // Pass empty array to disable rule filtering and get ALL violations
     return this.runESLintForRules([], targetPath);
@@ -286,7 +303,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private runESLintForRules(
     rules: string[],
-    targetPath: string,
+    targetPath: string
   ): Promise<Violation[]> {
     // For comprehensive analysis (empty rules array), use robust approach
     if (rules.length === 0) {
@@ -304,7 +321,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     try {
       // Try temp file approach first (fastest for complete analysis)
       console.log(
-        "[ESLint Engine] Running comprehensive analysis with temp file...",
+        '[ESLint Engine] Running comprehensive analysis with temp file...'
       );
       return await this.runESLintWithTempFile(targetPath);
     } catch (error) {
@@ -312,18 +329,18 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         error instanceof Error ? error.message : String(error);
 
       if (
-        errorMessage.includes("ENOBUFS") ||
-        errorMessage.includes("buffer") ||
-        errorMessage.includes("too large")
+        errorMessage.includes('ENOBUFS') ||
+        errorMessage.includes('buffer') ||
+        errorMessage.includes('too large')
       ) {
         console.warn(
-          "[ESLint Engine] Large output detected, falling back to sequential rule processing...",
+          '[ESLint Engine] Large output detected, falling back to sequential rule processing...'
         );
         return this.runESLintSequentially(targetPath);
       } else {
         console.warn(
-          "[ESLint Engine] Temp file approach failed, falling back to sequential:",
-          errorMessage,
+          '[ESLint Engine] Temp file approach failed, falling back to sequential:',
+          errorMessage
         );
         return this.runESLintSequentially(targetPath);
       }
@@ -334,50 +351,50 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    * Run ESLint with temp file output (fastest for large results)
    */
   private async runESLintWithTempFile(
-    targetPath: string,
+    targetPath: string
   ): Promise<Violation[]> {
-    const { mkdtemp, readFile, unlink } = await import("node:fs/promises");
-    const { tmpdir } = await import("node:os");
+    const { mkdtemp, readFile, unlink } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
 
     const temporaryDirectory = await mkdtemp(
-      path.join(tmpdir(), "sidequest-eslint-"),
+      path.join(tmpdir(), 'sidequest-eslint-')
     );
-    const temporaryFile = path.join(temporaryDirectory, "results.json");
-    const maxWarnings = (this.config.options["maxWarnings"] as number) || 500;
-    const timeout = (this.config.options["timeout"] as number) || 30_000;
+    const temporaryFile = path.join(temporaryDirectory, 'results.json');
+    const maxWarnings = (this.config.options['maxWarnings'] as number) || 500;
+    const timeout = (this.config.options['timeout'] as number) || 30_000;
 
     try {
       const eslintArguments = [
-        "--format",
-        "json",
-        "--output-file",
+        '--format',
+        'json',
+        '--output-file',
         temporaryFile,
-        "--max-warnings",
+        '--max-warnings',
         maxWarnings.toString(),
-        "--ext",
-        ".ts",
-        targetPath,
+        '--ext',
+        '.ts',
+        targetPath
       ];
 
       console.log(
-        "[ESLint Engine] Running with temp file:",
-        eslintArguments.join(" "),
+        '[ESLint Engine] Running with temp file:',
+        eslintArguments.join(' ')
       );
-      const result = spawnSync("npx", ["eslint", ...eslintArguments], {
-        encoding: "utf8",
+      const result = spawnSync('npx', ['eslint', ...eslintArguments], {
+        encoding: 'utf8',
         cwd: this.baseDir,
         timeout,
-        signal: this.abortController?.signal,
+        signal: this.abortController?.signal
       });
 
       console.log(
-        "[ESLint Engine] Temp file command exit status:",
-        result.status,
+        '[ESLint Engine] Temp file command exit status:',
+        result.status
       );
       if (result.stderr) {
         console.log(
-          "[ESLint Engine] Temp file stderr:",
-          result.stderr.slice(0, 200),
+          '[ESLint Engine] Temp file stderr:',
+          result.stderr.slice(0, 200)
         );
       }
 
@@ -386,27 +403,27 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         // Return warning violation instead of throwing error
         return [
           this.createViolation(
-            "eslint-setup",
+            'eslint-setup',
             1,
             `ESLint configuration error: ${result.stderr}`,
-            "setup-issue",
-            "error",
-            "ESLINT-SETUP-001",
-            `ESLint configuration error detected. Check your .eslintrc file and ensure ESLint is properly configured. Error: ${result.stderr}`,
-          ),
+            'setup-issue',
+            'error',
+            'ESLINT-SETUP-001',
+            `ESLint configuration error detected. Check your .eslintrc file and ensure ESLint is properly configured. Error: ${result.stderr}`
+          )
         ];
       }
 
       // Read results from temp file
-      const output = await readFile(temporaryFile, "utf8");
+      const output = await readFile(temporaryFile, 'utf8');
 
-      console.log("[ESLint Engine] Temp file output length:", output.length);
+      console.log('[ESLint Engine] Temp file output length:', output.length);
       if (output.length > 100) {
-        console.log("[ESLint Engine] First 200 chars:", output.slice(0, 200));
+        console.log('[ESLint Engine] First 200 chars:', output.slice(0, 200));
       }
 
       if (!output.trim()) {
-        console.warn("[ESLint Engine] Temp file is empty");
+        console.warn('[ESLint Engine] Temp file is empty');
         return [];
       }
 
@@ -434,7 +451,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     const ruleGroups = this.chunkRules(projectRules, 10); // Process 10 rules at a time
 
     console.log(
-      `[ESLint Engine] Processing ${ruleGroups.length} rule groups sequentially...`,
+      `[ESLint Engine] Processing ${ruleGroups.length} rule groups sequentially...`
     );
 
     for (let index = 0; index < ruleGroups.length; index++) {
@@ -443,26 +460,26 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         continue; // Skip undefined groups
       }
       console.log(
-        `[ESLint Engine] Processing group ${index + 1}/${ruleGroups.length}: ${ruleGroup.slice(0, 3).join(", ")}${ruleGroup.length > 3 ? "..." : ""}`,
+        `[ESLint Engine] Processing group ${index + 1}/${ruleGroups.length}: ${ruleGroup.slice(0, 3).join(', ')}${ruleGroup.length > 3 ? '...' : ''}`
       );
 
       try {
         const groupViolations = this.runESLintWithSpecificRules(
           ruleGroup,
-          targetPath,
+          targetPath
         );
         allViolations.push(...groupViolations);
       } catch (error) {
         console.warn(
           `[ESLint Engine] Failed to process rule group ${index + 1}:`,
-          error,
+          error
         );
         // Continue with other groups
       }
     }
 
     console.log(
-      `[ESLint Engine] Sequential processing complete: ${allViolations.length} violations found`,
+      `[ESLint Engine] Sequential processing complete: ${allViolations.length} violations found`
     );
     return allViolations;
   }
@@ -473,93 +490,93 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   private getProjectESLintRules(): string[] {
     try {
       // Try to get rules from the actual ESLint config using a test file
-      const result = spawnSync("npx", ["eslint", "--print-config", "cli.ts"], {
-        encoding: "utf8",
+      const result = spawnSync('npx', ['eslint', '--print-config', 'cli.ts'], {
+        encoding: 'utf8',
         cwd: this.baseDir,
-        timeout: 10_000,
+        timeout: 10_000
       });
 
       if (result.status === 0 && result.stdout) {
         const config = JSON.parse(result.stdout);
         const rules = Object.keys(config.rules || {});
         console.log(
-          `[ESLint Engine] Found ${rules.length} rules from project config`,
+          `[ESLint Engine] Found ${rules.length} rules from project config`
         );
         if (rules.length > 0) {
           return rules;
         }
       } else {
         console.warn(
-          "[ESLint Engine] Failed to get project config:",
-          result.stderr,
+          '[ESLint Engine] Failed to get project config:',
+          result.stderr
         );
       }
     } catch (error) {
-      console.warn("[ESLint Engine] Could not parse project rules:", error);
+      console.warn('[ESLint Engine] Could not parse project rules:', error);
     }
 
     // Fallback to rules explicitly defined in .eslintrc.cjs
-    console.log("[ESLint Engine] Using fallback rules from .eslintrc.cjs");
+    console.log('[ESLint Engine] Using fallback rules from .eslintrc.cjs');
     return [
       // Core ESLint rules from .eslintrc.cjs
-      "no-debugger",
-      "no-alert",
-      "no-eval",
-      "no-implied-eval",
-      "no-new-func",
-      "no-script-url",
-      "no-self-compare",
-      "no-sequences",
-      "no-throw-literal",
-      "no-unmodified-loop-condition",
-      "no-unused-expressions",
-      "no-useless-call",
-      "no-useless-concat",
-      "no-useless-return",
-      "no-void",
-      "prefer-promise-reject-errors",
-      "require-await",
-      "indent",
-      "quotes",
-      "semi",
-      "comma-dangle",
-      "object-curly-spacing",
-      "array-bracket-spacing",
-      "space-before-function-paren",
-      "keyword-spacing",
-      "space-infix-ops",
-      "eol-last",
-      "no-trailing-spaces",
-      "no-multiple-empty-lines",
-      "curly",
-      "eqeqeq",
-      "no-var",
-      "prefer-const",
-      "prefer-arrow-callback",
-      "arrow-spacing",
-      "no-duplicate-imports",
-      "object-shorthand",
-      "prefer-template",
+      'no-debugger',
+      'no-alert',
+      'no-eval',
+      'no-implied-eval',
+      'no-new-func',
+      'no-script-url',
+      'no-self-compare',
+      'no-sequences',
+      'no-throw-literal',
+      'no-unmodified-loop-condition',
+      'no-unused-expressions',
+      'no-useless-call',
+      'no-useless-concat',
+      'no-useless-return',
+      'no-void',
+      'prefer-promise-reject-errors',
+      'require-await',
+      'indent',
+      'quotes',
+      'semi',
+      'comma-dangle',
+      'object-curly-spacing',
+      'array-bracket-spacing',
+      'space-before-function-paren',
+      'keyword-spacing',
+      'space-infix-ops',
+      'eol-last',
+      'no-trailing-spaces',
+      'no-multiple-empty-lines',
+      'curly',
+      'eqeqeq',
+      'no-var',
+      'prefer-const',
+      'prefer-arrow-callback',
+      'arrow-spacing',
+      'no-duplicate-imports',
+      'object-shorthand',
+      'prefer-template',
 
       // Unicorn rules that are enabled in .eslintrc.cjs
-      "unicorn/prefer-string-slice",
-      "unicorn/prefer-array-some",
-      "unicorn/prefer-includes",
-      "unicorn/prefer-object-from-entries",
-      "unicorn/no-useless-undefined",
-      "unicorn/prefer-ternary",
+      'unicorn/prefer-string-slice',
+      'unicorn/prefer-array-some',
+      'unicorn/prefer-includes',
+      'unicorn/prefer-object-from-entries',
+      'unicorn/no-useless-undefined',
+      'unicorn/prefer-ternary',
 
       // Additional unicorn rules from plugin:unicorn/recommended
-      "unicorn/prevent-abbreviations",
-      "unicorn/no-null",
-      "unicorn/no-array-reduce",
-      "unicorn/prefer-node-protocol",
-      "unicorn/prefer-array-flat-map",
-      "unicorn/prefer-string-starts-ends-with",
-      "unicorn/prefer-number-properties",
-      "unicorn/no-array-instanceof",
-      "unicorn/prefer-spread",
-      "unicorn/explicit-length-check",
+      'unicorn/prevent-abbreviations',
+      'unicorn/no-null',
+      'unicorn/no-array-reduce',
+      'unicorn/prefer-node-protocol',
+      'unicorn/prefer-array-flat-map',
+      'unicorn/prefer-string-starts-ends-with',
+      'unicorn/prefer-number-properties',
+      'unicorn/no-array-instanceof',
+      'unicorn/prefer-spread',
+      'unicorn/explicit-length-check'
     ];
   }
 
@@ -579,39 +596,39 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private runESLintWithSpecificRules(
     rules: string[],
-    targetPath: string,
+    targetPath: string
   ): Violation[] {
-    const maxWarnings = (this.config.options["maxWarnings"] as number) || 500;
-    const timeout = (this.config.options["timeout"] as number) || 30_000;
+    const maxWarnings = (this.config.options['maxWarnings'] as number) || 500;
+    const timeout = (this.config.options['timeout'] as number) || 30_000;
 
     // Use project's ESLint config but filter results to specific rules
     const eslintArguments = [
-      "--format",
-      "json",
-      "--max-warnings",
+      '--format',
+      'json',
+      '--max-warnings',
       maxWarnings.toString(),
-      "--ext",
-      ".ts",
-      targetPath,
+      '--ext',
+      '.ts',
+      targetPath
     ];
 
-    const result = spawnSync("npx", ["eslint", ...eslintArguments], {
-      encoding: "utf8",
+    const result = spawnSync('npx', ['eslint', ...eslintArguments], {
+      encoding: 'utf8',
       cwd: this.baseDir,
       maxBuffer: 1024 * 1024 * 2, // Smaller buffer for rule groups
       timeout,
-      signal: this.abortController?.signal,
+      signal: this.abortController?.signal
     });
 
     if (result.error) {
       throw new Error(
-        `ESLint execution failed for rules ${rules.join(", ")}: ${result.error.message}`,
+        `ESLint execution failed for rules ${rules.join(', ')}: ${result.error.message}`
       );
     }
 
     if (result.status === 2) {
       throw new Error(
-        `ESLint configuration error for rules ${rules.join(", ")}: ${result.stderr}`,
+        `ESLint configuration error for rules ${rules.join(', ')}: ${result.stderr}`
       );
     }
 
@@ -628,98 +645,98 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private runESLintWithBuffer(
     rules: string[],
-    targetPath: string,
+    targetPath: string
   ): Violation[] {
-    const maxWarnings = (this.config.options["maxWarnings"] as number) || 500;
-    const timeout = (this.config.options["timeout"] as number) || 30_000;
+    const maxWarnings = (this.config.options['maxWarnings'] as number) || 500;
+    const timeout = (this.config.options['timeout'] as number) || 30_000;
 
     const eslintArguments = [
-      "--format",
-      "json",
-      "--max-warnings",
+      '--format',
+      'json',
+      '--max-warnings',
       maxWarnings.toString(),
-      "--ext",
-      ".ts",
-      targetPath,
+      '--ext',
+      '.ts',
+      targetPath
     ];
 
     try {
-      const result = spawnSync("npx", ["eslint", ...eslintArguments], {
-        encoding: "utf8",
+      const result = spawnSync('npx', ['eslint', ...eslintArguments], {
+        encoding: 'utf8',
         cwd: this.baseDir,
         maxBuffer: 1024 * 1024 * 10, // 10MB buffer
         timeout,
-        signal: this.abortController?.signal,
+        signal: this.abortController?.signal
       });
 
       if (result.error) {
         const errorCode = (result.error as any).code;
-        if (errorCode === "ENOBUFS") {
-          throw new Error("Buffer overflow - switching to robust mode");
-        } else if (errorCode === "ETIMEDOUT") {
+        if (errorCode === 'ENOBUFS') {
+          throw new Error('Buffer overflow - switching to robust mode');
+        } else if (errorCode === 'ETIMEDOUT') {
           console.warn(
-            "[ESLint Engine] Timeout - skipping ESLint results for this check",
+            '[ESLint Engine] Timeout - skipping ESLint results for this check'
           );
           return [];
         } else {
           console.warn(
-            "[ESLint Engine] Execution error:",
-            result.error.message,
+            '[ESLint Engine] Execution error:',
+            result.error.message
           );
           return [
             this.createViolation(
-              "eslint-setup",
+              'eslint-setup',
               1,
               `ESLint execution failed: ${result.error.message}`,
-              "setup-issue",
-              "error",
-              "ESLINT-SETUP-002",
-              `ESLint execution failed. This may indicate ESLint is not installed or there's a configuration issue. Error: ${result.error.message}`,
-            ),
+              'setup-issue',
+              'error',
+              'ESLINT-SETUP-002',
+              `ESLint execution failed. This may indicate ESLint is not installed or there's a configuration issue. Error: ${result.error.message}`
+            )
           ];
         }
       }
 
       if (result.status === 2) {
         console.warn(
-          "[ESLint Engine] ESLint configuration error:",
-          result.stderr?.slice(0, 500),
+          '[ESLint Engine] ESLint configuration error:',
+          result.stderr?.slice(0, 500)
         );
         return [
           this.createViolation(
-            "eslint-setup",
+            'eslint-setup',
             1,
             `ESLint configuration error: ${result.stderr}`,
-            "setup-issue",
-            "error",
-            "ESLINT-SETUP-003",
-            `ESLint configuration error in buffer mode. Check your .eslintrc file and ensure ESLint is properly configured. Error: ${result.stderr}`,
-          ),
+            'setup-issue',
+            'error',
+            'ESLINT-SETUP-003',
+            `ESLint configuration error in buffer mode. Check your .eslintrc file and ensure ESLint is properly configured. Error: ${result.stderr}`
+          )
         ];
       }
 
       if (result.stderr) {
-        console.warn("[ESLint Engine] stderr:", result.stderr.slice(0, 200));
+        console.warn('[ESLint Engine] stderr:', result.stderr.slice(0, 200));
       }
 
       if (!result.stdout) {
-        console.warn("[ESLint Engine] No output received");
+        console.warn('[ESLint Engine] No output received');
         return [];
       }
 
       return this.parseESLintOutput(result.stdout, rules);
     } catch (error) {
-      console.warn("[ESLint Engine] Buffer-based execution failed:", error);
+      console.warn('[ESLint Engine] Buffer-based execution failed:', error);
       return [
         this.createViolation(
-          "eslint-setup",
+          'eslint-setup',
           1,
           `ESLint buffer execution failed: ${error}`,
-          "setup-issue",
-          "error",
-          "ESLINT-SETUP-004",
-          `ESLint buffer-based execution failed unexpectedly. This may indicate a system or configuration issue. Error: ${error}`,
-        ),
+          'setup-issue',
+          'error',
+          'ESLINT-SETUP-004',
+          `ESLint buffer-based execution failed unexpectedly. This may indicate a system or configuration issue. Error: ${error}`
+        )
       ];
     }
   }
@@ -729,7 +746,7 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private parseESLintOutput(
     output: string,
-    filterRules?: string[],
+    filterRules?: string[]
   ): Violation[] {
     let eslintResults: ValidatedESLintOutput;
 
@@ -738,31 +755,31 @@ export class ESLintAuditEngine extends BaseAuditEngine {
       eslintResults = safeJsonParse(
         output,
         ESLintOutputSchema,
-        "ESLint output",
+        'ESLint output'
       );
-      console.log("[Security] ESLint output validated successfully");
+      console.log('[Security] ESLint output validated successfully');
     } catch (error: any) {
       console.warn(
-        "[ESLint Engine] Failed to parse and validate JSON output:",
-        error.message,
+        '[ESLint Engine] Failed to parse and validate JSON output:',
+        error.message
       );
 
       // Try to extract partial JSON if output was truncated
-      const lastBracket = output.lastIndexOf("]");
+      const lastBracket = output.lastIndexOf(']');
       if (lastBracket > 0) {
         try {
           const partialOutput = output.slice(0, Math.max(0, lastBracket + 1));
           eslintResults = safeJsonParse(
             partialOutput,
             ESLintOutputSchema,
-            "partial ESLint output",
+            'partial ESLint output'
           );
           console.warn(
-            "[ESLint Engine] Recovered partial ESLint results with validation",
+            '[ESLint Engine] Recovered partial ESLint results with validation'
           );
         } catch {
           console.warn(
-            "[ESLint Engine] Could not recover and validate partial JSON",
+            '[ESLint Engine] Could not recover and validate partial JSON'
           );
           return [];
         }
@@ -788,20 +805,20 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         }
 
         const { category, severity } = this.categorizeESLintRule(
-          message.ruleId || "unknown",
+          message.ruleId || 'unknown'
         );
 
         violations.push(
           this.createViolation(
             relativePath,
             message.line || 1,
-            message.message || "ESLint violation",
+            message.message || 'ESLint violation',
             category,
             severity,
             message.ruleId || undefined,
             message.message,
-            message.column,
-          ),
+            message.column
+          )
         );
       }
     }
@@ -818,74 +835,74 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     severity: ViolationSeverity;
   } {
     // Pattern-based categorization for unused variables
-    if (rule.includes("unused-vars") || rule.includes("no-unused")) {
-      return { category: "unused-vars", severity: "warn" };
+    if (rule.includes('unused-vars') || rule.includes('no-unused')) {
+      return { category: 'unused-vars', severity: 'warn' };
     }
 
     // Pattern-based categorization for modernization (prefer-* and no-legacy patterns)
     if (
-      rule.startsWith("unicorn/prefer-") ||
-      rule.startsWith("unicorn/no-") ||
-      rule.includes("prefer-") ||
-      rule === "no-var"
+      rule.startsWith('unicorn/prefer-') ||
+      rule.startsWith('unicorn/no-') ||
+      rule.includes('prefer-') ||
+      rule === 'no-var'
     ) {
-      return { category: "modernization", severity: "info" };
+      return { category: 'modernization', severity: 'info' };
     }
 
     // Pattern-based categorization for style/formatting
     if (
-      rule.includes("consistent") ||
-      rule.includes("abbreviations") ||
-      rule.includes("destructuring") ||
-      rule.includes("spacing") ||
-      rule.includes("indent") ||
-      rule.includes("quote") ||
-      rule.includes("semi") ||
-      rule.includes("comma") ||
-      rule.includes("import") ||
-      rule.includes("duplicate")
+      rule.includes('consistent') ||
+      rule.includes('abbreviations') ||
+      rule.includes('destructuring') ||
+      rule.includes('spacing') ||
+      rule.includes('indent') ||
+      rule.includes('quote') ||
+      rule.includes('semi') ||
+      rule.includes('comma') ||
+      rule.includes('import') ||
+      rule.includes('duplicate')
     ) {
-      return { category: "style", severity: "info" };
+      return { category: 'style', severity: 'info' };
     }
 
     // Pattern-based categorization for code quality
     if (
-      rule.includes("undef") ||
-      rule.includes("console") ||
-      rule.includes("debugger") ||
-      rule.includes("await") ||
-      rule.includes("async") ||
-      rule.includes("quality")
+      rule.includes('undef') ||
+      rule.includes('console') ||
+      rule.includes('debugger') ||
+      rule.includes('await') ||
+      rule.includes('async') ||
+      rule.includes('quality')
     ) {
-      return { category: "code-quality", severity: "warn" };
+      return { category: 'code-quality', severity: 'warn' };
     }
 
     // Pattern-based categorization for TypeScript best practices
     if (
-      rule.startsWith("@typescript-eslint/") &&
-      (rule.includes("explicit") ||
-        rule.includes("any") ||
-        rule.includes("boundary"))
+      rule.startsWith('@typescript-eslint/') &&
+      (rule.includes('explicit') ||
+        rule.includes('any') ||
+        rule.includes('boundary'))
     ) {
-      return { category: "best-practices", severity: "warn" };
+      return { category: 'best-practices', severity: 'warn' };
     }
 
     // Pattern-based categorization for syntax/parsing errors
     if (
-      rule.includes("parse") ||
-      rule.includes("syntax") ||
-      rule.includes("error")
+      rule.includes('parse') ||
+      rule.includes('syntax') ||
+      rule.includes('error')
     ) {
-      return { category: "syntax-error", severity: "error" };
+      return { category: 'syntax-error', severity: 'error' };
     }
 
     // Setup and configuration issues
-    if (rule.startsWith("ESLINT-SETUP-")) {
-      return { category: "setup-issue", severity: "error" };
+    if (rule.startsWith('ESLINT-SETUP-')) {
+      return { category: 'setup-issue', severity: 'error' };
     }
 
     // Default fallback - let the session discovery handle unknown rules
-    return { category: "other-eslint", severity: "info" };
+    return { category: 'other-eslint', severity: 'info' };
   }
 
   /**
@@ -896,22 +913,22 @@ export class ESLintAuditEngine extends BaseAuditEngine {
     progress: string;
     adaptiveRules: number;
     totalChecks: number;
-  } {
+    } {
     const lastCheckedRule =
       [...this.ruleLastCheck.entries()].sort(([, a], [, b]) => b - a)[0]?.[0] ||
-      "none";
+      'none';
 
     const progress = `${this.currentRuleIndex}/${this.eslintRules.length}`;
 
     const adaptiveRules = this.eslintRules.filter(
-      (rule) => (this.ruleZeroCount.get(rule) || 0) >= this.ZERO_THRESHOLD,
+      (rule) => (this.ruleZeroCount.get(rule) || 0) >= this.ZERO_THRESHOLD
     ).length;
 
     return {
       lastCheckedRule,
       progress,
       adaptiveRules,
-      totalChecks: this.checksCount,
+      totalChecks: this.checksCount
     };
   }
 
@@ -946,14 +963,14 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private hasCustomESLintSystem(): boolean {
     const eslintSystemPaths = [
-      path.join(this.baseDir, "scripts/eslint/config.js"),
-      path.join(this.baseDir, "scripts/eslint/run-all.js"),
-      path.join(this.baseDir, "scripts/eslint"),
+      path.join(this.baseDir, 'scripts/eslint/config.js'),
+      path.join(this.baseDir, 'scripts/eslint/run-all.js'),
+      path.join(this.baseDir, 'scripts/eslint')
     ];
 
     return eslintSystemPaths.some((eslintPath) => {
       try {
-        const fs = require("node:fs");
+        const fs = require('node:fs');
         return fs.existsSync(eslintPath);
       } catch {
         return false;
@@ -966,50 +983,63 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private async runCustomESLintScripts(
     searchPath: string,
-    preset: string,
+    preset: string
   ): Promise<Violation[]> {
     const violations: Violation[] = [];
 
     try {
       // Get configured timeout
-      let scriptTimeout = 60000; // Default 60 seconds
+      let scriptTimeout = 60_000; // Default 60 seconds
       try {
         const preferencesManager = getPreferencesManager();
         const preferences = preferencesManager.getAllPreferences();
         const customScriptConfig = preferences.preferences?.customESLintScripts;
-        scriptTimeout = customScriptConfig?.scriptTimeout ?? 60000;
+        scriptTimeout = customScriptConfig?.scriptTimeout ?? 60_000;
       } catch (error) {
-        debugLog("ESLintEngine", "Using default script timeout", { error: String(error) });
+        debugLog('ESLintEngine', 'Using default script timeout', {
+          error: String(error)
+        });
       }
 
       // Detect available custom ESLint scripts
       const customScripts = this.detectCustomESLintScripts();
-      
+
       if (customScripts.length === 0) {
-        debugLog("ESLintEngine", "No custom ESLint scripts found in package.json");
+        debugLog(
+          'ESLintEngine',
+          'No custom ESLint scripts found in package.json'
+        );
         return violations;
       }
 
-      debugLog("ESLintEngine", "Detected custom ESLint scripts", { 
+      debugLog('ESLintEngine', 'Detected custom ESLint scripts', {
         scripts: customScripts,
         preset,
-        searchPath,
+        searchPath
       });
 
       // Select best script based on preset
       const selectedScript = this.selectBestCustomScript(customScripts, preset);
-      
+
       if (!selectedScript) {
-        debugLog("ESLintEngine", "No suitable custom script found for preset", { preset, availableScripts: customScripts });
+        debugLog('ESLintEngine', 'No suitable custom script found for preset', {
+          preset,
+          availableScripts: customScripts
+        });
         return violations;
       }
 
       // Execute the selected custom script
-      const customViolations = await this.executeCustomESLintScript(selectedScript, searchPath, scriptTimeout);
+      const customViolations = await this.executeCustomESLintScript(
+        selectedScript,
+        searchPath,
+        scriptTimeout
+      );
       violations.push(...customViolations);
-      
     } catch (error) {
-      debugLog("ESLintEngine", "Error running custom ESLint scripts", { error: String(error) });
+      debugLog('ESLintEngine', 'Error running custom ESLint scripts', {
+        error: String(error)
+      });
       // Don't throw - gracefully degrade to standard ESLint
     }
 
@@ -1021,18 +1051,18 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private detectCustomESLintScripts(): string[] {
     const customScripts: string[] = [];
-    
+
     try {
-      const fs = require("node:fs");
-      const packageJsonPath = path.join(this.baseDir, "package.json");
-      
+      const fs = require('node:fs');
+      const packageJsonPath = path.join(this.baseDir, 'package.json');
+
       if (!fs.existsSync(packageJsonPath)) {
         return customScripts;
       }
-      
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       const scripts = packageJson.scripts || {};
-      
+
       // Look for ESLint-related scripts
       const eslintScriptPatterns = [
         /^lint$/,
@@ -1040,28 +1070,30 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         /^lint:/,
         /^eslint:/,
         /lint$/,
-        /eslint$/,
+        /eslint$/
       ];
-      
+
       for (const [scriptName, scriptCommand] of Object.entries(scripts)) {
-        if (typeof scriptCommand === "string" && eslintScriptPatterns.some(pattern => pattern.test(scriptName))) {
-          // Verify it actually runs ESLint
-          if (scriptCommand.includes("eslint") || scriptCommand.includes("lint")) {
-            customScripts.push(scriptName);
-          }
+        if (
+          typeof scriptCommand === 'string' &&
+          eslintScriptPatterns.some((pattern) => pattern.test(scriptName)) && // Verify it actually runs ESLint
+          (scriptCommand.includes('eslint') || scriptCommand.includes('lint'))
+        ) {
+          customScripts.push(scriptName);
         }
       }
-      
-      debugLog("ESLintEngine", "Custom ESLint script detection completed", {
+
+      debugLog('ESLintEngine', 'Custom ESLint script detection completed', {
         totalScripts: Object.keys(scripts).length,
         eslintScripts: customScripts.length,
-        foundScripts: customScripts,
+        foundScripts: customScripts
       });
-      
     } catch (error) {
-      debugLog("ESLintEngine", "Error detecting custom ESLint scripts", { error: String(error) });
+      debugLog('ESLintEngine', 'Error detecting custom ESLint scripts', {
+        error: String(error)
+      });
     }
-    
+
     return customScripts;
   }
 
@@ -1070,8 +1102,8 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private selectBestCustomScript(
     customScripts: string[],
-    preset: string,
-  ): string | null {
+    preset: string
+  ): string | undefined {
     try {
       // Get user preferences for custom script mappings
       const preferencesManager = getPreferencesManager();
@@ -1086,10 +1118,10 @@ export class ESLintAuditEngine extends BaseAuditEngine {
         // Find the first preferred script that exists
         for (const preferredScript of preferredScripts) {
           if (customScripts.includes(preferredScript)) {
-            debugLog("ESLintEngine", "Selected script from user config", {
+            debugLog('ESLintEngine', 'Selected script from user config', {
               preset,
               selectedScript: preferredScript,
-              configuredPreferences: preferredScripts,
+              configuredPreferences: preferredScripts
             });
             return preferredScript;
           }
@@ -1098,103 +1130,112 @@ export class ESLintAuditEngine extends BaseAuditEngine {
 
       // Fallback to default mappings if no user config or no matches
       const defaultMappings: Record<string, string[]> = {
-        safe: ["lint:check", "eslint", "lint"],
-        fix: ["lint:fix", "eslint:fix"],
-        strict: ["lint:strict", "eslint:strict"],
-        ci: ["lint:ci", "eslint:ci"],
+        safe: ['lint:check', 'eslint', 'lint'],
+        fix: ['lint:fix', 'eslint:fix'],
+        strict: ['lint:strict', 'eslint:strict'],
+        ci: ['lint:ci', 'eslint:ci']
       };
 
-      const fallbackScripts = defaultMappings[preset] || defaultMappings["safe"] || [];
-      
+      const fallbackScripts =
+        defaultMappings[preset] || defaultMappings['safe'] || [];
+
       for (const fallbackScript of fallbackScripts) {
         if (customScripts.includes(fallbackScript)) {
-          debugLog("ESLintEngine", "Selected script from fallback defaults", {
+          debugLog('ESLintEngine', 'Selected script from fallback defaults', {
             preset,
             selectedScript: fallbackScript,
-            fallbackPreferences: fallbackScripts,
+            fallbackPreferences: fallbackScripts
           });
           return fallbackScript;
         }
       }
 
       // Final fallback to the first available custom script
-      const firstScript = customScripts[0] || null;
+      const firstScript = customScripts[0] || undefined;
       if (firstScript) {
-        debugLog("ESLintEngine", "Selected first available script", {
+        debugLog('ESLintEngine', 'Selected first available script', {
           selectedScript: firstScript,
-          allScripts: customScripts,
+          allScripts: customScripts
         });
       }
 
       return firstScript;
     } catch (error) {
-      debugLog("ESLintEngine", "Error selecting custom script, using first available", { 
-        error: String(error),
-        fallbackScript: customScripts[0] || null,
-      });
-      return customScripts[0] || null;
+      debugLog(
+        'ESLintEngine',
+        'Error selecting custom script, using first available',
+        {
+          error: String(error),
+          fallbackScript: customScripts[0] || undefined
+        }
+      );
+      return customScripts[0] || undefined;
     }
   }
 
   /**
    * Execute a custom ESLint script and parse its output
    */
+  // eslint-disable-next-line require-await
   private async executeCustomESLintScript(
     scriptName: string,
     searchPath: string,
-    timeout: number,
+    timeout: number
   ): Promise<Violation[]> {
     const violations: Violation[] = [];
-    
+
     try {
-      debugLog("ESLintEngine", "Executing custom ESLint script", {
+      debugLog('ESLintEngine', 'Executing custom ESLint script', {
         scriptName,
         searchPath,
-        timeout,
+        timeout
       });
 
       // Detect package manager
-      const fs = require("node:fs");
-      const packageManager = fs.existsSync(path.join(this.baseDir, "pnpm-lock.yaml")) 
-        ? "pnpm" 
-        : fs.existsSync(path.join(this.baseDir, "yarn.lock"))
-        ? "yarn"
-        : "npm";
+      const fs = require('node:fs');
+      const packageManager = fs.existsSync(
+        path.join(this.baseDir, 'pnpm-lock.yaml')
+      )
+        ? 'pnpm'
+        : (fs.existsSync(path.join(this.baseDir, 'yarn.lock'))
+          ? 'yarn'
+          : 'npm');
 
       // Build command based on package manager
-      const runCmd = packageManager === "yarn" ? "yarn" : `${packageManager} run`;
+      const runCmd =
+        packageManager === 'yarn' ? 'yarn' : `${packageManager} run`;
       const fullCommand = `${runCmd} ${scriptName}`;
-      
-      debugLog("ESLintEngine", "Running custom ESLint command", {
+
+      debugLog('ESLintEngine', 'Running custom ESLint command', {
         command: fullCommand,
         cwd: this.baseDir,
-        packageManager,
+        packageManager
       });
 
       // Execute the script
-      const cmdParts = runCmd.split(" ");
+      const cmdParts = runCmd.split(' ');
       const command = cmdParts[0];
-      const args = cmdParts.slice(1).concat([scriptName]);
-      
+      const arguments_ = [...cmdParts.slice(1), scriptName];
+
       if (!command) {
         throw new Error(`Invalid command: ${runCmd}`);
       }
-      
-      const result = spawnSync(command, args, {
-        encoding: "utf8",
+
+      const result = spawnSync(command, arguments_, {
+        encoding: 'utf8',
         cwd: this.baseDir,
         timeout,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ['ignore', 'pipe', 'pipe']
       });
 
-      debugLog("ESLintEngine", "Custom ESLint script completed", {
+      debugLog('ESLintEngine', 'Custom ESLint script completed', {
         scriptName,
         exitCode: result.status,
         signal: result.signal,
         hasStdout: !!result.stdout,
         hasStderr: !!result.stderr,
         stdoutLength: result.stdout?.length || 0,
-        stderrLength: result.stderr?.length || 0,
+        stderrLength: result.stderr?.length || 0
       });
 
       // Parse output as ESLint JSON if available
@@ -1203,53 +1244,63 @@ export class ESLintAuditEngine extends BaseAuditEngine {
           const output = JSON.parse(result.stdout);
           if (Array.isArray(output)) {
             // Process ESLint JSON output
-            const customViolations = this.parseCustomESLintOutput(output, scriptName);
+            const customViolations = this.parseCustomESLintOutput(
+              output,
+              scriptName
+            );
             violations.push(...customViolations);
-            
-            debugLog("ESLintEngine", "Successfully parsed custom ESLint output", {
-              scriptName,
-              violationsFound: customViolations.length,
-            });
+
+            debugLog(
+              'ESLintEngine',
+              'Successfully parsed custom ESLint output',
+              {
+                scriptName,
+                violationsFound: customViolations.length
+              }
+            );
           }
         } catch (parseError) {
-          debugLog("ESLintEngine", "Could not parse custom ESLint output as JSON", {
-            scriptName,
-            parseError: String(parseError),
-            outputPreview: result.stdout.slice(0, 200),
-          });
+          debugLog(
+            'ESLintEngine',
+            'Could not parse custom ESLint output as JSON',
+            {
+              scriptName,
+              parseError: String(parseError),
+              outputPreview: result.stdout.slice(0, 200)
+            }
+          );
         }
       }
 
       // Add a summary violation for the custom script execution
       violations.push({
-        file: "custom-script-execution",
+        file: 'custom-script-execution',
         line: 1,
         column: 1,
         code: `Custom ESLint script "${scriptName}" executed successfully`,
-        category: "custom-script-summary",
-        severity: "info",
-        source: "custom",
-        rule: "custom-script-execution",
-        message: `Executed custom ESLint script: ${scriptName} (exit code: ${result.status})`,
+        category: 'custom-script-summary',
+        severity: 'info',
+        source: 'custom',
+        rule: 'custom-script-execution',
+        message: `Executed custom ESLint script: ${scriptName} (exit code: ${result.status})`
       });
-
     } catch (error) {
-      debugLog("ESLintEngine", "Error executing custom ESLint script", {
+      debugLog('ESLintEngine', 'Error executing custom ESLint script', {
         scriptName,
-        error: String(error),
+        error: String(error)
       });
 
       // Add error violation
       violations.push({
-        file: "custom-script-execution",
+        file: 'custom-script-execution',
         line: 1,
         column: 1,
         code: `Failed to execute custom ESLint script "${scriptName}": ${String(error)}`,
-        category: "setup-issue",
-        severity: "warn",
-        source: "custom",
-        rule: "custom-script-execution-error",
-        message: `Custom ESLint script execution failed: ${String(error)}`,
+        category: 'setup-issue',
+        severity: 'warn',
+        source: 'custom',
+        rule: 'custom-script-execution-error',
+        message: `Custom ESLint script execution failed: ${String(error)}`
       });
     }
 
@@ -1259,44 +1310,46 @@ export class ESLintAuditEngine extends BaseAuditEngine {
   /**
    * Parse custom ESLint output into violation format
    */
-  private parseCustomESLintOutput(eslintOutput: any[], scriptName: string): Violation[] {
+  private parseCustomESLintOutput(
+    eslintOutput: any[],
+    scriptName: string
+  ): Violation[] {
     const violations: Violation[] = [];
-    
+
     try {
       for (const fileResult of eslintOutput) {
         if (!fileResult.filePath || !Array.isArray(fileResult.messages)) {
           continue;
         }
-        
+
         for (const message of fileResult.messages) {
           const violation: Violation = {
             file: path.relative(this.baseDir, fileResult.filePath),
             line: message.line || 1,
             column: message.column || 1,
-            code: message.message || "ESLint violation",
+            code: message.message || 'ESLint violation',
             category: this.mapESLintSeverityToCategory(message.severity),
             severity: this.mapESLintSeverityToSeverity(message.severity),
-            source: "custom",
-            rule: message.ruleId || "unknown",
-            message: `[${scriptName}] ${message.message || "ESLint violation"}`,
+            source: 'custom',
+            rule: message.ruleId || 'unknown',
+            message: `[${scriptName}] ${message.message || 'ESLint violation'}`
           };
           violations.push(violation);
         }
       }
-      
-      debugLog("ESLintEngine", "Parsed custom ESLint violations", {
+
+      debugLog('ESLintEngine', 'Parsed custom ESLint violations', {
         scriptName,
         filesProcessed: eslintOutput.length,
-        violationsExtracted: violations.length,
+        violationsExtracted: violations.length
       });
-      
     } catch (error) {
-      debugLog("ESLintEngine", "Error parsing custom ESLint output", {
+      debugLog('ESLintEngine', 'Error parsing custom ESLint output', {
         scriptName,
-        error: String(error),
+        error: String(error)
       });
     }
-    
+
     return violations;
   }
 
@@ -1305,9 +1358,15 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private mapESLintSeverityToCategory(severity: number): ViolationCategory {
     switch (severity) {
-      case 2: return "syntax-error";
-      case 1: return "best-practices";
-      default: return "style";
+    case 2: {
+      return 'syntax-error';
+    }
+    case 1: {
+      return 'best-practices';
+    }
+    default: {
+      return 'style';
+    }
     }
   }
 
@@ -1316,9 +1375,15 @@ export class ESLintAuditEngine extends BaseAuditEngine {
    */
   private mapESLintSeverityToSeverity(severity: number): ViolationSeverity {
     switch (severity) {
-      case 2: return "error";
-      case 1: return "warn";
-      default: return "info";
+    case 2: {
+      return 'error';
+    }
+    case 1: {
+      return 'warn';
+    }
+    default: {
+      return 'info';
+    }
     }
   }
 }

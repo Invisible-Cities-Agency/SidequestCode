@@ -88,6 +88,7 @@ module.exports = {
     'unicorn/prefer-module': 'off', // Using CommonJS for config files
     'unicorn/prefer-top-level-await': 'off', // Not needed in all contexts
     'unicorn/no-array-for-each': 'off', // forEach is fine for side effects
+    'unicorn/prefer-event-target': 'off', // Node.js project - EventEmitter is appropriate
     'unicorn/prefer-string-slice': 'error',
     'unicorn/prefer-array-some': 'error',
     'unicorn/prefer-includes': 'error',

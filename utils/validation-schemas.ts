@@ -6,7 +6,7 @@
  * configuration files, and environment variables.
  */
 
-import { z } from "zod";
+import { z } from 'zod';
 
 // =============================================================================
 // CLI FLAGS AND ARGUMENTS
@@ -26,11 +26,14 @@ export const CLIFlagsSchema = z
     includeAny: z.boolean().default(false),
     includeESLint: z.boolean().default(false),
     eslintOnly: z.boolean().default(false),
+    archaeology: z.boolean().default(false),
+    includeArchaeology: z.boolean().default(false),
+    externalProject: z.boolean().default(false),
     targetPath: z
       .string()
-      .regex(/^[\w./-]+$/, "Invalid target path characters")
-      .max(256, "Target path too long")
-      .default("."),
+      .regex(/^[\w./-]+$/, 'Invalid target path characters')
+      .max(256, 'Target path too long')
+      .default('.'),
     verbose: z.boolean().default(false),
     strict: z.boolean().default(false),
     noCrossoverCheck: z.boolean().default(false),
@@ -43,15 +46,15 @@ export const CLIFlagsSchema = z
     debug: z.boolean().default(false),
     dataDir: z
       .string()
-      .regex(/^[\w./-]+$/, "Invalid data directory path")
-      .max(256, "Data directory path too long")
-      .default("./data"),
+      .regex(/^[\w./-]+$/, 'Invalid data directory path')
+      .max(256, 'Data directory path too long')
+      .default('./data'),
     generatePRD: z.boolean().default(false),
     installShortcuts: z.boolean().default(false),
     configAction: z
       .string()
-      .regex(/^(show|edit|reset)$/, "Invalid config action")
-      .optional(),
+      .regex(/^(show|edit|reset)$/, 'Invalid config action')
+      .optional()
   })
   .strict();
 
@@ -69,13 +72,13 @@ export const EnvironmentSchema = z
   .object({
     CQO_DB_PATH: z
       .string()
-      .regex(/^[\w./-]+$/, "Invalid database path characters")
-      .max(512, "Database path too long")
+      .regex(/^[\w./-]+$/, 'Invalid database path characters')
+      .max(512, 'Database path too long')
       .optional(),
-    TERM_COLOR_MODE: z.enum(["light", "dark", "auto"]).optional(),
-    NODE_ENV: z.enum(["development", "test", "production"]).optional(),
+    TERM_COLOR_MODE: z.enum(['light', 'dark', 'auto']).optional(),
+    NODE_ENV: z.enum(['development', 'test', 'production']).optional(),
     DEBUG: z.string().optional(),
-    CI: z.string().optional(),
+    CI: z.string().optional()
   })
   .strict();
 
@@ -106,12 +109,12 @@ export const TSConfigSchema = z
         paths: z.record(z.array(z.string())).optional(),
         esModuleInterop: z.boolean().optional(),
         allowSyntheticDefaultImports: z.boolean().optional(),
-        moduleResolution: z.string().optional(),
+        moduleResolution: z.string().optional()
       })
       .optional(),
     include: z.array(z.string()).optional(),
     exclude: z.array(z.string()).optional(),
-    extends: z.string().optional(),
+    extends: z.string().optional()
   })
   .passthrough(); // Allow additional TypeScript options
 
@@ -131,19 +134,19 @@ export const ESLintOutputSchema = z
       .object({
         filePath: z
           .string()
-          .max(512, "File path too long")
-          .regex(/\.(ts|tsx|js|jsx)$/, "Invalid file extension"),
+          .max(512, 'File path too long')
+          .regex(/\.(ts|tsx|js|jsx)$/, 'Invalid file extension'),
         messages: z.array(
           z
             .object({
               ruleId: z.string().nullable(),
               severity: z.number().min(0).max(2),
-              message: z.string().max(1000, "Message too long"),
-              line: z.number().positive().max(100_000, "Line number too large"),
+              message: z.string().max(1000, 'Message too long'),
+              line: z.number().positive().max(100_000, 'Line number too large'),
               column: z
                 .number()
                 .positive()
-                .max(1000, "Column number too large")
+                .max(1000, 'Column number too large')
                 .optional(),
               nodeType: z.string().nullable().optional(),
               messageId: z.string().optional(),
@@ -152,42 +155,42 @@ export const ESLintOutputSchema = z
               fix: z
                 .object({
                   range: z.tuple([z.number(), z.number()]),
-                  text: z.string(),
+                  text: z.string()
                 })
                 .optional(),
               suggestions: z.array(z.any()).optional(),
-              suppressions: z.array(z.any()).optional(),
+              suppressions: z.array(z.any()).optional()
             })
-            .passthrough(),
+            .passthrough()
         ), // Allow additional ESLint fields
         suppressedMessages: z.array(z.any()).optional(),
-        errorCount: z.number().min(0).max(10_000, "Error count too large"),
+        errorCount: z.number().min(0).max(10_000, 'Error count too large'),
         fatalErrorCount: z
           .number()
           .min(0)
-          .max(10_000, "Fatal error count too large"),
-        warningCount: z.number().min(0).max(10_000, "Warning count too large"),
+          .max(10_000, 'Fatal error count too large'),
+        warningCount: z.number().min(0).max(10_000, 'Warning count too large'),
         fixableErrorCount: z
           .number()
           .min(0)
-          .max(10_000, "Fixable error count too large"),
+          .max(10_000, 'Fixable error count too large'),
         fixableWarningCount: z
           .number()
           .min(0)
-          .max(10_000, "Fixable warning count too large"),
+          .max(10_000, 'Fixable warning count too large'),
         usedDeprecatedRules: z
           .array(
             z.object({
               ruleId: z.string(),
-              replacedBy: z.array(z.string()),
-            }),
+              replacedBy: z.array(z.string())
+            })
           )
           .optional(),
-        source: z.string().optional(),
+        source: z.string().optional()
       })
-      .passthrough(), // Allow additional ESLint fields
+      .passthrough() // Allow additional ESLint fields
   )
-  .max(1000, "Too many files in ESLint output");
+  .max(1000, 'Too many files in ESLint output');
 
 export type ValidatedESLintOutput = z.infer<typeof ESLintOutputSchema>;
 
@@ -208,7 +211,7 @@ export const PackageJsonSchema = z
     dependencies: z.record(z.string()).optional(),
     devDependencies: z.record(z.string()).optional(),
     peerDependencies: z.record(z.string()).optional(),
-    scripts: z.record(z.string()).optional(),
+    scripts: z.record(z.string()).optional()
   })
   .passthrough(); // Allow additional package.json fields
 
@@ -228,7 +231,7 @@ export type ValidatedPackageJson = z.infer<typeof PackageJsonSchema>;
 export function safeJsonParse<T>(
   json: string,
   schema: z.ZodSchema<T>,
-  context: string = "unknown",
+  context: string = 'unknown'
 ): T {
   try {
     const parsed = JSON.parse(json);
@@ -240,7 +243,7 @@ export function safeJsonParse<T>(
 
     return result.data;
   } catch (error: any) {
-    if (error.message.includes("Invalid")) {
+    if (error.message.includes('Invalid')) {
       throw error; // Re-throw validation errors
     }
     throw new Error(`Failed to parse ${context} JSON: ${error.message}`);
@@ -253,18 +256,18 @@ export function safeJsonParse<T>(
  */
 export function safeEnvironmentAccess(): ValidatedEnvironment {
   const environment = {
-    CQO_DB_PATH: process.env["CQO_DB_PATH"],
-    TERM_COLOR_MODE: process.env["TERM_COLOR_MODE"],
-    NODE_ENV: process.env["NODE_ENV"],
-    DEBUG: process.env["DEBUG"],
-    CI: process.env["CI"],
+    CQO_DB_PATH: process.env['CQO_DB_PATH'],
+    TERM_COLOR_MODE: process.env['TERM_COLOR_MODE'],
+    NODE_ENV: process.env['NODE_ENV'],
+    DEBUG: process.env['DEBUG'],
+    CI: process.env['CI']
   };
 
   const result = EnvironmentSchema.safeParse(environment);
 
   if (!result.success) {
     console.warn(
-      `[Security] Invalid environment variables detected: ${result.error.message}`,
+      `[Security] Invalid environment variables detected: ${result.error.message}`
     );
     // Return safe defaults instead of throwing
     return {
@@ -272,7 +275,7 @@ export function safeEnvironmentAccess(): ValidatedEnvironment {
       TERM_COLOR_MODE: undefined,
       NODE_ENV: undefined,
       DEBUG: undefined,
-      CI: undefined,
+      CI: undefined
     };
   }
 
@@ -286,54 +289,57 @@ export function safeEnvironmentAccess(): ValidatedEnvironment {
 export function safeCLIArgumentsParse(arguments_: string[]): ValidatedCLIFlags {
   // Extract flags from command line arguments
   const flags = {
-    help: arguments_.includes("--help") || arguments_.includes("-h"),
-    helpMarkdown: arguments_.includes("--help-markdown"),
-    helpQuick: arguments_.includes("--help-quick"),
-    aiContext: arguments_.includes("--ai-context"),
-    watch: arguments_.includes("--watch"),
-    includeAny: arguments_.includes("--include-any"),
-    includeESLint: arguments_.includes("--include-eslint"),
-    eslintOnly: arguments_.includes("--eslint-only"),
+    help: arguments_.includes('--help') || arguments_.includes('-h'),
+    helpMarkdown: arguments_.includes('--help-markdown'),
+    helpQuick: arguments_.includes('--help-quick'),
+    aiContext: arguments_.includes('--ai-context'),
+    watch: arguments_.includes('--watch'),
+    includeAny: arguments_.includes('--include-any'),
+    includeESLint: arguments_.includes('--include-eslint'),
+    eslintOnly: arguments_.includes('--eslint-only'),
+    archaeology: arguments_.includes('--archaeology'),
+    includeArchaeology: arguments_.includes('--include-archaeology'),
+    externalProject: arguments_.includes('--external-project'),
     targetPath: (() => {
-      const pathIndex = arguments_.indexOf("--path");
+      const pathIndex = arguments_.indexOf('--path');
       if (pathIndex !== -1 && pathIndex + 1 < arguments_.length) {
-        return arguments_[pathIndex + 1] || ".";
+        return arguments_[pathIndex + 1] || '.';
       }
-      return ".";
+      return '.';
     })(),
-    verbose: arguments_.includes("--verbose"),
-    strict: arguments_.includes("--strict"),
-    noCrossoverCheck: arguments_.includes("--no-crossover-check"),
-    failOnCrossover: arguments_.includes("--fail-on-crossover"),
-    usePersistence: !arguments_.includes("--no-persistence"),
-    showBurndown: arguments_.includes("--burndown"),
-    resetSession: arguments_.includes("--reset-session"),
-    resumeSession: arguments_.includes("--resume"),
-    debugTerminal: arguments_.includes("--debug-terminal"),
-    debug: arguments_.includes("--debug"),
+    verbose: arguments_.includes('--verbose'),
+    strict: arguments_.includes('--strict'),
+    noCrossoverCheck: arguments_.includes('--no-crossover-check'),
+    failOnCrossover: arguments_.includes('--fail-on-crossover'),
+    usePersistence: !arguments_.includes('--no-persistence'),
+    showBurndown: arguments_.includes('--burndown'),
+    resetSession: arguments_.includes('--reset-session'),
+    resumeSession: arguments_.includes('--resume'),
+    debugTerminal: arguments_.includes('--debug-terminal'),
+    debug: arguments_.includes('--debug'),
     dataDir: (() => {
-      const dataDirectoryIndex = arguments_.indexOf("--data-dir");
+      const dataDirectoryIndex = arguments_.indexOf('--data-dir');
       if (
         dataDirectoryIndex !== -1 &&
         dataDirectoryIndex + 1 < arguments_.length
       ) {
-        return arguments_[dataDirectoryIndex + 1] || "./data";
+        return arguments_[dataDirectoryIndex + 1] || './data';
       }
-      return "./data";
+      return './data';
     })(),
-    generatePRD: arguments_.includes("--prd"),
-    installShortcuts: arguments_.includes("--install-shortcuts"),
+    generatePRD: arguments_.includes('--prd'),
+    installShortcuts: arguments_.includes('--install-shortcuts'),
     configAction: (() => {
-      const configIndex = arguments_.indexOf("--config");
+      const configIndex = arguments_.indexOf('--config');
       if (configIndex === -1) {
         return; // No --config flag provided
       }
       const nextArgument = arguments_[configIndex + 1];
-      if (nextArgument && !nextArgument.startsWith("--")) {
+      if (nextArgument && !nextArgument.startsWith('--')) {
         return nextArgument; // --config show, --config reset, --config edit
       }
-      return "show"; // Default to show if just --config
-    })(),
+      return 'show'; // Default to show if just --config
+    })()
   };
 
   const result = CLIFlagsSchema.safeParse(flags);
