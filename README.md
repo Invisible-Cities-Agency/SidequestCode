@@ -39,6 +39,7 @@ npm run sidequest:report:strict      # Strict mode analysis (JSON)
 # Technical debt analysis (Code Archaeology)
 npm run sidequest:archaeology                    # Dead code + duplication analysis (JSON)
 npm run sidequest:debt                           # Combined analysis with technical debt (JSON)
+npm run sidequest:archaeology:watch             # Watch mode with technical debt tracking
 ```
 
 > **Note for LLMs**: Use `sidequest:report*` commands - they provide clean JSON output without interactive prompts or watch modes that LLMs cannot handle.
@@ -83,19 +84,21 @@ npm run sidequest:session:reset      # Fresh start
 ## ✨ Features
 
 - **🎯 Configuration-Agnostic** - Uses your exact `tsconfig.json` and `.eslintrc` without imposing opinions
-- **🚀 Interactive First-Run Setup** - Friendly onboarding that teaches best practices
-- **🔧 Separation of Concerns Guidance** - Helps avoid TypeScript/ESLint rule overlap
-- **👁️ Real-time Monitoring** - Live watch mode with smooth, non-scrolling updates
+- **🚀 Interactive First-Run Setup** - Friendly onboarding that teaches best practices (auto-detected, no more setup loops!)
+- **🔧 ESLint/Prettier Integration** - Industry-standard configuration with eslint-config-prettier for conflict-free styling
+- **👁️ Real-time Monitoring** - Live watch mode with smooth, non-scrolling updates (no more hanging on analysis!)
 - **🎨 Intelligent Terminal Detection** - Automatic light/dark mode detection using OSC escape sequences
 - **📊 Advanced Violation Tracking** - SQLite persistence with historical analysis and configuration caching
 - **⚙️ User Preferences System** - Customizable defaults and behavior with `--config` management
+- **🏺 Code Archaeology Engine** - Comprehensive technical debt analysis with dead code detection and duplication analysis
+- **📝 JSDoc Annotation Control** - Developer-managed exclusions with permanent and temporary options
 - **📋 PRD Generation** - Creates task-master compatible PRD files for automated project planning
+- **🤖 LLM-Optimized Output** - Clean JSON output modes for AI assistants and automation
 - **⚡ Performance Optimized** - Sub-second response times with smart caching and database optimization
 - **📂 Flexible Data Storage** - Project-scoped or global data directory options
-- **🏺 Code Archaeology Engine** - Technical debt analysis with dead code detection and duplication analysis
-- **📝 JSDoc Annotation Control** - Developer-managed exclusions with permanent and temporary options
+- **🔍 Systems Thinking Approach** - See interconnected violations and cascade effects in real-time
 
-## 🏺 Code Archaeology Features (Alpha 2)
+## 🏺 Code Archaeology Features
 
 SideQuest's **Code Archaeology Engine** provides comprehensive technical debt analysis to help you maintain a clean, maintainable codebase:
 
@@ -144,6 +147,23 @@ export function legacyFunction() { ... }
 - **Temporary** - Exclude until specified version, then recheck
 - **Version-Aware** - Automatically triggers rechecks after version bumps
 
+## 🔧 ESLint & Prettier Integration (New in Alpha 3)
+
+SideQuest now includes industry-standard ESLint/Prettier integration that eliminates configuration conflicts:
+
+### ✅ What's Fixed
+
+- **Zero Configuration Conflicts** - Uses `eslint-config-prettier` to automatically disable conflicting style rules
+- **Clean Watch Mode** - No more 8,000+ style violation noise overwhelming real issues
+- **Proper Separation of Concerns** - Prettier handles formatting, ESLint handles code quality
+- **Stream Handling** - Fixed EPIPE errors during automation and piped output
+
+### 🎯 Smart Rule Management
+
+- **Preserved Quality Rules** - 82 useful unicorn ESLint rules for legitimate code improvements
+- **Disabled Style Rules** - Automatically disables indent, quotes, comma-dangle, and other formatting rules
+- **Actionable Focus** - Watch mode now shows only meaningful violations (errors + warnings)
+
 ## 🔗 Systems Thinking: The SideQuest Advantage
 
 > **"Systems are in balance. A change in one may cause an error in another. SideQuest lets you see all of that happening as near to real-time as an LLM is capable of handling."**
@@ -161,17 +181,17 @@ This systems approach enables **dramatic efficiency gains** in code quality impr
 ## 🚀 Quick Start
 
 ```bash
-# Install globally
-npm install -g @sidequest/code-quality-orchestrator
+# Install as dev dependency (recommended)
+npm install --save-dev @invisiblecities/sidequest-cqo
 
 # Or run directly with npx
-npx @sidequest/code-quality-orchestrator --help
+npx @invisiblecities/sidequest-cqo --help
 
 # First run triggers interactive setup
-sidequest --watch
+npm run sidequest:watch
 
-# Skip setup for quick runs
-sidequest --watch
+# For LLMs - clean JSON output
+npm run sidequest:report
 
 # Configuration management
 npm run sidequest:config        # Show current preferences
@@ -312,10 +332,20 @@ code-quality-orchestrator/
 ### Core Analysis
 
 ```bash
+# Watch modes (Real-time monitoring)
 npm run sidequest:watch             # TypeScript compilation checking (default)
 npm run sidequest:watch:eslint      # Add ESLint analysis
 npm run sidequest:watch:strict      # Strict mode analysis
-npm run sidequest:analyze -- --path <dir>  # Target directory (default: app)
+
+# One-time analysis
+npm run sidequest:analyze           # TypeScript only (formatted output)
+npm run sidequest:analyze:eslint    # Include ESLint (formatted output)
+npm run sidequest:analyze:strict    # Strict mode (formatted output)
+
+# Machine-readable output (for LLMs/CI)
+npm run sidequest:report            # TypeScript violations (JSON)
+npm run sidequest:precommit         # Clean CI/pre-commit validation (JSON)
+npm run sidequest:report:strict     # Strict mode analysis (JSON)
 ```
 
 ### Configuration Management
@@ -334,12 +364,26 @@ npm run sidequest:watch             # Auto-detect colors (default)
 npm run sidequest:report            # Detailed JSON output format
 ```
 
+### Code Archaeology (Technical Debt Analysis)
+
+```bash
+# Dead code detection & duplication analysis
+npm run sidequest:archaeology                    # Comprehensive technical debt analysis (JSON)
+npm run sidequest:debt                           # Combined analysis with technical debt (JSON)
+npm run sidequest:archaeology:watch             # Watch mode with technical debt tracking
+
+# Analysis targeting
+npm run sidequest:archaeology -- --include-eslint # Include ESLint with archaeology
+npm run sidequest:archaeology -- --strict         # Strict mode archaeology analysis
+```
+
 ### Advanced Features
 
 ```bash
 npm run sidequest:prd               # Generate PRD file for task master
 npm run sidequest:debug:terminal    # Debug color detection
 npm run sidequest:session:reset     # Reset session baseline
+npm run sidequest:ai-context        # LLM context & guidance
 ```
 
 ### Examples
@@ -354,14 +398,21 @@ npm run sidequest:watch
 # Full analysis with ESLint (optional)
 npm run sidequest:watch:eslint
 
-# One-time analysis with custom path
-npm run sidequest:analyze:eslint -- --path src
+# Technical debt analysis (Code Archaeology)
+npm run sidequest:archaeology                    # Find dead code and duplicates
+npm run sidequest:debt                           # Combined code quality + technical debt
+npm run sidequest:archaeology:watch             # Real-time technical debt monitoring
+
+# Machine-readable output for LLMs/CI
+npm run sidequest:report                         # Clean JSON output
+npm run sidequest:precommit                      # CI-friendly validation
 
 # Generate PRD for Claude Task Master
 npm run sidequest:prd
 
-# Debug terminal color detection
-npm run sidequest:debug:terminal
+# Advanced troubleshooting
+npm run sidequest:debug:terminal                 # Debug color detection
+npm run sidequest:ai-context                     # Get LLM-specific guidance
 ```
 
 ## 📋 PRD Generation for Task Management
