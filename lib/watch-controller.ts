@@ -231,13 +231,13 @@ export class WatchController extends EventEmitter {
     if (this.watchTimeout) {
       clearTimeout(this.watchTimeout);
     }
-    
+
     // Reset 10-minute inactivity timeout
     this.watchTimeout = setTimeout(
       () => this.shutdown("timeout"),
       10 * 60 * 1000,
     );
-    
+
     debugLog("WatchController", "Inactivity timeout reset (10 minutes)");
   }
 
@@ -250,7 +250,7 @@ export class WatchController extends EventEmitter {
 
     try {
       debugLog("WatchController", "Starting analysis cycle...");
-      
+
       // Reset timeout on any analysis activity
       this.resetTimeout();
 

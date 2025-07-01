@@ -20,6 +20,7 @@ import {
   TSConfigSchema,
   type ValidatedTSConfig,
 } from "../utils/validation-schemas.js";
+import { debugLog } from "../utils/debug-logger.js";
 
 /**
  * Engine for TypeScript compilation validation
@@ -38,6 +39,8 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       strict?: boolean; // For pattern checks only
       targetPath?: string;
       checkCompilation?: boolean; // Primary function: run tsc --noEmit
+      enableCustomScripts?: boolean; // Run custom TSC scripts if found
+      customScriptPreset?: string; // Preset to use for custom scripts (default: safe)
     };
     priority?: number;
     timeout?: number;
@@ -50,6 +53,8 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         strict: false, // For pattern checks only
         targetPath: "app",
         checkCompilation: true, // Primary function: run tsc --noEmit
+        enableCustomScripts: true, // Automatically detect and run custom TSC scripts
+        customScriptPreset: "safe", // Use safe preset to avoid overwhelming output
       },
       priority: 1,
       timeout: 30_000,
@@ -74,6 +79,14 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
       true;
     const includeAny =
       options["includeAny"] ?? this.config.options["includeAny"] ?? false;
+    const enableCustomScripts =
+      options["enableCustomScripts"] ??
+      this.config.options["enableCustomScripts"] ??
+      true;
+    const customScriptPreset =
+      options["customScriptPreset"] ??
+      this.config.options["customScriptPreset"] ??
+      "safe";
     const searchPath = path.join(this.baseDir, targetPath);
 
     // FIRST: Run TypeScript compiler to catch actual compilation errors
@@ -82,6 +95,22 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         this.checkTypeScriptCompilation(searchPath),
       );
       violations.push(...compilationViolations);
+    }
+
+    // SECOND: Run custom TypeScript quality scripts if available
+    if (enableCustomScripts) {
+      debugLog("TypeScriptEngine", "Checking for custom TypeScript scripts", {
+        enableCustomScripts,
+        customScriptPreset,
+        baseDir: this.baseDir,
+      });
+      const customViolations = await this.runCustomTypeScriptScripts(
+        customScriptPreset as string,
+      );
+      debugLog("TypeScriptEngine", "Custom script violations found", {
+        count: customViolations.length,
+      });
+      violations.push(...customViolations);
     }
 
     // OPTIONAL: Run pattern-based checks for unknown/any usage
@@ -800,5 +829,437 @@ export class TypeScriptAuditEngine extends BaseAuditEngine {
         return "Review TypeScript configuration and error message for guidance";
       }
     }
+  }
+
+  /**
+   * Detect and run custom TypeScript quality scripts
+   */
+  private async runCustomTypeScriptScripts(
+    preset: string,
+  ): Promise<Violation[]> {
+    const violations: Violation[] = [];
+
+    try {
+      // Check for package.json
+      const packageJsonPath = path.join(this.baseDir, "package.json");
+      debugLog("TypeScriptEngine", "Checking for package.json", {
+        packageJsonPath,
+        exists: fs.existsSync(packageJsonPath),
+      });
+      
+      if (!fs.existsSync(packageJsonPath)) {
+        debugLog("TypeScriptEngine", "No package.json found, skipping custom scripts");
+        return violations;
+      }
+
+      // Read and parse package.json
+      const packageJsonContent = fs.readFileSync(packageJsonPath, "utf8");
+      const packageJson = JSON.parse(packageJsonContent);
+
+      debugLog("TypeScriptEngine", "package.json parsed", {
+        hasScripts: !!packageJson.scripts,
+        scriptCount: packageJson.scripts ? Object.keys(packageJson.scripts).length : 0,
+      });
+
+      if (!packageJson.scripts) {
+        debugLog("TypeScriptEngine", "No scripts section in package.json");
+        return violations;
+      }
+
+      // Detect custom TypeScript scripts
+      const customScripts = this.detectCustomTypeScriptScripts(packageJson.scripts);
+      debugLog("TypeScriptEngine", "Custom script detection results", {
+        customScripts,
+        count: customScripts.length,
+      });
+      
+      if (customScripts.length === 0) {
+        return violations;
+      }
+
+      // Check for TypeScript quality system directory
+      const hasTypeScriptSystem = this.hasCustomTypeScriptSystem();
+      debugLog("TypeScriptEngine", "TypeScript system detection", {
+        hasTypeScriptSystem,
+        customScripts: customScripts.length,
+      });
+      
+      if (!hasTypeScriptSystem) {
+        debugLog("TypeScriptEngine", "No custom TypeScript system detected");
+        return violations;
+      }
+
+      // Run the most appropriate custom script
+      const scriptToRun = this.selectBestCustomScript(customScripts, preset);
+      debugLog("TypeScriptEngine", "Selected script to run", {
+        scriptToRun,
+        preset,
+        availableScripts: customScripts,
+      });
+      
+      if (scriptToRun) {
+        debugLog("TypeScriptEngine", "Executing custom TypeScript script", {
+          scriptName: scriptToRun,
+        });
+        const customViolations = await this.executeCustomTypeScriptScript(
+          scriptToRun,
+          preset,
+        );
+        debugLog("TypeScriptEngine", "Custom script execution complete", {
+          violationsFound: customViolations.length,
+        });
+        violations.push(...customViolations);
+      } else {
+        debugLog("TypeScriptEngine", "No suitable custom script found to run");
+      }
+    } catch (error) {
+      console.warn(
+        "[TypeScript Engine] Failed to run custom TypeScript scripts:",
+        error,
+      );
+      // Don't fail the entire analysis if custom scripts fail
+    }
+
+    return violations;
+  }
+
+  /**
+   * Detect custom TypeScript scripts in package.json
+   */
+  private detectCustomTypeScriptScripts(scripts: Record<string, string>): string[] {
+    const customScripts: string[] = [];
+
+    for (const [scriptName, scriptCommand] of Object.entries(scripts)) {
+      // Look for scripts that start with 'tsc:' or 'type-check:'
+      if (
+        (scriptName.startsWith("tsc:") || scriptName.startsWith("type-check:")) &&
+        !scriptName.includes("legacy") &&
+        !scriptName.includes("original")
+      ) {
+        // Check if it's a custom quality script (not just tsc --noEmit)
+        if (
+          scriptCommand.includes("scripts/typescript/") ||
+          scriptCommand.includes("run-all.js") ||
+          scriptCommand.includes("--preset")
+        ) {
+          customScripts.push(scriptName);
+        }
+      }
+    }
+
+    return customScripts;
+  }
+
+  /**
+   * Check if the project has a custom TypeScript quality system
+   */
+  private hasCustomTypeScriptSystem(): boolean {
+    const typeScriptSystemPaths = [
+      path.join(this.baseDir, "scripts/typescript/config.js"),
+      path.join(this.baseDir, "scripts/typescript/run-all.js"),
+      path.join(this.baseDir, "scripts/typescript"),
+    ];
+
+    return typeScriptSystemPaths.some((tsPath) => fs.existsSync(tsPath));
+  }
+
+  /**
+   * Select the best custom script to run based on preset
+   */
+  private selectBestCustomScript(
+    customScripts: string[],
+    preset: string,
+  ): string | null {
+    // Priority order based on preset
+    const presetPriority: Record<string, string[]> = {
+      safe: ["tsc:safe", "type-check", "tsc:dev"],
+      strict: ["tsc:strict", "type-check:strict", "tsc:ci"],
+      dev: ["tsc:dev", "tsc:safe", "type-check"],
+      ci: ["tsc:ci", "tsc:strict", "type-check:strict"],
+    };
+
+    const preferredScripts = presetPriority[preset] || presetPriority["safe"];
+
+    // Find the first preferred script that exists
+    for (const preferredScript of preferredScripts || []) {
+      if (customScripts.includes(preferredScript)) {
+        return preferredScript;
+      }
+    }
+
+    // Fallback to the first available custom script
+    return customScripts[0] || null;
+  }
+
+  /**
+   * Execute a custom TypeScript script and parse its output
+   */
+  private async executeCustomTypeScriptScript(
+    scriptName: string,
+    _preset: string,
+  ): Promise<Violation[]> {
+    const violations: Violation[] = [];
+
+    try {
+      // Determine the package manager
+      const packageManager = this.detectPackageManager();
+      const runCommand = packageManager === "yarn" ? "yarn" : `${packageManager} run`;
+
+      // Execute the custom script
+      const command = runCommand.split(" ")[0];
+      if (!command) {
+        throw new Error(`Invalid package manager command: ${runCommand}`);
+      }
+      
+      const result = spawnSync(command, [
+        ...(packageManager === "yarn" ? [] : ["run"]),
+        scriptName,
+      ], {
+        encoding: "utf8",
+        cwd: this.baseDir,
+        timeout: 60000, // 60 second timeout for custom scripts
+        signal: this.abortController?.signal,
+      });
+
+      if (result.error) {
+        console.warn(
+          `[TypeScript Engine] Failed to run custom script ${scriptName}:`,
+          result.error.message,
+        );
+        return violations;
+      }
+
+      // Parse the output to extract violations
+      const customViolations = this.parseCustomScriptOutput(
+        result.stdout || "",
+        result.stderr || "",
+        scriptName,
+      );
+      
+      violations.push(...customViolations);
+    } catch (error) {
+      console.warn(
+        `[TypeScript Engine] Error executing custom script ${scriptName}:`,
+        error,
+      );
+    }
+
+    return violations;
+  }
+
+  /**
+   * Parse output from custom TypeScript scripts
+   */
+  private parseCustomScriptOutput(
+    stdout: string,
+    stderr: string,
+    scriptName: string,
+  ): Violation[] {
+    const violations: Violation[] = [];
+    const output = stdout + stderr;
+
+    // Look for common custom script error patterns
+    const errorPatterns = [
+      // Pattern: filename(line,col): message
+      /^(.+?)\((\d+),(\d+)\):\s*(.+)$/gm,
+      // Pattern: filename:line:col: message
+      /^(.+?):(\d+):(\d+):\s*(.+)$/gm,
+      // Pattern: Error: message in filename:line
+      /Error:\s*(.+?)\s+in\s+(.+?):(\d+)/gm,
+      // Pattern: [rule-name] message (filename:line:col)
+      /\[([^\]]+)\]\s*(.+?)\s*\((.+?):(\d+):(\d+)\)/gm,
+    ];
+
+    for (const pattern of errorPatterns) {
+      let match;
+      while ((match = pattern.exec(output)) !== null) {
+        const violation = this.createCustomScriptViolation(match, scriptName);
+        if (violation) {
+          violations.push(violation);
+        }
+      }
+    }
+
+    // If no specific patterns matched, look for summary information
+    if (violations.length === 0) {
+      const summaryMatch = output.match(
+        /(\d+)\s+(error|warning)s?\s+found/i,
+      );
+      if (summaryMatch && summaryMatch[1] && summaryMatch[2]) {
+        const count = parseInt(summaryMatch[1], 10);
+        const severity = summaryMatch[2].toLowerCase() as ViolationSeverity;
+        
+        if (count > 0) {
+          violations.push(
+            this.createViolation(
+              "custom-script-summary",
+              1,
+              `Custom TypeScript script '${scriptName}' found ${count} ${severity}s`,
+              "type-quality",
+              severity,
+              `CUSTOM-${scriptName.toUpperCase()}`,
+              `The custom TypeScript quality script '${scriptName}' detected ${count} ${severity}s. Run '${scriptName}' directly for detailed output.`,
+            ),
+          );
+        }
+      }
+    }
+
+    return violations;
+  }
+
+  /**
+   * Create a violation from custom script output
+   */
+  private createCustomScriptViolation(
+    match: RegExpExecArray,
+    scriptName: string,
+  ): Violation | null {
+    try {
+      // Different patterns have different capture groups
+      let filePath: string;
+      let line: number;
+      let message: string;
+      let ruleName: string | undefined;
+
+      if (match.length === 5 && match[1] && match[2] && match[3] && match[4]) {
+        // Pattern: filename(line,col): message
+        filePath = match[1];
+        line = parseInt(match[2], 10);
+        message = match[4];
+      } else if (match.length === 6 && match[1] && match[2] && match[3] && match[4] && match[5]) {
+        // Pattern: [rule-name] message (filename:line:col)
+        ruleName = match[1];
+        message = match[2];
+        filePath = match[3];
+        line = parseInt(match[4], 10);
+      } else {
+        return null;
+      }
+
+      // Determine severity based on script name and message
+      const severity: ViolationSeverity = this.determineCustomScriptSeverity(
+        scriptName,
+        message,
+      );
+
+      // Categorize the violation
+      const category = this.categorizeCustomScriptViolation(
+        scriptName,
+        ruleName || "",
+        message,
+      );
+
+      return this.createViolation(
+        filePath,
+        line,
+        message,
+        category,
+        severity,
+        ruleName ? `CUSTOM-${ruleName.toUpperCase()}` : `CUSTOM-${scriptName.toUpperCase()}`,
+        `Custom TypeScript quality check detected: ${message}`,
+      );
+    } catch (error) {
+      console.warn(
+        "[TypeScript Engine] Failed to parse custom script violation:",
+        error,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Determine severity for custom script violations
+   */
+  private determineCustomScriptSeverity(
+    scriptName: string,
+    message: string,
+  ): ViolationSeverity {
+    // High severity scripts/messages
+    if (
+      scriptName.includes("floating-promises") ||
+      scriptName.includes("unsafe") ||
+      message.toLowerCase().includes("error")
+    ) {
+      return "error";
+    }
+
+    // Medium severity
+    if (
+      scriptName.includes("explicit-any") ||
+      scriptName.includes("return-type") ||
+      message.toLowerCase().includes("warning")
+    ) {
+      return "warn";
+    }
+
+    // Default to info for architectural/quality checks
+    return "info";
+  }
+
+  /**
+   * Categorize custom script violations
+   */
+  private categorizeCustomScriptViolation(
+    scriptName: string,
+    ruleName: string,
+    message: string,
+  ): ViolationCategory {
+    // Map common custom script types to categories
+    if (
+      scriptName.includes("floating-promises") ||
+      ruleName.includes("floating-promises")
+    ) {
+      return "async-issues";
+    }
+
+    if (
+      scriptName.includes("explicit-any") ||
+      ruleName.includes("explicit-any") ||
+      message.includes("any")
+    ) {
+      return "no-explicit-any";
+    }
+
+    if (
+      scriptName.includes("return-type") ||
+      ruleName.includes("return-type")
+    ) {
+      return "annotation";
+    }
+
+    if (
+      scriptName.includes("domain") ||
+      scriptName.includes("layer") ||
+      ruleName.includes("domain")
+    ) {
+      return "architecture";
+    }
+
+    if (
+      scriptName.includes("branded") ||
+      ruleName.includes("branded")
+    ) {
+      return "type-alias";
+    }
+
+    // Default category
+    return "type-quality";
+  }
+
+  /**
+   * Detect the package manager being used
+   */
+  private detectPackageManager(): string {
+    if (fs.existsSync(path.join(this.baseDir, "pnpm-lock.yaml"))) {
+      return "pnpm";
+    }
+    if (fs.existsSync(path.join(this.baseDir, "yarn.lock"))) {
+      return "yarn";
+    }
+    if (fs.existsSync(path.join(this.baseDir, "bun.lockb"))) {
+      return "bun";
+    }
+    return "npm";
   }
 }

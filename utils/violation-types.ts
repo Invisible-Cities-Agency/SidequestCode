@@ -64,6 +64,10 @@ export type ViolationCategory =
   | "return-type" // function return type annotations
   | "no-explicit-any" // any type usage (handled by tsc now)
   | "other-eslint" // other ESLint rules
+  // Custom TypeScript quality categories
+  | "type-quality" // General TypeScript quality issues
+  | "async-issues" // Floating promises and async/await issues
+  | "custom-script-summary" // Summary from custom TypeScript scripts
   // Parsing/syntax categories
   | "syntax-error"
   | "parse-error"
