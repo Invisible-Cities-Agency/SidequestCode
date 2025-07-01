@@ -60,7 +60,7 @@ module.exports = {
     // Style and formatting - Disabled: Let Prettier handle all formatting
     // These rules conflict with Prettier and create noise
     // indent: ["error", 2],                    // Prettier handles
-    // quotes: ["error", "single", { avoidEscape: true }], // Prettier handles  
+    // quotes: ["error", "single", { avoidEscape: true }], // Prettier handles
     // semi: ["error", "always"],               // Prettier handles
     // "comma-dangle": ["error", "never"],      // Prettier handles
     // "object-curly-spacing": ["error", "always"], // Prettier handles
