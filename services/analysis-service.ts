@@ -119,14 +119,16 @@ export class AnalysisService implements IAnalysisService {
         avgExecutionTime: ruleData.avg_execution_time_ms || 0,
         avgViolationsFound: ruleData.avg_violations_found || 0,
         successRate:
-          ruleData.total_runs > 0 ? ruleData.successful_runs / ruleData.total_runs : 0,
+          ruleData.total_runs > 0
+            ? ruleData.successful_runs / ruleData.total_runs
+            : 0,
         lastRun: ruleData.last_run_at || 'Never',
         trend: this.calculateTrend(
-          ruleData.avg_violations_found,
-          ruleData.consecutive_zero_count
+          ruleData.avg_violations_found ?? 0,
+          ruleData.consecutive_zero_count ?? 0
         )
       };
-    }));
+    });
   }
 
   async getFileQualityTrends(filePath?: string): Promise<FileQualityTrend[]> {
@@ -221,7 +223,10 @@ export class AnalysisService implements IAnalysisService {
     const rulePerformance: unknown[] = []; // TODO: Implement getRulePerformance
 
     return rulePerformance
-      .filter((rule: unknown) => (rule as { total_runs: number }).total_runs >= minRuns)
+      .filter(
+        (rule: unknown) =>
+          (rule as { total_runs: number }).total_runs >= minRuns
+      )
       .map((rule: unknown) => {
         const ruleData = rule as {
           rule_id: string;
@@ -230,7 +235,7 @@ export class AnalysisService implements IAnalysisService {
           total_runs: number;
         };
         const variance = this.calculateVariance(
-          ruleData.avg_violations_found,
+          ruleData.avg_violations_found ?? 0,
           ruleData.total_runs
         );
         const stdDeviation = Math.sqrt(variance);
@@ -239,8 +244,10 @@ export class AnalysisService implements IAnalysisService {
           rule: ruleData.rule_id,
           engine: ruleData.engine,
           varianceScore: variance,
-          runCount: rule.total_runs,
-          avgViolations: rule.avg_violations_found || 0,
+          runCount: (rule as { total_runs: number }).total_runs,
+          avgViolations:
+            (rule as { avg_violations_found?: number }).avg_violations_found ||
+            0,
           stdDeviation
         };
       })
@@ -288,27 +295,35 @@ export class AnalysisService implements IAnalysisService {
       let reasoning = 'No change recommended';
 
       // Rules that consistently find violations should run more frequently
-      if (rule.avg_violations_found > 5) {
+      if (
+        (rule as { avg_violations_found?: number }).avg_violations_found &&
+        (rule as { avg_violations_found?: number }).avg_violations_found! > 5
+      ) {
         recommendedFrequency = currentFrequency / 2;
         reasoning = 'High violation rate - increase frequency';
       }
       // Rules that rarely find violations can run less frequently
       else if (
-        rule.avg_violations_found < 1 &&
-        rule.consecutive_zero_count > 5
+        ((rule as { avg_violations_found?: number }).avg_violations_found ??
+          0) < 1 &&
+        ((rule as { consecutive_zero_count?: number }).consecutive_zero_count ??
+          0) > 5
       ) {
         recommendedFrequency = currentFrequency * 2;
         reasoning = 'Low violation rate - decrease frequency';
       }
       // Rules with high execution time should run less frequently
-      else if (rule.avg_execution_time_ms > 1000) {
+      else if (
+        ((rule as { avg_execution_time_ms?: number }).avg_execution_time_ms ??
+          0) > 1000
+      ) {
         recommendedFrequency = currentFrequency * 1.5;
         reasoning = 'High execution time - decrease frequency';
       }
 
       return {
-        rule: rule.rule_id,
-        engine: rule.engine,
+        rule: (rule as { rule_id: string }).rule_id,
+        engine: (rule as { engine: string }).engine,
         currentFrequency,
         recommendedFrequency: Math.max(
           5000,
@@ -354,11 +369,14 @@ export class AnalysisService implements IAnalysisService {
 
     const totalRules = rulePerformance.length;
     const activeRules = rulePerformance.filter(
-      (rule: unknown) => rule.enabled
+      (rule: unknown) => (rule as { enabled?: boolean }).enabled
     ).length;
     const avgExecutionTime =
       rulePerformance.reduce(
-        (sum: number, rule: unknown) => sum + (rule.avg_execution_time_ms || 0),
+        (sum: number, rule: unknown) =>
+          sum +
+          ((rule as { avg_execution_time_ms?: number }).avg_execution_time_ms ||
+            0),
         0
       ) / totalRules;
 
@@ -499,7 +517,7 @@ export class AnalysisService implements IAnalysisService {
 
     // Rule performance recommendations
     const slowRules = rulePerformance.filter(
-      (rule: unknown) => (rule.avgExecutionTime || 0) > 500
+      (rule: RulePerformanceAnalysis) => (rule.avgExecutionTime || 0) > 500
     );
     if (slowRules.length > 0) {
       recommendations.push(
