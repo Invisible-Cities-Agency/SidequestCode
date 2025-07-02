@@ -1,6 +1,6 @@
 {
   "name": "@invisiblecities/sidequest-cqo",
-  "version": "0.2.0-alpha.4",
+  "version": "0.2.0-alpha.5",
   "description": "Configuration-agnostic TypeScript and ESLint orchestrator with real-time watch mode, SQLite persistence, and intelligent terminal detection",
   "type": "module",
   "main": "dist/lib/cli.js",
